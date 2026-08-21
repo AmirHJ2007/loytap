@@ -116,6 +116,7 @@ function stopResend() { if (resendTimer) clearInterval(resendTimer); resendTimer
 // ---------------- done ----------------
 function finish() {
   const name = $("name").value.trim();
+  try { if (role === "customer" && name) localStorage.setItem("loytap_name", name); } catch (_) {}
   if (role === "cafe") {
     $("doneTitle").textContent = mode === "register" ? "Café registered!" : "Welcome back!";
     $("doneSub").textContent = "Opening your scanner…";

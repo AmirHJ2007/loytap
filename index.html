@@ -28,8 +28,7 @@
 
   <main class="stage">
     <header class="wallet-head">
-      <h1 class="wallet-title">LoyTap</h1>
-      <p class="wallet-sub">Tap a card to bring it forward</p>
+      <h1 class="greeting" id="greeting">Hello 👋</h1>
     </header>
     <div class="wallet" id="wallet"></div>
   </main>
@@ -75,21 +74,27 @@
       <button class="drawer__close" id="drawerClose" aria-label="Close">✕</button>
     </header>
     <div class="drawer__list" id="drawerList">
-      <p class="drawer__empty" id="drawerEmpty">No discounts yet.<br/>Fill a card and scratch to reveal one.</p>
+      <p class="drawer__empty" id="drawerEmpty">No discounts yet.<br/>Fill a card to earn one.</p>
     </div>
   </aside>
 
-  <!-- QR viewer -->
-  <div class="qrm" id="qrModal" hidden aria-hidden="true">
-    <div class="qrm__scrim" id="qrModalScrim"></div>
-    <div class="qrm__card" role="dialog" aria-label="Discount QR code">
-      <button class="qrm__close" id="qrModalClose" aria-label="Close">✕</button>
-      <p class="qrm__shop" id="qrModalShop"></p>
-      <p class="qrm__deal" id="qrModalDeal"></p>
-      <div class="qrm__qr" id="qrModalQr"></div>
-      <p class="qrm__code" id="qrModalCode"></p>
-      <p class="qrm__hint">Show this at the counter to redeem</p>
+  <!-- Congratulation ticket -->
+  <div class="congrats" id="congrats" hidden aria-hidden="true">
+    <div class="ticket">
+      <div class="ticket__pop">🎉</div>
+      <h2 class="ticket__title">Congratulation!</h2>
+      <p class="ticket__sub" id="congratsSub">Show this screen to the staff to claim your reward</p>
+      <div class="ticket__divider"></div>
+      <div class="ticket__stats">
+        <div><span class="ticket__k">Discount</span><span class="ticket__v" id="ticketDiscount">—</span></div>
+        <div><span class="ticket__k">Due date</span><span class="ticket__v" id="ticketDue">—</span></div>
+        <div><span class="ticket__k">One time</span><span class="ticket__v" id="ticketOnce">Yes</span></div>
+      </div>
+      <div class="ticket__divider"></div>
+      <div class="ticket__qr" id="ticketQr"></div>
+      <p class="ticket__hint">Show this QR to the staff</p>
     </div>
+    <button class="congrats__continue" id="congratsContinue" type="button">Continue</button>
   </div>
 
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
