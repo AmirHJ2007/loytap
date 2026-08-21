@@ -64,6 +64,21 @@ const PEEK_GAP = 44;
 
 const STAR_SVG = `<svg viewBox="0 0 120 120" filter="url(#roughInk)" fill="currentColor" aria-hidden="true"><path d="M60 6 L74 45 L116 45 L82 70 L95 112 L60 86 L25 112 L38 70 L4 45 L46 45 Z"/></svg>`;
 
+// Build a themed, scannable QR code as inline SVG (dark modules on a light box).
+function qrSvg(text, color) {
+  const qr = qrcode(0, "M");
+  qr.addData(text);
+  qr.make();
+  const n = qr.getModuleCount();
+  const q = 4;                 // quiet-zone modules for reliable scanning
+  const size = n + q * 2;
+  let rects = "";
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if (qr.isDark(r, c)) rects += `<rect x="${c + q}" y="${r + q}" width="1.03" height="1.03"/>`;
+  return `<svg viewBox="0 0 ${size} ${size}" preserveAspectRatio="xMidYMid meet" fill="${color}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+}
+
 const wallet = document.getElementById("wallet");
 const stamper = document.getElementById("stamper");
 const confetti = document.getElementById("confetti");
@@ -113,12 +128,12 @@ function buildCard(cfg, index) {
           <div class="reward__prize">
             <div class="reward__hidden">
               <p class="reward__percent">${cfg.reward.percent}</p>
-              <p class="reward__desc">${cfg.reward.desc}</p>
-              <button class="code"><span class="code__value">${cfg.reward.code}</span><span class="code__copy">Copy</span></button>
+              <div class="qr" role="img" aria-label="Discount QR code"></div>
+              <p class="reward__scan">Scan · ${cfg.reward.code}</p>
             </div>
             <canvas class="scratch"></canvas>
           </div>
-          <p class="reward__hint">Scratch the foil to reveal your code</p>
+          <p class="reward__hint">Scratch the foil to reveal your QR code</p>
           <div class="reward__actions">
             <button class="btn btn--ghost reward__reveal">Reveal</button>
             <button class="btn btn--primary reward__restart">↺ New card</button>
@@ -142,10 +157,11 @@ function buildCard(cfg, index) {
     scratchHint: q(".reward__hint"),
     revealBtn: q(".reward__reveal"),
     restartBtn: q(".reward__restart"),
-    codeBtn: q(".code"),
-    codeCopy: q(".code__copy"),
     stamped: 0, cleared: false, scratchReady: false, scratching: false, sampleThrottle: 0,
   };
+
+  // render the discount QR (encodes the code) into the reward face
+  q(".qr").innerHTML = qrSvg(cfg.reward.code, cfg.theme["--ink"]);
 
   // ---- wiring ----
   el.addEventListener("click", (e) => {
@@ -155,7 +171,6 @@ function buildCard(cfg, index) {
   deck.resetBtn.addEventListener("click", (e) => { e.stopPropagation(); resetCard(deck); });
   deck.restartBtn.addEventListener("click", (e) => { e.stopPropagation(); resetCard(deck); });
   deck.revealBtn.addEventListener("click", (e) => { e.stopPropagation(); revealCode(deck); });
-  deck.codeBtn.addEventListener("click", (e) => { e.stopPropagation(); copyCode(deck); });
   deck.scratch.addEventListener("pointerdown", (e) => { deck.scratching = true; deck.scratch.setPointerCapture(e.pointerId); scratchAt(deck, e); });
   deck.scratch.addEventListener("pointermove", (e) => { if (deck.scratching) scratchAt(deck, e); });
 
@@ -357,7 +372,7 @@ function initScratch(deck) {
   deck.cleared = false;
   deck.scratch.classList.remove("is-cleared");
   deck.scratchHint.classList.remove("is-hidden");
-  deck.scratchHint.textContent = "Scratch the foil to reveal your code";
+  deck.scratchHint.textContent = "Scratch the foil to reveal your QR";
   deck.revealBtn.classList.remove("is-hidden");
 
   const rect = deck.scratch.getBoundingClientRect();
@@ -373,7 +388,7 @@ function initScratch(deck) {
   c.globalAlpha = 0.12; c.strokeStyle = "#ffffff"; c.lineWidth = 6;
   for (let x = -h; x < w; x += 22) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x + h, h); c.stroke(); }
   c.globalAlpha = 1;
-  c.fillStyle = "rgba(40,40,50,0.6)"; c.font = "700 12px Fraunces, serif"; c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillStyle = "rgba(40,40,50,0.6)"; c.font = "700 12px Quicksand, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
   c.fillText("✦ SCRATCH HERE ✦", w / 2, h / 2);
   deck.scratchReady = true;
 }
@@ -409,12 +424,6 @@ function revealCode(deck) {
   }
 }
 
-async function copyCode(deck) {
-  try { await navigator.clipboard.writeText(deck.codeBtn.querySelector(".code__value").textContent.trim()); } catch (_) {}
-  deck.codeCopy.textContent = "Copied!";
-  setTimeout(() => (deck.codeCopy.textContent = "Copy"), 1500);
-}
-
 // ===================================================================
 // Discounts pocket (session-only collection of revealed codes)
 // ===================================================================
@@ -439,7 +448,7 @@ function addDiscount(deck) {
     desc: deck.cfg.reward.desc,
     code,
     terra: deck.cfg.theme["--terra"],
-    terraDeep: deck.cfg.theme["--terra-deep"],
+    ink: deck.cfg.theme["--ink"],
   });
   renderDiscounts();
   pocketBtn.classList.remove("pop"); void pocketBtn.offsetWidth; pocketBtn.classList.add("pop");
@@ -454,6 +463,7 @@ function renderDiscounts() {
   discounts.forEach((d) => {
     const c = document.createElement("div");
     c.className = "coupon";
+    c.setAttribute("role", "button");
     c.innerHTML = `
       <span class="coupon__stripe" style="background:${d.terra}"></span>
       <div class="coupon__body">
@@ -461,19 +471,37 @@ function renderDiscounts() {
         <p class="coupon__deal">${d.deal}</p>
         <p class="coupon__desc">${d.desc}</p>
       </div>
-      <div class="coupon__code">
-        <span class="coupon__value">${d.code}</span>
-        <button class="coupon__copy" style="background:${d.terraDeep}">Copy</button>
-      </div>`;
-    const btn = c.querySelector(".coupon__copy");
-    btn.addEventListener("click", async () => {
-      try { await navigator.clipboard.writeText(d.code); } catch (_) {}
-      btn.textContent = "Copied!";
-      setTimeout(() => (btn.textContent = "Copy"), 1500);
-    });
+      <div class="coupon__qr">${qrSvg(d.code, d.ink)}</div>`;
+    c.addEventListener("click", () => openQr(d));
     drawerList.appendChild(c);
   });
 }
+
+// ---- QR modal ----
+const qrModal = document.getElementById("qrModal");
+const qrModalScrim = document.getElementById("qrModalScrim");
+const qrModalClose = document.getElementById("qrModalClose");
+const qrModalShop = document.getElementById("qrModalShop");
+const qrModalDeal = document.getElementById("qrModalDeal");
+const qrModalQr = document.getElementById("qrModalQr");
+const qrModalCode = document.getElementById("qrModalCode");
+
+function openQr(d) {
+  qrModalShop.textContent = d.shop;
+  qrModalDeal.textContent = d.deal;
+  qrModalCode.textContent = d.code;
+  qrModalQr.innerHTML = qrSvg(d.code, d.ink);
+  qrModal.hidden = false;
+  qrModal.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => qrModal.classList.add("show"));
+}
+function closeQr() {
+  qrModal.classList.remove("show");
+  qrModal.setAttribute("aria-hidden", "true");
+  setTimeout(() => { qrModal.hidden = true; }, 260);
+}
+qrModalScrim.addEventListener("click", closeQr);
+qrModalClose.addEventListener("click", closeQr);
 
 function openDrawer() {
   scrim.hidden = false;
@@ -489,7 +517,10 @@ function closeDrawer() {
 pocketBtn.addEventListener("click", openDrawer);
 drawerClose.addEventListener("click", closeDrawer);
 scrim.addEventListener("click", closeDrawer);
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!qrModal.hidden) closeQr(); else closeDrawer();
+});
 
 // ===================================================================
 // Init

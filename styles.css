@@ -44,7 +44,7 @@ body {
   gap: 18px;
 }
 .wallet-head { text-align: center; }
-.wallet-title { font-family: "Fraunces", serif; font-weight: 600; font-size: 26px; margin: 0; letter-spacing: -0.4px; color: #4a2f1c; }
+.wallet-title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 26px; margin: 0; letter-spacing: -0.4px; color: #4a2f1c; }
 .wallet-sub { margin: 4px 0 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: #b79a70; }
 
 .wallet {
@@ -105,9 +105,9 @@ body {
 
 /* ---------------- Brand header ---------------- */
 .brand { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; margin-bottom: 18px; position: relative; z-index: 1; }
-.brand__name { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 23px; line-height: 1.05; margin: 0; letter-spacing: -0.3px; color: var(--ink); }
+.brand__name { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 23px; line-height: 1.05; margin: 0; letter-spacing: -0.3px; color: var(--ink); }
 .brand__tag { margin: 5px 0 0; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); }
-.counter { font-family: "Fraunces", serif; font-weight: 600; font-size: 14px; color: var(--ink-faint); display: flex; align-items: baseline; gap: 1px; letter-spacing: -0.5px; }
+.counter { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 14px; color: var(--ink-faint); display: flex; align-items: baseline; gap: 1px; letter-spacing: -0.5px; }
 .counter .count { color: var(--terra-deep); font-size: 24px; }
 .counter__sep { opacity: 0.45; margin: 0 1px; }
 
@@ -141,7 +141,7 @@ body {
 
 /* ---------------- Controls ---------------- */
 .controls { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
-.btn { font-family: "Fraunces", serif; font-weight: 600; font-size: 15px; border: none; border-radius: 13px; padding: 12px 18px; cursor: pointer; position: relative; transition: transform 0.14s ease, box-shadow 0.3s ease, opacity 0.3s ease, filter 0.3s ease; }
+.btn { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 15px; border: none; border-radius: 13px; padding: 12px 18px; cursor: pointer; position: relative; transition: transform 0.14s ease, box-shadow 0.3s ease, opacity 0.3s ease, filter 0.3s ease; }
 .btn:active { transform: translateY(1px) scale(0.985); }
 .btn:focus-visible { outline: 2px solid var(--terra-deep); outline-offset: 3px; }
 .btn--primary { flex: 1; color: #fff6ea; background: linear-gradient(150deg, var(--terra), var(--terra-deep)); box-shadow: 0 9px 18px -8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3); text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
@@ -158,13 +158,13 @@ body {
 
 /* ---------------- Reward / back ---------------- */
 .reward { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; z-index: 1; }
-.reward__eyebrow { font-family: "Fraunces", serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--terra-deep); margin: 0; }
-.reward__prize { position: relative; width: 210px; height: 132px; border-radius: 15px; overflow: hidden; display: grid; place-items: center; border: 2px dashed var(--line); background: linear-gradient(160deg, var(--paper), var(--paper-2)); }
-.reward__hidden { position: absolute; inset: 0; display: grid; place-content: center; gap: 5px; text-align: center; padding: 10px; }
-.reward__percent { font-family: "Fraunces", serif; font-weight: 700; font-size: 34px; line-height: 1; margin: 0; background: linear-gradient(120deg, var(--terra-deep), var(--terra) 60%, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.reward__desc { margin: 0; font-size: 12px; color: var(--ink-dim); letter-spacing: 0.3px; }
-.code { margin-top: 7px; display: inline-flex; align-items: center; gap: 9px; font-family: "Fraunces", serif; font-weight: 700; letter-spacing: 2px; font-size: 14px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px dashed var(--terra); border-radius: 9px; padding: 7px 11px; cursor: pointer; }
-.code__copy { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #fff6ea; background: var(--terra); border-radius: 5px; padding: 3px 6px; }
+.reward__eyebrow { font-family: "Quicksand", "Nunito", sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--terra-deep); margin: 0; }
+.reward__prize { position: relative; width: 200px; height: 176px; border-radius: 15px; overflow: hidden; display: grid; place-items: center; border: 2px dashed var(--line); background: linear-gradient(160deg, var(--paper), var(--paper-2)); }
+.reward__hidden { position: absolute; inset: 0; display: grid; place-content: center; gap: 4px; text-align: center; padding: 10px; }
+.reward__percent { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 24px; line-height: 1; margin: 0; background: linear-gradient(120deg, var(--terra-deep), var(--terra) 60%, var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.qr { width: 98px; height: 98px; padding: 5px; margin: 4px auto 0; background: #ffffff; border-radius: 9px; box-shadow: 0 2px 7px rgba(0,0,0,0.14); }
+.qr svg { display: block; width: 100%; height: 100%; }
+.reward__scan { margin: 5px 0 0; font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-dim); }
 .scratch { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; border-radius: 15px; transition: opacity 0.5s ease; }
 .scratch:active { cursor: grabbing; }
 .scratch.is-cleared { opacity: 0; pointer-events: none; }
@@ -197,7 +197,7 @@ body {
   position: absolute; top: -6px; right: -6px;
   min-width: 20px; height: 20px; padding: 0 5px;
   display: grid; place-items: center;
-  font-family: "Fraunces", serif; font-weight: 700; font-size: 11px;
+  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 11px;
   color: #fff6ea; background: #c8703d;
   border: 2px solid var(--cream); border-radius: 10px;
 }
@@ -219,7 +219,7 @@ body {
 }
 .drawer.open { transform: translateX(0); }
 .drawer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.drawer__title { font-family: "Fraunces", serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #4a2f1c; }
+.drawer__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #4a2f1c; }
 .drawer__close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #8a6a45; font-size: 15px; cursor: pointer; }
 .drawer__close:hover { color: #4a2f1c; }
 .drawer__list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
@@ -228,23 +228,51 @@ body {
 .coupon {
   position: relative;
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
-  padding: 14px 14px 14px 16px;
+  padding: 12px 12px 12px 16px;
   border-radius: 14px;
   background: #fffdf7;
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: 0 6px 16px -10px rgba(60,40,20,0.5);
-  overflow: hidden;
+  overflow: hidden; cursor: pointer;
   animation: couponIn 0.4s var(--ease-spring);
+  transition: transform 0.14s ease, box-shadow 0.3s ease;
 }
+.coupon:hover { box-shadow: 0 10px 22px -10px rgba(60,40,20,0.6); }
+.coupon:active { transform: scale(0.98); }
 @keyframes couponIn { 0% { opacity: 0; transform: translateY(-8px) scale(0.96); } 100% { opacity: 1; transform: none; } }
 .coupon__stripe { width: 6px; align-self: stretch; border-radius: 4px; }
 .coupon__body { min-width: 0; }
 .coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #b79a70; margin: 0; }
-.coupon__deal { font-family: "Fraunces", serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #4a2f1c; }
+.coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #4a2f1c; }
 .coupon__desc { font-size: 11px; color: #8a6a45; margin: 1px 0 0; }
-.coupon__code { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.coupon__value { font-family: "Fraunces", serif; font-weight: 700; letter-spacing: 1px; font-size: 12px; color: #4a2f1c; }
-.coupon__copy { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #fff6ea; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.coupon__qr { width: 50px; height: 50px; padding: 4px; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.coupon__qr svg { display: block; width: 100%; height: 100%; }
+
+/* ---------------- QR modal ---------------- */
+.qrm { position: fixed; inset: 0; z-index: 210; display: grid; place-items: center; }
+.qrm[hidden] { display: none; }
+.qrm__scrim { position: absolute; inset: 0; background: rgba(50,32,16,0.5); opacity: 0; transition: opacity 0.25s ease; }
+.qrm.show .qrm__scrim { opacity: 1; }
+.qrm__card {
+  position: relative; z-index: 1;
+  width: min(84vw, 300px);
+  background: linear-gradient(160deg, #fffaf0, #f3e6cd);
+  border-radius: 22px;
+  padding: 26px 24px 22px;
+  text-align: center;
+  box-shadow: 0 30px 70px -20px rgba(60,40,20,0.7);
+  transform: scale(0.9); opacity: 0;
+  transition: transform 0.32s var(--ease-spring), opacity 0.25s ease;
+}
+.qrm.show .qrm__card { transform: scale(1); opacity: 1; }
+.qrm__close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 9px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.6); color: #8a6a45; font-size: 14px; cursor: pointer; }
+.qrm__close:hover { color: #4a2f1c; }
+.qrm__shop { margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #b79a70; }
+.qrm__deal { margin: 4px 0 0; font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 26px; color: #4a2f1c; }
+.qrm__qr { width: 190px; height: 190px; padding: 10px; margin: 16px auto 0; background: #fff; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); }
+.qrm__qr svg { display: block; width: 100%; height: 100%; }
+.qrm__code { margin: 12px 0 0; font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; letter-spacing: 2px; font-size: 15px; color: #4a2f1c; }
+.qrm__hint { margin: 4px 0 0; font-size: 11px; color: #b79a70; }
 
 /* ---------------- Confetti ---------------- */
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; }

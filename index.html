@@ -6,7 +6,7 @@
   <title>LoyTap · Loyalty Wallet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -79,8 +79,22 @@
     </div>
   </aside>
 
+  <!-- QR viewer -->
+  <div class="qrm" id="qrModal" hidden aria-hidden="true">
+    <div class="qrm__scrim" id="qrModalScrim"></div>
+    <div class="qrm__card" role="dialog" aria-label="Discount QR code">
+      <button class="qrm__close" id="qrModalClose" aria-label="Close">✕</button>
+      <p class="qrm__shop" id="qrModalShop"></p>
+      <p class="qrm__deal" id="qrModalDeal"></p>
+      <div class="qrm__qr" id="qrModalQr"></div>
+      <p class="qrm__code" id="qrModalCode"></p>
+      <p class="qrm__hint">Show this at the counter to redeem</p>
+    </div>
+  </div>
+
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
+  <script src="qrcode.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
