@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoyTap · Sign in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
+
+  <main class="auth">
+    <div class="auth__card">
+      <h1 class="auth__brand">LoyTap</h1>
+
+      <!-- role -->
+      <div class="seg" id="roleSeg" role="tablist" aria-label="Account type">
+        <button class="seg__btn is-on" data-role="customer" type="button">Customer</button>
+        <button class="seg__btn" data-role="cafe" type="button">Café</button>
+      </div>
+
+      <!-- STEP 1: phone -->
+      <section class="step" id="stepPhone">
+        <div class="tabs" id="modeTabs">
+          <button class="tabs__btn is-on" data-mode="signin" type="button">Sign in</button>
+          <button class="tabs__btn" data-mode="register" type="button">Register</button>
+        </div>
+
+        <div class="field" id="fieldName" hidden>
+          <label for="name">Your name</label>
+          <input id="name" type="text" autocomplete="name" placeholder="e.g. Sara" />
+        </div>
+        <div class="field" id="fieldCafe" hidden>
+          <label for="cafeName">Café name</label>
+          <input id="cafeName" type="text" autocomplete="organization" placeholder="e.g. Aurora Coffee" />
+        </div>
+
+        <div class="field">
+          <label for="phone">Mobile number</label>
+          <div class="phone">
+            <span class="phone__cc">🇮🇷 +98</span>
+            <input id="phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="11" placeholder="912 345 6789" />
+          </div>
+          <p class="field__err" id="phoneErr" hidden>Enter a valid Iranian mobile number.</p>
+        </div>
+
+        <button class="btn btn--primary" id="sendBtn" type="button">Send code</button>
+        <p class="fine">By continuing you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy</a>.</p>
+      </section>
+
+      <!-- STEP 2: otp -->
+      <section class="step" id="stepOtp" hidden>
+        <button class="back" id="backBtn" type="button">← Change number</button>
+        <p class="step__title">Enter the code</p>
+        <p class="step__sub">We sent a 6-digit code to <b id="otpPhone">+98 …</b></p>
+        <div class="otp" id="otp">
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
+        </div>
+        <p class="field__err" id="otpErr" hidden>Please enter all 6 digits.</p>
+        <button class="btn btn--primary" id="verifyBtn" type="button">Verify</button>
+        <p class="resend" id="resend">Resend code in <b id="resendT">60</b>s</p>
+        <p class="fine demo">Demo: no real SMS yet — enter any 6 digits.</p>
+      </section>
+
+      <!-- STEP 3: done -->
+      <section class="step" id="stepDone" hidden>
+        <div class="done__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <p class="step__title" id="doneTitle">You're in!</p>
+        <p class="step__sub" id="doneSub"></p>
+        <a class="btn btn--primary" id="continueBtn" href="index.html">Continue</a>
+      </section>
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+</body>
+</html>
