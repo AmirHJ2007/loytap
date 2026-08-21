@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# scratch / debug renders
+debug.html
+debug.png
+probe.html
+probe.png
+check.png
+phone.png
+*.local
