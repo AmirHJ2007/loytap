@@ -1,16 +1,14 @@
 // ===================================================================
-// LoyTap — café staff scanner (frontend only, mock data for now).
-// Scans a customer's discount QR, shows it, and lets staff redeem it.
-// Later this talks to the backend instead of the mock ISSUED map.
+// LoyTap — café staff scanner.
+// Scans a customer's discount QR (which carries only the opaque code),
+// sends it to the backend, and shows the server's verdict. A valid code
+// is redeemed on the server in the same step.
 // ===================================================================
 
-// Mock "issued discounts" — normally these come from the backend.
-const ISSUED = {
-  AURORA20: { shop: "Aurora Coffee", deal: "20% OFF", desc: "your next order", used: false },
-  BLOOM01:  { shop: "Bloom Bakery",  deal: "FREE",    desc: "a pastry of your choice", used: false },
-  VERDE25:  { shop: "Verde Juice",   deal: "25% OFF", desc: "any cold-press", used: false },
-  NORDIC15: { shop: "Nordic Tea",    deal: "15% OFF", desc: "your pot of tea", used: false },
-};
+// When the page is served by PocketBase (or a tunnel / Liara), the API is same-origin.
+// When served from the standalone :8000 dev server, talk to PocketBase on :8090.
+const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
+const token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
 
 const ICONS = {
   ok:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
@@ -96,42 +94,57 @@ function loop() {
   rafId = requestAnimationFrame(loop);
 }
 
-// ---------------- Lookup + result ----------------
-function handleCode(raw) {
+// ---------------- Lookup + redeem (server-side) ----------------
+async function handleCode(raw) {
   const code = String(raw).trim().toUpperCase().replace(/^LOYTAP[:/]*/, "");
-  const rec = ISSUED[code];
+  if (!code) return;
 
-  if (!rec) {
-    showResult("bad", "Not a valid code", `<p class="result__code">${escapeHtml(code) || "—"}</p>
-      <p class="result__desc" style="margin-top:10px">No discount matches this QR.</p>`,
-      [button("btn--primary", "Scan another", () => { closeResult(); startScan(); }), button("btn--ghost", "Close", closeResult)]);
+  showResult("warn", "Checking…", `<p class="result__code">${escapeHtml(code)}</p>`,
+    [button("btn--ghost", "Cancel", closeResult)]);
+
+  let res;
+  try {
+    const r = await fetch(API + "/redeem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: token },
+      body: JSON.stringify({ code }),
+    });
+    res = await r.json().catch(() => ({}));
+    if (r.status === 401 || r.status === 403) {
+      showResult("bad", "Not signed in", `<p class="result__desc">Sign in again as café staff to redeem.</p>`,
+        [button("btn--ghost", "Close", closeResult)]);
+      return;
+    }
+  } catch (err) {
+    showResult("bad", "Can’t reach the server", `<p class="result__desc">Check the connection and try again.</p>`,
+      [button("btn--primary", "Try again", () => { closeResult(); handleCode(code); }), button("btn--ghost", "Close", closeResult)]);
     return;
   }
-  if (rec.used) {
-    showResult("warn", "Already redeemed", couponHtml(rec, code),
-      [button("btn--ghost", "Close", closeResult)]);
-    return;
+
+  const scanAgain = button("btn--primary", "Scan another", () => { closeResult(); startScan(); });
+  const close = button("btn--ghost", "Close", closeResult);
+
+  if (res.status === "ok") {
+    showResult("ok", "Redeemed ✓",
+      couponHtml(res) + `<p class="result__desc" style="margin-top:10px">Applied — give the customer their discount.</p>`,
+      [scanAgain, close]);
+  } else if (res.status === "already") {
+    showResult("warn", "Already used before", couponHtml(res), [scanAgain, close]);
+  } else if (res.status === "expired") {
+    showResult("warn", "This discount has expired", couponHtml(res), [scanAgain, close]);
+  } else {
+    showResult("bad", "Not a valid code",
+      `<p class="result__code">${escapeHtml(code) || "—"}</p>
+       <p class="result__desc" style="margin-top:10px">No discount matches this QR.</p>`,
+      [scanAgain, close]);
   }
-  // valid + unused
-  showResult("ok", "Valid discount", couponHtml(rec, code), [
-    button("btn--primary", "Mark as redeemed", () => redeem(code)),
-    button("btn--ghost", "Cancel", closeResult),
-  ]);
 }
 
-function redeem(code) {
-  const rec = ISSUED[code];
-  if (!rec || rec.used) return;
-  rec.used = true; // later: POST to backend
-  showResult("ok", "Redeemed ✓", couponHtml(rec, code) + `<p class="result__desc" style="margin-top:10px">Applied — give the customer their discount.</p>`,
-    [button("btn--primary", "Scan another", () => { closeResult(); startScan(); }), button("btn--ghost", "Close", closeResult)]);
-}
-
-function couponHtml(rec, code) {
-  return `<p class="result__deal">${escapeHtml(rec.deal)}</p>
-    <p class="result__shop">${escapeHtml(rec.shop)}</p>
-    <p class="result__desc">${escapeHtml(rec.desc)}</p>
-    <span class="result__code">${escapeHtml(code)}</span>`;
+function couponHtml(res) {
+  return `<p class="result__deal">${escapeHtml(res.deal || "Reward")}</p>
+    <p class="result__shop">${escapeHtml(res.shop || "")}</p>
+    ${res.description ? `<p class="result__desc">${escapeHtml(res.description)}</p>` : ""}
+    <span class="result__code">${escapeHtml(res.code || "")}</span>`;
 }
 
 function showResult(kind, status, bodyHtml, actions) {

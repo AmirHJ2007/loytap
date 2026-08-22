@@ -5,7 +5,8 @@
 // ===================================================================
 
 // Backend runs on port 8090 on the same host that serves this page.
-const API = location.protocol + "//" + location.hostname + ":8090";
+// Same-origin when served by PocketBase / a tunnel / Liara; :8090 for the :8000 dev server.
+const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
 
 let role = "customer";     // 'customer' | 'cafe'
 let mode = "signin";       // 'signin' | 'register'

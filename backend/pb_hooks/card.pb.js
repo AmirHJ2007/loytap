@@ -43,16 +43,11 @@ routerAdd("POST", "/card/stamp", (e) => {
   let discount = null;
 
   if (count >= required) {
-    // draw a weighted-random active reward
+    // draw one active reward at random — every reward has an equal chance.
+    // (To boost a reward's odds the owner simply adds it more than once, so it
+    // holds more than one ticket in this uniform draw.)
     const opts = $app.findRecordsByFilter("reward_options", "active = true", "", 200, 0, {});
-    let total = 0;
-    for (const o of opts) total += Math.max(0, o.getFloat("weight") || 0);
-    let roll = Math.random() * (total || 1);
-    let picked = opts[0];
-    for (const o of opts) {
-      roll -= Math.max(0, o.getFloat("weight") || 0);
-      if (roll <= 0) { picked = o; break; }
-    }
+    const picked = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
 
     const expiryDays = card ? card.getInt("reward_expiry_days") : 30;
     const dueMs = Date.now() + expiryDays * 86400000;

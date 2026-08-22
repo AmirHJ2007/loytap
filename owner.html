@@ -9,26 +9,70 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --ink:#1c2b3a; --dim:#586675; --faint:#a99f86; --line:#c7bda3; --paper:#efe8d6; --paper2:#e2d9c3; }
+    :root { --ink:#1c2b3a; --dim:#586675; --faint:#a99f86; --line:#c7bda3; --paper:#efe8d6; --paper2:#e2d9c3; --sage:#7a8a5f; --bad:#c0503f; }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
     body { font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
       background: radial-gradient(130% 120% at 50% -10%, #f2ecdf 0%, #e9e1cf 48%, #dcd2bb 100%); min-height: 100dvh; }
-    .own { max-width: 460px; margin: 0 auto; padding: 24px 20px 40px; }
+    .own { max-width: 480px; margin: 0 auto; padding: 24px 20px 48px; }
     .own__head { display: flex; align-items: center; justify-content: space-between; }
     .own__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.3px; }
     .signout { background: transparent; border: 1.5px solid var(--line); color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 13px; border-radius: 12px; padding: 8px 14px; cursor: pointer; }
     .signout:hover { color: var(--ink); border-color: var(--dim); }
-    .hi { margin: 4px 0 22px; font-size: 15px; color: var(--dim); }
+    .hi { margin: 4px 0 20px; font-size: 15px; color: var(--dim); }
     .hi b { color: var(--ink); }
-    .tiles { display: flex; flex-direction: column; gap: 14px; }
+
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .tile { background: linear-gradient(160deg, var(--paper), var(--paper2)); border: 1px solid rgba(0,0,0,0.06);
-      border-radius: 18px; padding: 18px 18px; box-shadow: 0 14px 30px -18px rgba(28,43,58,0.4); }
-    .tile__k { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--faint); margin-bottom: 6px; }
-    .tile__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 22px; color: var(--ink); }
-    .code-row { display: flex; align-items: center; gap: 12px; }
-    .code-row .tile__v { letter-spacing: 2px; }
-    .copy { margin-left: auto; background: var(--ink); color: #f2ecdf; border: none; border-radius: 10px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; padding: 8px 12px; cursor: pointer; }
+      border-radius: 16px; padding: 14px 16px; box-shadow: 0 12px 26px -18px rgba(28,43,58,0.4); }
+    .tile__k { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--faint); margin-bottom: 6px; }
+    .tile__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 20px; color: var(--ink); letter-spacing: 1px; }
+    .code-row { display: flex; align-items: center; gap: 8px; }
+    .copy { margin-left: auto; background: var(--ink); color: #f2ecdf; border: none; border-radius: 9px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 11px; padding: 6px 10px; cursor: pointer; }
+
+    /* discounts box */
+    .box { margin-top: 20px; background: linear-gradient(160deg, var(--paper), var(--paper2)); border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 20px; padding: 18px 18px 20px; box-shadow: 0 18px 40px -22px rgba(28,43,58,0.45); }
+    .box__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .box__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 18px; margin: 0; }
+    .box__sub { margin: 2px 0 0; font-size: 12px; color: var(--dim); }
+    .add-btn { flex: 0 0 auto; background: var(--ink); color: #f2ecdf; border: none; border-radius: 12px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; padding: 9px 14px; cursor: pointer; }
+    .add-btn:active { transform: scale(0.97); }
+
+    .rw-list { display: flex; flex-direction: column; gap: 10px; }
+    .rw { display: flex; align-items: center; gap: 10px; background: #fffdf7; border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; padding: 12px 12px 12px 14px; animation: pop 0.3s ease; }
+    @keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
+    .rw__main { min-width: 0; flex: 1; }
+    .rw__top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .rw__deal { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); }
+    .rw__chance { font-size: 11px; font-weight: 700; color: var(--sage); background: rgba(122,138,95,0.14); border-radius: 20px; padding: 2px 8px; }
+    .rw__dup { font-size: 11px; font-weight: 700; color: var(--ink); background: rgba(28,43,58,0.08); border-radius: 20px; padding: 2px 8px; }
+    .rw__off { font-size: 11px; font-weight: 700; color: var(--faint); background: rgba(0,0,0,0.05); border-radius: 20px; padding: 2px 8px; }
+    .rw__desc { margin: 2px 0 0; font-size: 12px; color: var(--dim); }
+    .rw__del { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; border: 1px solid rgba(192,80,63,0.3); background: rgba(192,80,63,0.08); color: var(--bad); font-size: 15px; cursor: pointer; }
+    .rw__del:hover { background: rgba(192,80,63,0.16); }
+    .rw__confirm { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; animation: pop 0.2s ease; }
+    .rw__ask { font-size: 12px; font-weight: 700; color: var(--bad); }
+    .rw__yes, .rw__no { border: none; border-radius: 9px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; padding: 6px 11px; cursor: pointer; }
+    .rw__yes { background: var(--bad); color: #fff; }
+    .rw__no { background: rgba(0,0,0,0.06); color: var(--dim); }
+    .rw-empty { text-align: center; color: var(--faint); font-size: 13px; padding: 14px; }
+
+    .add-form { background: #fffdf7; border: 1px dashed var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .add-form input[type=text], .add-form input:not([type]) { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 11px; padding: 11px 12px; outline: none; margin-bottom: 10px; }
+    .add-form input:focus { border-color: var(--ink); }
+    .add-hint { margin: 0 0 12px; font-size: 12px; color: var(--dim); line-height: 1.5; }
+    .add-form__row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .fl { font-size: 12px; font-weight: 700; color: var(--dim); display: flex; flex-direction: column; gap: 5px; }
+    .fl select { font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; width: 100%; }
+    .fl select:focus { border-color: var(--ink); }
+    .fl--full { width: 100%; margin-bottom: 12px; }
+    .fl--check { flex-direction: row; align-items: center; gap: 7px; }
+    .fl--check input { width: 18px; height: 18px; }
+    .add-form__actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-ghost { background: transparent; border: 1.5px solid var(--line); color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; border-radius: 11px; padding: 9px 16px; cursor: pointer; }
+    .btn-solid { background: var(--ink); color: #f2ecdf; border: none; font-family: "Quicksand", sans-serif; font-weight: 700; border-radius: 11px; padding: 9px 18px; cursor: pointer; }
+    .add-err { color: var(--bad); font-size: 12px; font-weight: 600; margin: 8px 0 0; }
     .note { margin: 22px 4px 0; font-size: 12px; color: var(--faint); line-height: 1.5; text-align: center; }
   </style>
 </head>
@@ -38,48 +82,162 @@
       <h1 class="own__title">Owner</h1>
       <button class="signout" id="signout" type="button">Sign out</button>
     </div>
-    <p class="hi">Hello, <b id="ownerName">Owner</b> 👋 — here's <b id="cafeName">your café</b>.</p>
+    <p class="hi">Hello, <b id="ownerName">Owner</b> 👋 — <b id="cafeName">your café</b></p>
 
     <div class="tiles">
       <div class="tile">
-        <span class="tile__k">Staff code (share with your team)</span>
-        <div class="code-row">
-          <span class="tile__v" id="staffCode">—</span>
-          <button class="copy" id="copyCode" type="button">Copy</button>
-        </div>
+        <span class="tile__k">Staff code</span>
+        <div class="code-row"><span class="tile__v" id="staffCode">—</span><button class="copy" id="copyCode" type="button">Copy</button></div>
       </div>
       <div class="tile">
-        <span class="tile__k">Stamps to earn a reward</span>
+        <span class="tile__k">Stamps / reward</span>
         <span class="tile__v" id="stampsReq">—</span>
       </div>
     </div>
 
-    <p class="note">Change the staff code, rewards and stamp count in the admin dashboard for now — a full owner panel is coming.</p>
+    <section class="box">
+      <div class="box__head">
+        <div>
+          <h2 class="box__title">Discounts you offer</h2>
+          <p class="box__sub">Filling a card wins one of these at random — all equally likely</p>
+        </div>
+        <button class="add-btn" id="addBtn" type="button">+ Add</button>
+      </div>
+
+      <div class="add-form" id="addForm" hidden>
+        <input type="text" id="fDeal" placeholder="Deal — e.g. 20% OFF or Free coffee" />
+        <input type="text" id="fDesc" placeholder="Short description (optional)" />
+        <p class="add-hint">Every reward has an equal chance of being won. Want this one to come up more often? Add more than one copy.</p>
+        <div class="add-form__row">
+          <label class="fl">How many to add?
+            <select id="fQty">
+              <option value="1" selected>1 copy</option>
+              <option value="2">2 copies — 2× more likely</option>
+              <option value="3">3 copies — 3× more likely</option>
+              <option value="4">4 copies</option>
+              <option value="5">5 copies</option>
+              <option value="6">6 copies</option>
+              <option value="7">7 copies</option>
+              <option value="8">8 copies</option>
+              <option value="9">9 copies</option>
+              <option value="10">10 copies</option>
+            </select>
+          </label>
+          <label class="fl fl--check"><input type="checkbox" id="fActive" checked /> Show this reward</label>
+        </div>
+        <div class="add-form__actions">
+          <button class="btn-ghost" id="cancelBtn" type="button">Cancel</button>
+          <button class="btn-solid" id="saveBtn" type="button">Save</button>
+        </div>
+        <p class="add-err" id="addErr" hidden></p>
+      </div>
+
+      <div class="rw-list" id="rewardList"></div>
+    </section>
+
+    <p class="note">Every reward here is equally likely. To make one more common, add it more than once — each copy is another ticket in the draw.</p>
   </main>
 
   <script>
-    const API = location.protocol + "//" + location.hostname + ":8090";
-    try { document.getElementById("ownerName").textContent = localStorage.getItem("loytap_name") || "Owner"; } catch (e) {}
-    (async () => {
+    const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
+    const token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    try { $("ownerName").textContent = localStorage.getItem("loytap_name") || "Owner"; } catch (e) {}
+
+    async function loadCafe() {
       try {
         const r = await fetch(API + "/api/collections/cafe_card/records?perPage=1");
         const d = await r.json();
         if (d.items && d.items[0]) {
-          const c = d.items[0];
-          document.getElementById("cafeName").textContent = c.cafe_name || "your café";
-          document.getElementById("staffCode").textContent = c.staff_code || "—";
-          document.getElementById("stampsReq").textContent = c.stamps_required || 8;
+          $("cafeName").textContent = d.items[0].cafe_name || "your café";
+          $("staffCode").textContent = d.items[0].staff_code || "—";
+          $("stampsReq").textContent = d.items[0].stamps_required || 8;
         }
       } catch (e) {}
-    })();
-    document.getElementById("copyCode").onclick = async () => {
-      const btn = document.getElementById("copyCode");
-      try { await navigator.clipboard.writeText(document.getElementById("staffCode").textContent); btn.textContent = "Copied!"; setTimeout(() => (btn.textContent = "Copy"), 1500); } catch (e) {}
-    };
-    document.getElementById("signout").onclick = () => {
-      ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-      location.replace("auth.html");
-    };
+    }
+
+    async function loadRewards() {
+      const list = $("rewardList");
+      try {
+        const r = await fetch(API + "/api/collections/reward_options/records?perPage=100&sort=created");
+        const d = await r.json();
+        const items = (d && d.items) || [];
+        if (!items.length) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
+        list.innerHTML = items.map((x) => {
+          const tag = x.active ? "" : `<span class="rw__off">hidden</span>`;
+          return `<div class="rw">
+            <div class="rw__main">
+              <div class="rw__top"><span class="rw__deal">${esc(x.deal || "Reward")}</span>${tag}</div>
+              ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
+            </div>
+            <button class="rw__del" data-id="${x.id}" title="Delete">✕</button>
+          </div>`;
+        }).join("");
+        list.querySelectorAll(".rw__del").forEach((b) => b.addEventListener("click", () => askDelete(b)));
+      } catch (e) {
+        list.innerHTML = '<p class="rw-empty">Couldn’t load discounts.</p>';
+      }
+    }
+
+    function askDelete(btn) {
+      const id = btn.dataset.id;
+      const wrap = document.createElement("div");
+      wrap.className = "rw__confirm";
+      wrap.innerHTML = `<span class="rw__ask">Delete?</span><button class="rw__yes" type="button">Yes</button><button class="rw__no" type="button">No</button>`;
+      btn.replaceWith(wrap);
+      wrap.querySelector(".rw__yes").onclick = () => delReward(id);
+      wrap.querySelector(".rw__no").onclick = () => loadRewards();
+    }
+
+    async function delReward(id) {
+      try {
+        const r = await fetch(API + "/api/collections/reward_options/records/" + id, { method: "DELETE", headers: { Authorization: token } });
+        if (r.ok || r.status === 204) loadRewards();
+      } catch (e) {}
+    }
+
+    async function addReward() {
+      const deal = $("fDeal").value.trim();
+      if (!deal) { $("fDeal").focus(); return; }
+      $("addErr").hidden = true;
+      $("saveBtn").disabled = true;
+      try {
+        const qty = Math.max(1, Math.min(10, parseInt($("fQty").value, 10) || 1));
+        const body = {
+          deal,
+          description: $("fDesc").value.trim(),
+          weight: 1,
+          active: $("fActive").checked,
+        };
+        let failed = false;
+        for (let i = 0; i < qty; i++) {
+          const r = await fetch(API + "/api/collections/reward_options/records", {
+            method: "POST", headers: { "Content-Type": "application/json", Authorization: token },
+            body: JSON.stringify(body),
+          });
+          if (!r.ok) { failed = true; break; }
+        }
+        if (failed) { $("addErr").textContent = "Couldn’t save — are you signed in as owner?"; $("addErr").hidden = false; loadRewards(); return; }
+        $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1"; $("fActive").checked = true;
+        $("addForm").hidden = true;
+        loadRewards();
+      } catch (e) {
+        $("addErr").textContent = "Cannot reach the server."; $("addErr").hidden = false;
+      } finally {
+        $("saveBtn").disabled = false;
+      }
+    }
+
+    $("addBtn").onclick = () => { $("addForm").hidden = !$("addForm").hidden; if (!$("addForm").hidden) $("fDeal").focus(); };
+    $("cancelBtn").onclick = () => { $("addForm").hidden = true; };
+    $("saveBtn").onclick = addReward;
+    $("copyCode").onclick = async () => { const b = $("copyCode"); try { await navigator.clipboard.writeText($("staffCode").textContent); b.textContent = "Copied!"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch (e) {} };
+    $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
+
+    loadCafe();
+    loadRewards();
   </script>
 </body>
 </html>

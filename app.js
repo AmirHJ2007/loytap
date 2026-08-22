@@ -25,7 +25,8 @@ const PEEK_GAP = 44;
 const QR_COLOR = "#1c2b3a";
 
 // Backend on port 8090 on the same host that serves this page.
-const API = location.protocol + "//" + location.hostname + ":8090";
+// Same-origin when served by PocketBase / a tunnel / Liara; :8090 for the :8000 dev server.
+const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
 let token = "";
 try { token = localStorage.getItem("loytap_token") || ""; } catch (_) {}
 let cafeName = "Aurora Coffee";
