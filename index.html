@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LoyTap · Loyalty Wallet</title>
+  <script>try{if(localStorage.getItem('loytap_signed_in')!=='1')location.replace('auth.html');}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -28,10 +29,16 @@
 
   <main class="stage">
     <header class="wallet-head">
-      <h1 class="greeting" id="greeting">Hello 👋</h1>
+      <h1 class="wallet-title">Your Wallet</h1>
     </header>
+    <p class="greeting" id="greeting">Hello 👋</p>
     <div class="wallet" id="wallet"></div>
   </main>
+
+  <!-- Stamp button, pinned to the bottom of the screen -->
+  <div class="stampbar">
+    <button class="btn btn--primary stampbar__btn" id="stampFab" type="button"><span class="btn__label">Stamp</span></button>
+  </div>
 
   <!-- The shared rubber stamp tool that flies in and presses down -->
   <div class="stamper" id="stamper" aria-hidden="true">
@@ -100,6 +107,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

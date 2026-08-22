@@ -7,13 +7,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="auth.css" />
+  <link rel="stylesheet" href="auth.css?v=9" />
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
 
   <main class="auth">
     <div class="auth__card">
+      <div class="toast" id="toast" hidden>
+        <span class="toast__icon">🙁</span>
+        <div class="toast__body">
+          <b class="toast__title">Not registered yet</b>
+          <span class="toast__msg" id="toastMsg"></span>
+        </div>
+      </div>
       <h1 class="auth__brand">LoyTap</h1>
 
       <!-- role -->
@@ -30,7 +37,7 @@
         </div>
 
         <div class="field" id="fieldName" hidden>
-          <label for="name">Your name</label>
+          <label for="name">What can we call you?</label>
           <input id="name" type="text" autocomplete="name" placeholder="e.g. Sara" />
         </div>
         <div class="field" id="fieldCafe" hidden>
@@ -51,6 +58,38 @@
         <p class="fine">By continuing you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy</a>.</p>
       </section>
 
+      <!-- STEP 1 (café): shared code, no phone/registration -->
+      <section class="step" id="stepCafe" hidden>
+        <div class="field">
+          <label for="cafeCode">Café code</label>
+          <input id="cafeCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="e.g. ORAM-4821" />
+          <p class="field__err" id="cafeCodeErr" hidden>Wrong code — try again.</p>
+        </div>
+        <button class="btn btn--primary" id="cafeEnterBtn" type="button">Enter</button>
+        <p class="fine">Ask your manager for the café code — no account needed.</p>
+        <button class="link-btn" id="ownerLink" type="button">Café owner? Log in →</button>
+      </section>
+
+      <!-- STEP 1 (owner): phone + password, no registration -->
+      <section class="step" id="stepOwner" hidden>
+        <button class="back" id="ownerBack" type="button">← Back</button>
+        <p class="step__title">Owner login</p>
+        <div class="field">
+          <label for="ownerPhone">Mobile number</label>
+          <div class="phone">
+            <span class="phone__cc">🇮🇷 +98</span>
+            <input id="ownerPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="ownerPass">Password</label>
+          <input id="ownerPass" type="password" autocomplete="current-password" placeholder="••••••••" />
+          <p class="field__err" id="ownerErr" hidden>Wrong password.</p>
+        </div>
+        <button class="btn btn--primary" id="ownerLoginBtn" type="button">Log in</button>
+        <p class="fine">Owner accounts are set up by LoyTap — no self-registration.</p>
+      </section>
+
       <!-- STEP 2: otp -->
       <section class="step" id="stepOtp" hidden>
         <button class="back" id="backBtn" type="button">← Change number</button>
@@ -67,7 +106,7 @@
         <p class="field__err" id="otpErr" hidden>Please enter all 6 digits.</p>
         <button class="btn btn--primary" id="verifyBtn" type="button">Verify</button>
         <p class="resend" id="resend">Resend code in <b id="resendT">60</b>s</p>
-        <p class="fine demo">Demo: no real SMS yet — enter any 6 digits.</p>
+        <p class="fine demo">Dev mode: no SMS yet — the code is filled in for you.</p>
       </section>
 
       <!-- STEP 3: done -->
@@ -80,6 +119,6 @@
     </div>
   </main>
 
-  <script src="auth.js"></script>
+  <script src="auth.js?v=9"></script>
 </body>
 </html>

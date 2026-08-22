@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoyTap · Owner</title>
+  <script>try{if(localStorage.getItem('loytap_owner')!=='1')location.replace('auth.html');}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --ink:#1c2b3a; --dim:#586675; --faint:#a99f86; --line:#c7bda3; --paper:#efe8d6; --paper2:#e2d9c3; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
+      background: radial-gradient(130% 120% at 50% -10%, #f2ecdf 0%, #e9e1cf 48%, #dcd2bb 100%); min-height: 100dvh; }
+    .own { max-width: 460px; margin: 0 auto; padding: 24px 20px 40px; }
+    .own__head { display: flex; align-items: center; justify-content: space-between; }
+    .own__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.3px; }
+    .signout { background: transparent; border: 1.5px solid var(--line); color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 13px; border-radius: 12px; padding: 8px 14px; cursor: pointer; }
+    .signout:hover { color: var(--ink); border-color: var(--dim); }
+    .hi { margin: 4px 0 22px; font-size: 15px; color: var(--dim); }
+    .hi b { color: var(--ink); }
+    .tiles { display: flex; flex-direction: column; gap: 14px; }
+    .tile { background: linear-gradient(160deg, var(--paper), var(--paper2)); border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 18px; padding: 18px 18px; box-shadow: 0 14px 30px -18px rgba(28,43,58,0.4); }
+    .tile__k { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--faint); margin-bottom: 6px; }
+    .tile__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 22px; color: var(--ink); }
+    .code-row { display: flex; align-items: center; gap: 12px; }
+    .code-row .tile__v { letter-spacing: 2px; }
+    .copy { margin-left: auto; background: var(--ink); color: #f2ecdf; border: none; border-radius: 10px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; padding: 8px 12px; cursor: pointer; }
+    .note { margin: 22px 4px 0; font-size: 12px; color: var(--faint); line-height: 1.5; text-align: center; }
+  </style>
+</head>
+<body>
+  <main class="own">
+    <div class="own__head">
+      <h1 class="own__title">Owner</h1>
+      <button class="signout" id="signout" type="button">Sign out</button>
+    </div>
+    <p class="hi">Hello, <b id="ownerName">Owner</b> 👋 — here's <b id="cafeName">your café</b>.</p>
+
+    <div class="tiles">
+      <div class="tile">
+        <span class="tile__k">Staff code (share with your team)</span>
+        <div class="code-row">
+          <span class="tile__v" id="staffCode">—</span>
+          <button class="copy" id="copyCode" type="button">Copy</button>
+        </div>
+      </div>
+      <div class="tile">
+        <span class="tile__k">Stamps to earn a reward</span>
+        <span class="tile__v" id="stampsReq">—</span>
+      </div>
+    </div>
+
+    <p class="note">Change the staff code, rewards and stamp count in the admin dashboard for now — a full owner panel is coming.</p>
+  </main>
+
+  <script>
+    const API = location.protocol + "//" + location.hostname + ":8090";
+    try { document.getElementById("ownerName").textContent = localStorage.getItem("loytap_name") || "Owner"; } catch (e) {}
+    (async () => {
+      try {
+        const r = await fetch(API + "/api/collections/cafe_card/records?perPage=1");
+        const d = await r.json();
+        if (d.items && d.items[0]) {
+          const c = d.items[0];
+          document.getElementById("cafeName").textContent = c.cafe_name || "your café";
+          document.getElementById("staffCode").textContent = c.staff_code || "—";
+          document.getElementById("stampsReq").textContent = c.stamps_required || 8;
+        }
+      } catch (e) {}
+    })();
+    document.getElementById("copyCode").onclick = async () => {
+      const btn = document.getElementById("copyCode");
+      try { await navigator.clipboard.writeText(document.getElementById("staffCode").textContent); btn.textContent = "Copied!"; setTimeout(() => (btn.textContent = "Copy"), 1500); } catch (e) {}
+    };
+    document.getElementById("signout").onclick = () => {
+      ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+      location.replace("auth.html");
+    };
+  </script>
+</body>
+</html>

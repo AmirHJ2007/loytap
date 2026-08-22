@@ -1,0 +1,10 @@
+# PocketBase binary (download per-platform — see README)
+pocketbase
+pocketbase.exe
+
+# Runtime data (SQLite DB, uploads, logs) — never commit
+pb_data/
+*.log
+
+# PocketBase auto-generated types
+pb_data/types.d.ts

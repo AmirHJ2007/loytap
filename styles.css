@@ -1,18 +1,18 @@
 :root {
-  --cream: #e2f2e9;
+  --cream: #e7dfcc;
   --radius: 24px;
   --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
   /* per-card theme defaults (overridden inline on each .wcard) */
-  --paper: #f4fbf6;
-  --paper-2: #e4f2e8;
-  --ink: #16442c;
-  --ink-dim: #4e7d63;
-  --ink-faint: #8bae99;
-  --line: #bcdcc7;
-  --stamp-ink: #157a45;
-  --terra: #23a468;
-  --terra-deep: #178a52;
-  --gold: #7fce9f;
+  --paper: #efe8d6;
+  --paper-2: #e2d9c3;
+  --ink: #1c2b3a;
+  --ink-dim: #586675;
+  --ink-faint: #a99f86;
+  --line: #c7bda3;
+  --stamp-ink: #1c2b3a;
+  --terra: #2f4257;
+  --terra-deep: #26384a;
+  --gold: #7a8a5f;
 }
 
 * { box-sizing: border-box; }
@@ -20,8 +20,8 @@ html, body { height: 100%; margin: 0; }
 
 body {
   font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #16442c;
-  background: radial-gradient(130% 120% at 50% -10%, #eafaf0 0%, var(--cream) 48%, #a8dcbe 100%);
+  color: #1c2b3a;
+  background: radial-gradient(130% 120% at 50% -10%, #f2ecdf 0%, var(--cream) 48%, #dcd2bb 100%);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -29,8 +29,8 @@ body {
 /* ---------------- Background ---------------- */
 .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
 .stain { position: absolute; border-radius: 50%; filter: blur(60px); mix-blend-mode: multiply; opacity: 0.45; will-change: transform; }
-.stain--1 { width: 44vmax; height: 44vmax; background: radial-gradient(circle at 40% 40%, #a6d8b9, transparent 68%); top: -12vmax; left: -8vmax; animation: float1 26s ease-in-out infinite; }
-.stain--2 { width: 40vmax; height: 40vmax; background: radial-gradient(circle at 50% 50%, #a2d6b6, transparent 68%); bottom: -14vmax; right: -10vmax; animation: float2 30s ease-in-out infinite; }
+.stain--1 { width: 44vmax; height: 44vmax; background: radial-gradient(circle at 40% 40%, #d8cdb2, transparent 68%); top: -12vmax; left: -8vmax; animation: float1 26s ease-in-out infinite; }
+.stain--2 { width: 40vmax; height: 40vmax; background: radial-gradient(circle at 50% 50%, #cfc4a8, transparent 68%); bottom: -14vmax; right: -10vmax; animation: float2 30s ease-in-out infinite; }
 @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8vmax,5vmax) scale(1.1); } }
 @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1.05); } 50% { transform: translate(-7vmax,-4vmax) scale(0.95); } }
 .grain { position: absolute; inset: 0; opacity: 0.06; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
@@ -40,16 +40,32 @@ body {
   position: relative; z-index: 1;
   min-height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 20px 20px 28px;
+  padding: 24px 20px 28px;
   gap: 18px;
 }
-.wallet-head { text-align: center; }
-.greeting { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 25px; margin: 0; letter-spacing: -0.4px; color: #16442c; }
+
+/* Stamp button pinned to the bottom of the screen */
+.stampbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; justify-content: center;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+.stampbar__btn {
+  pointer-events: auto;
+  width: min(92vw, 360px);
+  font-size: 17px; padding: 16px 20px; border-radius: 16px;
+  box-shadow: 0 14px 30px -10px rgba(28, 43, 58, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.wallet-head { position: absolute; top: 16px; left: 0; right: 0; text-align: center; z-index: 2; }
+.wallet-title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.3px; color: #1c2b3a; }
+.greeting { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 19px; margin: 0; color: #1c2b3a; text-align: center; }
 
 .wallet {
   position: relative;
-  width: min(86vw, 300px);
+  width: min(96vw, 540px);
   margin: 0 auto;
+  transform: translateX(-12px); /* nudge the card slightly left */
   overflow: hidden;
 }
 
@@ -71,7 +87,7 @@ body {
 .card {
   position: relative;
   width: 100%;
-  aspect-ratio: 5 / 6;
+  aspect-ratio: 1 / 1.18;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
   /* smooth, symmetric flip so 90° lands at the midpoint (where the faces swap) */
@@ -110,11 +126,43 @@ body {
 .counter .count { color: var(--terra-deep); font-size: 24px; }
 .counter__sep { opacity: 0.45; margin: 0 1px; }
 
+/* ---------------- Oram card header ---------------- */
+.oram-sheen {
+  position: absolute; top: 0; left: 0; width: 55%; height: 100%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.5) 50%, transparent 80%);
+  transform: translateX(-170%) skewX(-12deg);
+  pointer-events: none; z-index: 3;
+  animation: sheen 1.2s ease-out 0.4s 1;
+}
+@keyframes sheen { to { transform: translateX(340%) skewX(-12deg); } }
+
+.oram-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 6px; position: relative; z-index: 1; }
+.oram-logo {
+  width: 90px; height: 90px; border-radius: 50%; overflow: hidden;
+  background: #ece5d3;
+  box-shadow: 0 12px 24px -10px rgba(28,43,58,0.45);
+  opacity: 0;
+  animation: logoIn 0.9s var(--ease-spring) 0.15s forwards, logoFloat 4.5s ease-in-out 1.15s infinite;
+}
+/* zoom the badge so it fills the circle (the source PNG has margins) */
+.oram-logo img { width: 100%; height: 100%; object-fit: cover; object-position: center 47%; display: block; transform: scale(1.34); }
+@keyframes logoIn { from { opacity: 0; transform: scale(0.4) rotate(-16deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes logoFloat { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-6px) rotate(1.5deg); } }
+
+.oram-name { font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 4px; margin: 14px 0 0; color: var(--ink); text-transform: uppercase; }
+.oram-sub { margin: 4px 0 0; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); }
+
+.oram-progress { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin: 10px 0 16px; font-family: "Quicksand","Nunito",sans-serif; position: relative; z-index: 1; }
+.oram-progress .count { font-weight: 700; font-size: 28px; color: var(--ink); }
+.oram-progress .counter__sep { opacity: 0.4; font-size: 22px; color: var(--ink-faint); }
+.oram-progress > span:nth-of-type(3) { font-size: 22px; color: var(--ink-faint); font-weight: 700; }
+.oram-progress__label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); margin-left: 8px; align-self: center; }
+
 /* ---------------- Stamp grid ---------------- */
 .grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 18px; position: relative; z-index: 1; }
 .slot {
   position: relative; border-radius: 50%; display: grid; place-items: center;
-  aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 62px;
+  aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 84px;
   color: var(--ink-faint);
   background: repeating-conic-gradient(rgba(0,0,0,0.012) 0deg 10deg, transparent 10deg 20deg), rgba(255,251,240,0.5);
   border: 2px dashed var(--line);
@@ -123,6 +171,7 @@ body {
 .slot__num { position: absolute; font-size: 9px; font-weight: 700; bottom: 2px; left: 50%; transform: translateX(-50%); color: var(--ink-faint); }
 .slot .stamp { position: absolute; inset: 0; display: grid; place-items: center; color: var(--stamp-ink); opacity: 0; transform: scale(0.2); will-change: transform, opacity; z-index: 1; }
 .slot .stamp svg { width: 76%; height: 76%; }
+.slot .stamp .stamp-mark { width: 136%; height: 136%; object-fit: cover; display: block; }
 .slot.is-stamped { border-color: rgba(0,0,0,0.08); }
 .slot.is-stamped .stamp { animation: starIn 0.5s var(--ease-spring) forwards; }
 @keyframes starIn {
@@ -180,15 +229,15 @@ body {
   position: fixed; top: 16px; right: 16px; z-index: 60;
   width: 46px; height: 46px; border-radius: 14px;
   display: grid; place-items: center; cursor: pointer;
-  color: #178a52;
-  background: linear-gradient(155deg, #f4fbf6, #e2f1e7);
+  color: #26384a;
+  background: linear-gradient(155deg, #efe8d6, #e2d9c3);
   border: 1px solid rgba(0,0,0,0.07);
   box-shadow: 0 8px 18px -8px rgba(90,60,30,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
   transition: transform 0.16s ease, box-shadow 0.3s ease;
 }
 .pocket-btn:hover { box-shadow: 0 12px 22px -8px rgba(90,60,30,0.6), inset 0 1px 0 rgba(255,255,255,0.6); }
 .pocket-btn:active { transform: scale(0.94); }
-.pocket-btn:focus-visible { outline: 2px solid #178a52; outline-offset: 3px; }
+.pocket-btn:focus-visible { outline: 2px solid #26384a; outline-offset: 3px; }
 .pocket-btn.pop { animation: pocketPop 0.5s var(--ease-spring); }
 @keyframes pocketPop { 0%,100% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } }
 
@@ -197,7 +246,7 @@ body {
   min-width: 20px; height: 20px; padding: 0 5px;
   display: grid; place-items: center;
   font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 11px;
-  color: #f2fbf5; background: #23a468;
+  color: #f2fbf5; background: #2f4257;
   border: 2px solid var(--cream); border-radius: 10px;
 }
 .pocket-badge.bump { animation: pocketPop 0.5s var(--ease-spring); }
@@ -209,7 +258,7 @@ body {
 .drawer {
   position: fixed; top: 0; right: 0; z-index: 200;
   width: min(88vw, 330px); height: 100%;
-  background: linear-gradient(160deg, #f4fbf6, #e2f1e7);
+  background: linear-gradient(160deg, #efe8d6, #e2d9c3);
   box-shadow: -18px 0 50px -20px rgba(60,40,20,0.6);
   transform: translateX(100%);
   transition: transform 0.42s var(--ease-spring);
@@ -218,11 +267,11 @@ body {
 }
 .drawer.open { transform: translateX(0); }
 .drawer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.drawer__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #16442c; }
-.drawer__close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #4e7d63; font-size: 15px; cursor: pointer; }
-.drawer__close:hover { color: #16442c; }
+.drawer__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #1c2b3a; }
+.drawer__close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #586675; font-size: 15px; cursor: pointer; }
+.drawer__close:hover { color: #1c2b3a; }
 .drawer__list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #8bae99; }
+.drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #a99f86; }
 
 .coupon {
   position: relative;
@@ -241,9 +290,9 @@ body {
 @keyframes couponIn { 0% { opacity: 0; transform: translateY(-8px) scale(0.96); } 100% { opacity: 1; transform: none; } }
 .coupon__stripe { width: 6px; align-self: stretch; border-radius: 4px; }
 .coupon__body { min-width: 0; }
-.coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #8bae99; margin: 0; }
-.coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #16442c; }
-.coupon__desc { font-size: 11px; color: #4e7d63; margin: 1px 0 0; }
+.coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #a99f86; margin: 0; }
+.coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #1c2b3a; }
+.coupon__desc { font-size: 11px; color: #586675; margin: 1px 0 0; }
 .coupon__go { font-size: 26px; font-weight: 700; color: var(--ink-faint); line-height: 1; padding-right: 2px; }
 
 /* ---------------- Congratulation ticket ---------------- */
@@ -251,7 +300,7 @@ body {
   position: fixed; inset: 0; z-index: 205;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
   padding: 40px 22px;
-  background: linear-gradient(165deg, #46b487 0%, #2f9d6d 45%, #1c7a52 100%);
+  background: linear-gradient(165deg, #33475b 0%, #22303f 45%, #161f2a 100%);
   opacity: 0; transition: opacity 0.3s ease;
 }
 .congrats[hidden] { display: none; }
@@ -276,17 +325,17 @@ body {
 
 .ticket__pop { font-size: 44px; line-height: 1; }
 .ticket__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; margin: 8px 0 0; letter-spacing: -0.4px;
-  background: linear-gradient(90deg, #2bbf9a, #23a66d 55%, #6cc47f); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.ticket__sub { margin: 8px 4px 0; font-size: 14.5px; line-height: 1.4; color: #5a7d6a; }
-.ticket__sub b { color: #16442c; }
-.ticket__divider { border-top: 2px dashed #d3e6da; margin: 18px 0; }
+  background: linear-gradient(90deg, #7a8a5f, #3a5068 55%, #a7b389); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ticket__sub { margin: 8px 4px 0; font-size: 14.5px; line-height: 1.4; color: #586675; }
+.ticket__sub b { color: #1c2b3a; }
+.ticket__divider { border-top: 2px dashed #d8cfbb; margin: 18px 0; }
 .ticket__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .ticket__stats > div { display: flex; flex-direction: column; gap: 4px; }
-.ticket__k { font-size: 11.5px; font-weight: 600; color: #93b3a1; }
-.ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #16442c; }
+.ticket__k { font-size: 11.5px; font-weight: 600; color: #a99f86; }
+.ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #1c2b3a; }
 .ticket__qr { width: 150px; height: 150px; margin: 6px auto 0; }
 .ticket__qr svg { display: block; width: 100%; height: 100%; }
-.ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #6a8c78; }
+.ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #586675; }
 
 .congrats__continue {
   font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 16px;

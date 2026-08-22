@@ -6,25 +6,32 @@
 
 const CARDS = [
   {
-    id: "aurora", name: "Aurora Coffee", tag: "Collect 8 · earn a treat",
+    id: "oram", name: "Oram Cafe & Restaurant", tag: "Collect 8 · earn a treat",
     stamps: 8, cols: 4,
-    reward: { percent: "20% OFF", desc: "your next order", code: "AURORA20" },
+    reward: { percent: "20% OFF", desc: "your next order", code: "ORAM20" },
     theme: {
-      "--paper": "#f4fbf6", "--paper-2": "#e2f1e7", "--ink": "#16442c",
-      "--ink-dim": "#4e7d63", "--ink-faint": "#8bae99", "--line": "#bcdcc7",
-      "--stamp-ink": "#157a45", "--terra": "#23a468", "--terra-deep": "#178a52", "--gold": "#7fce9f",
+      "--paper": "#ece5d3", "--paper-2": "#e2d9c3", "--ink": "#1c2b3a",
+      "--ink-dim": "#586675", "--ink-faint": "#a99f86", "--line": "#c7bda3",
+      "--stamp-ink": "#1c2b3a", "--terra": "#26384a", "--terra-deep": "#16232f", "--gold": "#7a8a5f",
     },
-    inks: ["#0f5c33", "#157a45", "#2aa869"],
-    confetti: ["#2aa869", "#7fce9f", "#cfe8d3", "#178a52", "#a9dcbb"],
+    inks: ["#16232f", "#1c2b3a", "#7a8a5f"],
+    confetti: ["#1c2b3a", "#7a8a5f", "#c7bda3", "#26384a", "#e2d9c3"],
   },
 ];
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const STAMPER_W = 120, STAMPER_H = 150, BASE_OFFSET = 100;
 const PEEK_GAP = 44;
-const QR_COLOR = "#178a52";
+const QR_COLOR = "#1c2b3a";
 
-const STAR_SVG = `<svg viewBox="0 0 120 120" filter="url(#roughInk)" fill="currentColor" aria-hidden="true"><path d="M60 6 L74 45 L116 45 L82 70 L95 112 L60 86 L25 112 L38 70 L4 45 L46 45 Z"/></svg>`;
+// Backend on port 8090 on the same host that serves this page.
+const API = location.protocol + "//" + location.hostname + ":8090";
+let token = "";
+try { token = localStorage.getItem("loytap_token") || ""; } catch (_) {}
+let cafeName = "Aurora Coffee";
+
+// The stamp mark is the Oram line-art logo (a stamped café-logo look).
+const STAR_SVG = `<img class="stamp-mark" src="oram-stamp.png?v=9" alt="" />`;
 
 // Dotted QR with rounded finder "eyes" (matches the reference look).
 // High error-correction so the rounded styling stays scannable.
@@ -76,18 +83,17 @@ function buildCard(cfg, index) {
     <div class="card">
       <section class="face face--front">
         <span class="notch notch--l"></span><span class="notch notch--r"></span>
-        <header class="brand">
-          <div class="brand__text">
-            <h1 class="brand__name">${cfg.name}</h1>
-            <p class="brand__tag">${cfg.tag}</p>
-          </div>
-          <div class="counter"><span class="count">0</span><span class="counter__sep">/</span><span>${cfg.stamps}</span></div>
+        <div class="oram-sheen" aria-hidden="true"></div>
+        <header class="oram-head">
+          <div class="oram-logo"><img src="oram-logo.png?v=4" alt="Oram" /></div>
+          <h1 class="oram-name">Oram</h1>
+          <p class="oram-sub">Cafe &amp; Restaurant</p>
         </header>
+        <div class="oram-progress">
+          <span class="count">0</span><span class="counter__sep">/</span><span>${cfg.stamps}</span>
+          <span class="oram-progress__label">stamps collected</span>
+        </div>
         <div class="grid" style="--cols:${cfg.cols}">${slotsHtml}</div>
-        <footer class="controls">
-          <button class="btn btn--primary stampBtn"><span class="btn__label">Stamp</span></button>
-          <button class="btn btn--ghost resetBtn">Reset</button>
-        </footer>
       </section>
     </div>`;
 
@@ -98,14 +104,11 @@ function buildCard(cfg, index) {
     grid: q(".grid"),
     slots: [...el.querySelectorAll(".slot")],
     countEl: q(".count"),
-    stampBtn: q(".stampBtn"),
-    resetBtn: q(".resetBtn"),
+    stampBtn: document.getElementById("stampFab"), // the fixed bottom button
     stamped: 0,
   };
 
-  el.addEventListener("click", () => { if (deck.index !== activeIndex) setActive(deck.index); });
-  deck.stampBtn.addEventListener("click", (e) => { e.stopPropagation(); addStamp(deck); });
-  deck.resetBtn.addEventListener("click", (e) => { e.stopPropagation(); resetCard(deck); });
+  deck.stampBtn.onclick = () => addStamp(deck);
   return deck;
 }
 
@@ -135,38 +138,49 @@ function setActive(i) { if (busy) return; activeIndex = i; layout(); }
 // ===================================================================
 // Stamping
 // ===================================================================
-function addStamp(deck) {
-  if (busy || deck.index !== activeIndex || deck.stamped >= deck.cfg.stamps) return;
+// The backend adds the stamp (and decides its look + any reward), so the
+// exact same stars come back on sign-in and stamps can't be faked.
+async function addStamp(deck) {
+  if (busy || deck.stamped >= deck.cfg.stamps) return;
   busy = true;
   deck.stampBtn.disabled = true;
+  let res = null;
+  try {
+    const r = await fetch(API + "/card/stamp", { method: "POST", headers: { Authorization: token } });
+    res = await r.json();
+    if (!r.ok) throw new Error((res && res.error) || "stamp failed");
+  } catch (err) {
+    busy = false; deck.stampBtn.disabled = false;
+    return;
+  }
   const slot = deck.slots[deck.stamped];
   deck.stamped++;
-  const dx = Math.random() * 32 - 16;
-  const dy = Math.random() * 32 - 16;
-  playStamp(deck, slot, dx, dy, () => onImpact(deck, slot, dx, dy), () => onLifted(deck));
+  const v = res.stamp;
+  playStamp(deck, slot, v.dx, v.dy, () => onImpact(deck, slot, v), () => onLifted(deck, res));
 }
 
-function onImpact(deck, slot, dx, dy) {
-  slot.style.setProperty("--r", (Math.random() * 14 - 7).toFixed(1) + "deg");
-  slot.style.setProperty("--dx", dx.toFixed(1) + "px");
-  slot.style.setProperty("--dy", dy.toFixed(1) + "px");
-  slot.style.setProperty("--sa", (0.55 + Math.random() * 0.45).toFixed(2));
+function onImpact(deck, slot, v) {
+  slot.style.setProperty("--r", v.r + "deg");
+  slot.style.setProperty("--dx", v.dx + "px");
+  slot.style.setProperty("--dy", v.dy + "px");
+  slot.style.setProperty("--sa", v.sa);
+  if (v.color) slot.querySelector(".stamp").style.color = v.color;
   slot.classList.add("is-stamped");
   deck.countEl.textContent = String(deck.stamped);
   deck.stampBtn.classList.remove("pulse"); void deck.stampBtn.offsetWidth; deck.stampBtn.classList.add("pulse");
-  inkPuff(deck, slot, dx, dy);
+  inkPuff(deck, slot, v.dx, v.dy);
   deck.card.animate(
     [{ transform: "translate(0,0)" }, { transform: "translate(-3px,2px)" }, { transform: "translate(3px,-1px)" }, { transform: "translate(0,0)" }],
     { duration: 260, easing: "ease" }
   );
 }
 
-function onLifted(deck) {
+function onLifted(deck, res) {
   busy = false;
-  if (deck.stamped >= deck.cfg.stamps) {
+  if (res.completed) {
     deck.stampBtn.disabled = true;
     deck.stampBtn.querySelector(".btn__label").textContent = "Complete!";
-    setTimeout(() => complete(deck), REDUCED ? 120 : 350);
+    setTimeout(() => complete(deck, res.discount), REDUCED ? 120 : 350);
   } else {
     deck.stampBtn.disabled = false;
   }
@@ -203,8 +217,9 @@ function inkPuff(deck, slot, dx, dy) {
 // ===================================================================
 // Completion → confetti → congrats ticket
 // ===================================================================
-function complete(deck) {
-  const rec = addDiscount(deck);
+function complete(deck, discount) {
+  const rec = discountToRec(discount);
+  addDiscountToPocket(rec);
   celebrate(deck);
   pendingReset = deck; // once they hit "Continue", the card starts over from the top
   setTimeout(() => showCongrats(rec), REDUCED ? 0 : 250);
@@ -218,14 +233,17 @@ function celebrate(deck) {
 }
 
 function resetCard(deck) {
-  if (busy) return;
   deck.stamped = 0;
   deck.countEl.textContent = "0";
   deck.stampBtn.disabled = false;
   deck.stampBtn.querySelector(".btn__label").textContent = "Stamp";
   particles = [];
   cctx.clearRect(0, 0, confetti.width, confetti.height);
-  deck.slots.forEach((s) => s.classList.remove("is-stamped"));
+  deck.slots.forEach((s) => {
+    s.classList.remove("is-stamped");
+    const st = s.querySelector(".stamp");
+    if (st) st.style.color = "";
+  });
 }
 
 // ===================================================================
@@ -301,24 +319,46 @@ function dueDateStr() {
   return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
 }
 
-function addDiscount(deck) {
-  const code = deck.cfg.reward.code;
-  let rec = discounts.find((d) => d.code === code);
-  if (rec) return rec;
-  rec = {
-    shop: deck.cfg.name,
-    deal: deck.cfg.reward.percent,
-    desc: deck.cfg.reward.desc,
-    code,
-    short: shortDiscount(deck.cfg.reward.percent),
-    due: dueDateStr(),
-    terra: deck.cfg.theme["--terra"],
+function formatDue(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const z = (n) => String(n).padStart(2, "0");
+  return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
+}
+
+// backend /card/stamp discount payload -> pocket/congrats record
+function discountToRec(d) {
+  return {
+    shop: (d && d.shop) || cafeName,
+    deal: (d && d.deal) || "Reward",
+    desc: (d && d.description) || "",
+    code: (d && d.code) || "",
+    short: shortDiscount((d && d.deal) || ""),
+    due: (d && d.due) || dueDateStr(),
+    terra: "#23a468",
   };
+}
+
+// backend discounts collection record -> pocket record
+function mapDiscount(item) {
+  return {
+    shop: cafeName,
+    deal: item.deal || "Reward",
+    desc: item.description || "",
+    code: item.code || "",
+    short: shortDiscount(item.deal || ""),
+    due: formatDue(item.due_date),
+    terra: "#23a468",
+    status: item.status,
+  };
+}
+
+function addDiscountToPocket(rec) {
+  if (discounts.find((d) => d.code === rec.code)) return;
   discounts.unshift(rec);
   renderDiscounts();
   pocketBtn.classList.remove("pop"); void pocketBtn.offsetWidth; pocketBtn.classList.add("pop");
   pocketBadge.classList.remove("bump"); void pocketBadge.offsetWidth; pocketBadge.classList.add("bump");
-  return rec;
 }
 
 function renderDiscounts() {
@@ -343,10 +383,16 @@ function renderDiscounts() {
   });
 }
 
-function openDrawer() {
+async function openDrawer() {
   scrim.hidden = false;
   requestAnimationFrame(() => { scrim.classList.add("show"); drawer.classList.add("open"); });
   drawer.setAttribute("aria-hidden", "false");
+  // load the signed-in user's discounts from the backend
+  try {
+    const r = await fetch(API + "/api/collections/discounts/records?perPage=100&sort=-created", { headers: { Authorization: token } });
+    const data = await r.json();
+    if (data && data.items) { discounts = data.items.map(mapDiscount); renderDiscounts(); }
+  } catch (_) {}
 }
 function closeDrawer() {
   scrim.classList.remove("show");
@@ -398,16 +444,80 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-// Greeting — name comes from sign-up (stored at sign-in); placeholder until then.
-(() => {
-  const g = document.getElementById("greeting");
-  let name = "";
-  try { name = (localStorage.getItem("loytap_name") || "").trim(); } catch (_) {}
-  g.textContent = `Hello, ${name || "Sara"} 👋`;
-})();
+// Paint saved stamps instantly (no press animation), exactly as stored.
+function renderSaved(deck, stamps) {
+  stamps.forEach((v, i) => {
+    const slot = deck.slots[i];
+    if (!slot) return;
+    slot.style.setProperty("--r", (v.r || 0) + "deg");
+    slot.style.setProperty("--dx", (v.dx || 0) + "px");
+    slot.style.setProperty("--dy", (v.dy || 0) + "px");
+    slot.style.setProperty("--sa", v.sa != null ? v.sa : 1);
+    const st = slot.querySelector(".stamp");
+    if (st) {
+      if (v.color) st.style.color = v.color;
+      st.style.animationDelay = (i * 0.08).toFixed(2) + "s"; // cascade in
+    }
+    slot.classList.add("is-stamped");
+  });
+  deck.stamped = stamps.length;
+  deck.countEl.textContent = String(stamps.length);
+}
 
-decks = CARDS.map((cfg, i) => { const d = buildCard(cfg, i); wallet.appendChild(d.el); return d; });
-sizeConfetti();
-window.addEventListener("resize", () => { sizeConfetti(); layout(); });
-window.addEventListener("load", () => setTimeout(layout, 40));
-layout();
+async function init() {
+  // public café config
+  let stampsRequired = 8;
+  try {
+    const r = await fetch(API + "/api/collections/cafe_card/records?perPage=1");
+    const d = await r.json();
+    if (d.items && d.items[0]) {
+      stampsRequired = d.items[0].stamps_required || 8;
+      cafeName = d.items[0].cafe_name || cafeName;
+    }
+  } catch (_) {}
+
+  // signed-in user: refresh the session and load their card state
+  let user = null;
+  try {
+    const r = await fetch(API + "/api/collections/users/auth-refresh", { method: "POST", headers: { Authorization: token } });
+    if (r.ok) {
+      const d = await r.json();
+      user = d.record;
+      token = d.token;
+      try { localStorage.setItem("loytap_token", token); } catch (_) {}
+    }
+  } catch (_) {}
+
+  if (!user) {
+    try { localStorage.removeItem("loytap_signed_in"); } catch (_) {}
+    location.replace("auth.html");
+    return;
+  }
+
+  const g = document.getElementById("greeting");
+  if (g) g.textContent = `Hello, ${(user.name || "there").trim()} 👋`;
+
+  // build the single card from the café config
+  const cfg = Object.assign({}, CARDS[0], {
+    name: cafeName,
+    stamps: stampsRequired,
+    cols: Math.max(1, Math.ceil(stampsRequired / 2)),
+    tag: `Collect ${stampsRequired} · earn a treat`,
+  });
+  decks = [buildCard(cfg, 0)];
+  wallet.appendChild(decks[0].el);
+
+  // restore the saved stamps exactly as they were
+  const saved = Array.isArray(user.stamps) ? user.stamps : [];
+  renderSaved(decks[0], saved);
+  if (saved.length >= stampsRequired) {
+    decks[0].stampBtn.disabled = true;
+    decks[0].stampBtn.querySelector(".btn__label").textContent = "Complete!";
+  }
+
+  sizeConfetti();
+  layout();
+}
+
+window.addEventListener("resize", () => { if (decks.length) { sizeConfetti(); layout(); } });
+init();
