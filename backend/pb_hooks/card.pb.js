@@ -49,8 +49,16 @@ routerAdd("POST", "/card/stamp", (e) => {
     const opts = $app.findRecordsByFilter("reward_options", "active = true", "", 200, 0, {});
     const picked = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
 
-    const expiryDays = card ? card.getInt("reward_expiry_days") : 30;
-    const dueMs = Date.now() + expiryDays * 86400000;
+    // due date = issue time + the drawn reward's own "expires after" (amount + unit).
+    // Falls back to the café-wide reward_expiry_days if the reward has none.
+    const due = new Date();
+    const amt = picked ? picked.getInt("expiry_amount") : 0;
+    const unit = picked ? picked.getString("expiry_unit") : "";
+    if (amt > 0 && unit === "day") due.setDate(due.getDate() + amt);
+    else if (amt > 0 && unit === "week") due.setDate(due.getDate() + amt * 7);
+    else if (amt > 0 && unit === "month") due.setMonth(due.getMonth() + amt);
+    else due.setDate(due.getDate() + (card ? card.getInt("reward_expiry_days") : 30));
+    const dueMs = due.getTime();
     const code = "LOY" + $security.randomStringWithAlphabet(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
 
     const d = new Record($app.findCollectionByNameOrId("discounts"));
@@ -64,7 +72,6 @@ routerAdd("POST", "/card/stamp", (e) => {
     d.set("status", "active");
     $app.save(d);
 
-    const due = new Date(dueMs);
     const z = (n) => (n < 10 ? "0" + n : "" + n);
     discount = {
       code,

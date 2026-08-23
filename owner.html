@@ -49,6 +49,7 @@
     .rw__dup { font-size: 11px; font-weight: 700; color: var(--ink); background: rgba(28,43,58,0.08); border-radius: 20px; padding: 2px 8px; }
     .rw__off { font-size: 11px; font-weight: 700; color: var(--faint); background: rgba(0,0,0,0.05); border-radius: 20px; padding: 2px 8px; }
     .rw__desc { margin: 2px 0 0; font-size: 12px; color: var(--dim); }
+    .rw__exp { margin: 4px 0 0; font-size: 11px; font-weight: 700; color: var(--sage); }
     .rw__del { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; border: 1px solid rgba(192,80,63,0.3); background: rgba(192,80,63,0.08); color: var(--bad); font-size: 15px; cursor: pointer; }
     .rw__del:hover { background: rgba(192,80,63,0.16); }
     .rw__confirm { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; animation: pop 0.2s ease; }
@@ -60,6 +61,8 @@
 
     .add-form { background: #fffdf7; border: 1px dashed var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
     .add-form input[type=text], .add-form input:not([type]) { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 11px; padding: 11px 12px; outline: none; margin-bottom: 10px; }
+    .add-form input[type=number] { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: #fff; border: 1.5px solid var(--line); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; }
+    .fl--exp { flex: 1; }
     .add-form input:focus { border-color: var(--ink); }
     .add-hint { margin: 0 0 12px; font-size: 12px; color: var(--dim); line-height: 1.5; }
     .add-form__row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
@@ -107,6 +110,18 @@
       <div class="add-form" id="addForm" hidden>
         <input type="text" id="fDeal" placeholder="Deal — e.g. 20% OFF or Free coffee" />
         <input type="text" id="fDesc" placeholder="Short description (optional)" />
+        <div class="add-form__row">
+          <label class="fl fl--exp">Expires after
+            <input type="number" id="fExpAmt" min="1" max="365" value="2" />
+          </label>
+          <label class="fl fl--exp">Unit
+            <select id="fExpUnit">
+              <option value="day">days</option>
+              <option value="week" selected>weeks</option>
+              <option value="month">months</option>
+            </select>
+          </label>
+        </div>
         <p class="add-hint">Every reward has an equal chance of being won. Want this one to come up more often? Add more than one copy.</p>
         <div class="add-form__row">
           <label class="fl">How many to add?
@@ -167,10 +182,14 @@
         if (!items.length) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
         list.innerHTML = items.map((x) => {
           const tag = x.active ? "" : `<span class="rw__off">hidden</span>`;
+          const amt = Number(x.expiry_amount) || 0;
+          const unit = x.expiry_unit || "";
+          const exp = amt && unit ? `<p class="rw__exp">Expires ${amt} ${unit}${amt > 1 ? "s" : ""} after it's won</p>` : "";
           return `<div class="rw">
             <div class="rw__main">
               <div class="rw__top"><span class="rw__deal">${esc(x.deal || "Reward")}</span>${tag}</div>
               ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
+              ${exp}
             </div>
             <button class="rw__del" data-id="${x.id}" title="Delete">✕</button>
           </div>`;
@@ -210,6 +229,8 @@
           description: $("fDesc").value.trim(),
           weight: 1,
           active: $("fActive").checked,
+          expiry_amount: Math.max(1, Math.min(365, parseInt($("fExpAmt").value, 10) || 30)),
+          expiry_unit: $("fExpUnit").value,
         };
         let failed = false;
         for (let i = 0; i < qty; i++) {
@@ -221,6 +242,7 @@
         }
         if (failed) { $("addErr").textContent = "Couldn’t save — are you signed in as owner?"; $("addErr").hidden = false; loadRewards(); return; }
         $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1"; $("fActive").checked = true;
+        $("fExpAmt").value = "2"; $("fExpUnit").value = "week";
         $("addForm").hidden = true;
         loadRewards();
       } catch (e) {

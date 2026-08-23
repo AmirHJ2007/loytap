@@ -327,6 +327,19 @@ function formatDue(iso) {
   return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
 }
 
+// whole days left until the discount expires (negative = already expired)
+function daysUntil(iso) {
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return Infinity;
+  return Math.ceil((t - Date.now()) / 864e5);
+}
+// stripe colour by urgency: red ≤2 days, yellow ≤5 days, else green
+function urgencyColor(days) {
+  if (days <= 2) return "#c0503f"; // red
+  if (days <= 5) return "#e0a92e"; // yellow/amber
+  return "#23a468";                // green
+}
+
 // backend /card/stamp discount payload -> pocket/congrats record
 function discountToRec(d) {
   return {
@@ -342,6 +355,7 @@ function discountToRec(d) {
 
 // backend discounts collection record -> pocket record
 function mapDiscount(item) {
+  const days = daysUntil(item.due_date);
   return {
     shop: cafeName,
     deal: item.deal || "Reward",
@@ -349,9 +363,29 @@ function mapDiscount(item) {
     code: item.code || "",
     short: shortDiscount(item.deal || ""),
     due: formatDue(item.due_date),
-    terra: "#23a468",
+    dueISO: item.due_date,
+    days: days,
+    terra: urgencyColor(days),
     status: item.status,
+    redeemedAt: item.redeemed_at || "",
   };
+}
+
+// Used/expired coupons linger in a dimmed "Past" section, then auto-hide from the
+// pocket after this grace window. The backend row is always kept for the café.
+const POCKET_GRACE_MS = 7 * 864e5;
+function pocketState(d) {
+  const now = Date.now();
+  const expired = d.status === "expired" || (typeof d.days === "number" && d.days < 0);
+  if (d.status === "redeemed") {
+    const t = new Date(d.redeemedAt).getTime();
+    return { past: true, kind: "used", visible: isNaN(t) ? true : now < t + POCKET_GRACE_MS };
+  }
+  if (expired) {
+    const t = new Date(d.dueISO).getTime();
+    return { past: true, kind: "expired", visible: isNaN(t) ? true : now < t + POCKET_GRACE_MS };
+  }
+  return { past: false, kind: null, visible: true };
 }
 
 function addDiscountToPocket(rec) {
@@ -362,26 +396,68 @@ function addDiscountToPocket(rec) {
   pocketBadge.classList.remove("bump"); void pocketBadge.offsetWidth; pocketBadge.classList.add("bump");
 }
 
+function activeCoupon(d) {
+  const c = document.createElement("div");
+  c.className = "coupon";
+  c.setAttribute("role", "button");
+  // expiry line — plain when far off, coloured + countdown when ≤5 days
+  let expText = "Expires " + (d.due || "—");
+  let expStyle = "";
+  if (typeof d.days === "number" && d.days <= 5) {
+    expText = "Expires " + d.due + " · " + d.days + " day" + (d.days > 1 ? "s" : "") + " left";
+    expStyle = ` style="color:${d.terra};font-weight:800"`;
+  }
+  c.innerHTML = `
+    <span class="coupon__stripe" style="background:${d.terra}"></span>
+    <div class="coupon__body">
+      <p class="coupon__shop">${escapeHtml(d.shop)}</p>
+      <p class="coupon__deal">${escapeHtml(d.deal)}</p>
+      <p class="coupon__desc">${escapeHtml(d.desc)}</p>
+      <p class="coupon__exp"${expStyle}>${escapeHtml(expText)}</p>
+    </div>
+    <span class="coupon__go" aria-hidden="true">›</span>`;
+  c.addEventListener("click", () => { closeDrawer(); setTimeout(() => showCongrats(d), 180); });
+  return c;
+}
+
+function pastCoupon(d, kind) {
+  const c = document.createElement("div");
+  c.className = "coupon coupon--past";
+  const label = kind === "used" ? "Used ✓" : "Expired";
+  c.innerHTML = `
+    <span class="coupon__stripe" style="background:#c7bda3"></span>
+    <div class="coupon__body">
+      <p class="coupon__shop">${escapeHtml(d.shop)}</p>
+      <p class="coupon__deal">${escapeHtml(d.deal)}</p>
+      <p class="coupon__desc">${escapeHtml(d.desc)}</p>
+    </div>
+    <span class="coupon__stamp">${label}</span>`;
+  return c;
+}
+
 function renderDiscounts() {
-  pocketBadge.hidden = discounts.length === 0;
-  pocketBadge.textContent = String(discounts.length);
-  drawerEmpty.style.display = discounts.length ? "none" : "block";
-  drawerList.querySelectorAll(".coupon").forEach((n) => n.remove());
+  const active = [];
+  const past = [];
   discounts.forEach((d) => {
-    const c = document.createElement("div");
-    c.className = "coupon";
-    c.setAttribute("role", "button");
-    c.innerHTML = `
-      <span class="coupon__stripe" style="background:${d.terra}"></span>
-      <div class="coupon__body">
-        <p class="coupon__shop">${escapeHtml(d.shop)}</p>
-        <p class="coupon__deal">${escapeHtml(d.deal)}</p>
-        <p class="coupon__desc">${escapeHtml(d.desc)}</p>
-      </div>
-      <span class="coupon__go" aria-hidden="true">›</span>`;
-    c.addEventListener("click", () => { closeDrawer(); setTimeout(() => showCongrats(d), 180); });
-    drawerList.appendChild(c);
+    const st = pocketState(d);
+    if (!st.past) active.push(d);
+    else if (st.visible) past.push({ d: d, kind: st.kind });
   });
+
+  // badge counts only usable (active) discounts
+  pocketBadge.hidden = active.length === 0;
+  pocketBadge.textContent = String(active.length);
+  drawerEmpty.style.display = active.length || past.length ? "none" : "block";
+
+  drawerList.querySelectorAll(".coupon, .drawer__section").forEach((n) => n.remove());
+  active.forEach((d) => drawerList.appendChild(activeCoupon(d)));
+  if (past.length) {
+    const h = document.createElement("p");
+    h.className = "drawer__section";
+    h.textContent = "Past";
+    drawerList.appendChild(h);
+    past.forEach((p) => drawerList.appendChild(pastCoupon(p.d, p.kind)));
+  }
 }
 
 async function openDrawer() {

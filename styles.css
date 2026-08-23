@@ -275,6 +275,7 @@ body {
 
 .coupon {
   position: relative;
+  flex-shrink: 0; /* keep full height when the pocket is full — the list scrolls instead */
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
   padding: 12px 12px 12px 16px;
   border-radius: 14px;
@@ -293,7 +294,16 @@ body {
 .coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #a99f86; margin: 0; }
 .coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #1c2b3a; }
 .coupon__desc { font-size: 11px; color: #586675; margin: 1px 0 0; }
+.coupon__exp { font-size: 11px; font-weight: 700; color: #a99f86; margin: 3px 0 0; }
 .coupon__go { font-size: 26px; font-weight: 700; color: var(--ink-faint); line-height: 1; padding-right: 2px; }
+
+/* Past (used / expired) coupons — dimmed, non-interactive */
+.drawer__section { flex-shrink: 0; margin: 10px 4px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #a99f86; }
+.coupon--past { cursor: default; opacity: 0.62; background: #f2ede2; }
+.coupon--past:hover { box-shadow: 0 6px 16px -10px rgba(60,40,20,0.5); }
+.coupon--past:active { transform: none; }
+.coupon--past .coupon__deal { text-decoration: line-through; text-decoration-color: rgba(28,43,58,0.35); }
+.coupon__stamp { align-self: center; font-family: "Quicksand", "Nunito", sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #586675; border: 1.5px solid rgba(88,102,117,0.4); border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
 
 /* ---------------- Congratulation ticket ---------------- */
 .congrats {
