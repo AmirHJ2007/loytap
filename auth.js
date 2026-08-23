@@ -281,16 +281,19 @@ function stopResend() { if (resendTimer) clearInterval(resendTimer); resendTimer
 function finish() {
   const name = (signedUser && signedUser.name) || $("name").value.trim();
   const isCafe = role === "cafe" || (signedUser && (signedUser.role === "admin" || signedUser.role === "staff"));
+  const dest = isCafe ? "staff.html" : "index.html";
+  // signing in (existing account) skips the confirmation screen and goes straight in
+  if (mode === "signin") { location.href = dest; return; }
   if (isCafe) {
-    $("doneTitle").textContent = mode === "register" ? "Café registered!" : "Welcome back!";
+    $("doneTitle").textContent = "Café registered!";
     $("doneSub").textContent = "Opening your scanner…";
     $("continueBtn").textContent = "Open scanner";
-    $("continueBtn").href = "staff.html";
+    $("continueBtn").href = dest;
   } else {
-    $("doneTitle").textContent = mode === "register" ? `Welcome, ${name || "there"}!` : "Welcome back!";
+    $("doneTitle").textContent = `Welcome, ${name || "there"}!`;
     $("doneSub").textContent = "Opening your wallet…";
     $("continueBtn").textContent = "Open my wallet";
-    $("continueBtn").href = "index.html";
+    $("continueBtn").href = dest;
   }
   go("done");
 }

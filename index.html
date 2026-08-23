@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
   <title>LoyTap · Loyalty Wallet</title>
   <script>try{if(localStorage.getItem('loytap_signed_in')!=='1')location.replace('auth.html');}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=30" />
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -27,12 +28,21 @@
     <span class="grain"></span>
   </div>
 
+  <button class="signout-btn" id="signoutBtn" aria-label="Sign out" title="Sign out">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <path d="M16 17l5-5-5-5"/>
+      <path d="M21 12H9"/>
+    </svg>
+  </button>
+
   <main class="stage">
     <header class="wallet-head">
       <h1 class="wallet-title">Your Wallet</h1>
     </header>
-    <p class="greeting" id="greeting">Hello 👋</p>
+    <p class="greeting" id="greeting">Welcome back 👋</p>
     <div class="wallet" id="wallet"></div>
+    <div class="reward-teaser" id="rewardTeaser" aria-live="polite" hidden></div>
   </main>
 
   <!-- Stamp button, pinned to the bottom of the screen -->
@@ -99,7 +109,9 @@
       </div>
       <div class="ticket__divider"></div>
       <div class="ticket__qr" id="ticketQr"></div>
-      <p class="ticket__hint">Show this QR to the staff</p>
+      <p class="ticket__hint" id="ticketHint">Show this QR to the staff</p>
+      <p class="ticket__code" id="ticketCode">—</p>
+      <div class="ticket__used" id="ticketUsed" hidden><span class="ticket__usedmark">Used</span></div>
     </div>
     <button class="congrats__continue" id="congratsContinue" type="button">Continue</button>
   </div>
@@ -107,6 +119,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=30"></script>
 </body>
 </html>

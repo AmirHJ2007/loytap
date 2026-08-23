@@ -57,7 +57,7 @@ body {
   font-size: 17px; padding: 16px 20px; border-radius: 16px;
   box-shadow: 0 14px 30px -10px rgba(28, 43, 58, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-.wallet-head { position: absolute; top: 16px; left: 0; right: 0; text-align: center; z-index: 2; }
+.wallet-head { position: absolute; top: 26px; left: 0; right: 0; text-align: center; z-index: 2; }
 .wallet-title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.3px; color: #1c2b3a; }
 .greeting { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 19px; margin: 0; color: #1c2b3a; text-align: center; }
 
@@ -158,6 +158,26 @@ body {
 .oram-progress > span:nth-of-type(3) { font-size: 22px; color: var(--ink-faint); font-weight: 700; }
 .oram-progress__label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); margin-left: 8px; align-self: center; }
 
+/* ---------------- Reward teaser (standalone banner under the card) ---------------- */
+.reward-teaser {
+  width: min(96vw, 540px);
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; border-radius: 18px;
+  background: linear-gradient(120deg, rgba(122,138,95,0.24), rgba(38,56,74,0.14));
+  border: 1px solid rgba(122,138,95,0.32);
+  box-shadow: 0 16px 32px -20px rgba(60,40,20,0.5), inset 0 1px 0 rgba(255,255,255,0.45);
+  position: relative; z-index: 1;
+  animation: teaserIn 0.5s ease both;
+}
+.reward-teaser[hidden] { display: none; }
+.reward-teaser__gift { font-size: 27px; flex: 0 0 auto; line-height: 1; animation: giftBob 2.4s ease-in-out infinite; }
+.reward-teaser__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.reward-teaser__main { font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 15px; color: #1c2b3a; letter-spacing: -0.2px; }
+.reward-teaser__main b { font-weight: 800; color: #26384a; }
+.reward-teaser__sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #7a8a5f; }
+@keyframes teaserIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes giftBob { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
+
 /* ---------------- Stamp grid ---------------- */
 .grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 18px; position: relative; z-index: 1; }
 .slot {
@@ -223,6 +243,21 @@ body {
 .reward__restart { flex: 0 0 auto; padding: 11px 16px; font-size: 14px; }
 .reward__prize.shine::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.7) 50%, transparent 70%); transform: translateX(-120%); animation: sweep 0.7s ease-out; }
 @keyframes sweep { to { transform: translateX(120%); } }
+
+/* ---------------- Sign out ---------------- */
+.signout-btn {
+  position: absolute; top: 16px; left: 16px; z-index: 60;
+  width: 46px; height: 46px; border-radius: 14px;
+  display: grid; place-items: center; cursor: pointer;
+  color: #c0503f;
+  background: linear-gradient(155deg, #fdf1ee, #f7ddd6);
+  border: 1px solid rgba(192,80,63,0.22);
+  box-shadow: 0 8px 18px -8px rgba(150,50,30,0.35), inset 0 1px 0 rgba(255,255,255,0.6);
+  transition: transform 0.16s ease, box-shadow 0.3s ease;
+}
+.signout-btn:hover { box-shadow: 0 12px 22px -8px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+.signout-btn:active { transform: scale(0.94); }
+.signout-btn:focus-visible { outline: 2px solid #c0503f; outline-offset: 3px; }
 
 /* ---------------- Discounts pocket ---------------- */
 .pocket-btn {
@@ -294,7 +329,7 @@ body {
 .coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #a99f86; margin: 0; }
 .coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #1c2b3a; }
 .coupon__desc { font-size: 11px; color: #586675; margin: 1px 0 0; }
-.coupon__exp { font-size: 11px; font-weight: 700; color: #a99f86; margin: 3px 0 0; }
+.coupon__exp { font-size: 11px; font-weight: 700; color: #c0503f; margin: 3px 0 0; }
 .coupon__go { font-size: 26px; font-weight: 700; color: var(--ink-faint); line-height: 1; padding-right: 2px; }
 
 /* Past (used / expired) coupons — dimmed, non-interactive */
@@ -317,6 +352,7 @@ body {
 .congrats.show { opacity: 1; }
 
 .ticket {
+  position: relative;
   width: min(88vw, 330px);
   background: #ffffff;
   padding: 30px 26px 26px;
@@ -345,7 +381,34 @@ body {
 .ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #1c2b3a; }
 .ticket__qr { width: 150px; height: 150px; margin: 6px auto 0; }
 .ticket__qr svg { display: block; width: 100%; height: 100%; }
-.ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #586675; }
+.ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #586675; transition: color 0.3s ease; }
+.ticket__code { margin: 8px auto 0; display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #1c2b3a; background: #efe8d6; border: 1px dashed #c7bda3; border-radius: 9px; padding: 6px 14px; }
+
+/* "Used" stamp — slammed onto the ticket in realtime when the cashier redeems */
+.ticket__used { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; }
+.ticket__used[hidden] { display: none; } /* beat the .ticket__used display:flex so hidden actually hides */
+.ticket__usedmark {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  width: 150px; height: 150px; border-radius: 50%;
+  font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 36px; letter-spacing: 2px;
+  text-transform: uppercase; color: #c0503f; opacity: 0.9;
+  border: 5px solid #c0503f;
+  transform: rotate(-14deg);
+  box-shadow: inset 0 0 0 3px rgba(192,80,63,0.28), 0 8px 22px -12px rgba(192,80,63,0.6);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+}
+.ticket__used.stamp-in .ticket__usedmark { animation: stampSlam 0.5s cubic-bezier(0.2, 1.5, 0.35, 1) both; }
+@keyframes stampSlam {
+  0%   { transform: rotate(-14deg) scale(2.6); opacity: 0; }
+  55%  { transform: rotate(-14deg) scale(0.9);  opacity: 0.95; }
+  75%  { transform: rotate(-14deg) scale(1.08); }
+  100% { transform: rotate(-14deg) scale(1);    opacity: 0.9; }
+}
+/* the QR fades out under the stamp, and the ticket gives a little recoil */
+.congrats.is-used .ticket__qr { opacity: 0.18; filter: grayscale(1); transition: opacity 0.4s ease, filter 0.4s ease; }
+.congrats.is-used .ticket__hint { color: #23a468; font-weight: 700; }
+.congrats.is-used .ticket { animation: ticketRecoil 0.4s ease; }
+@keyframes ticketRecoil { 0%,100% { transform: translateY(0) scale(1); } 22% { transform: translateY(4px) scale(0.985); } 55% { transform: translateY(-1px) scale(1.004); } }
 
 .congrats__continue {
   font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 16px;

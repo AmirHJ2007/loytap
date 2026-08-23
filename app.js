@@ -71,6 +71,31 @@ let pendingReset = null; // deck to reset to empty after the congrats "Continue"
 // ===================================================================
 // Build the cards (front face only — reward is a full-screen ticket)
 // ===================================================================
+// The reward is a random draw from the café's pool, so we tease what could be won
+// and count down the stamps remaining on the card itself.
+let rewardPool = [];
+function poolLine() {
+  if (!rewardPool.length) return "a surprise reward awaits";
+  const names = rewardPool.slice(0, 2).map(escapeHtml).join(" · ");
+  return "win " + names + (rewardPool.length > 2 ? " & more" : "");
+}
+function updateTeaser(deck) {
+  const box = document.getElementById("rewardTeaser");
+  if (!box || !deck) return;
+  const remaining = deck.cfg.stamps - deck.stamped;
+  let gift, main, sub;
+  if (remaining <= 0) {
+    gift = "🎉"; main = "Reward ready — <b>tap Stamp!</b>"; sub = "";
+  } else if (remaining === 1) {
+    gift = "🎁"; main = "<b>1 stamp</b> away — so close!"; sub = poolLine();
+  } else {
+    gift = "🎁"; main = "Only <b>" + remaining + " stamps</b> away from a reward"; sub = poolLine();
+  }
+  box.innerHTML = `<span class="reward-teaser__gift">${gift}</span>
+    <span class="reward-teaser__body"><span class="reward-teaser__main">${main}</span>${sub ? `<span class="reward-teaser__sub">${sub}</span>` : ""}</span>`;
+  box.hidden = false;
+}
+
 function buildCard(cfg, index) {
   const el = document.createElement("div");
   el.className = "wcard";
@@ -168,6 +193,7 @@ function onImpact(deck, slot, v) {
   if (v.color) slot.querySelector(".stamp").style.color = v.color;
   slot.classList.add("is-stamped");
   deck.countEl.textContent = String(deck.stamped);
+  updateTeaser(deck);
   deck.stampBtn.classList.remove("pulse"); void deck.stampBtn.offsetWidth; deck.stampBtn.classList.add("pulse");
   inkPuff(deck, slot, v.dx, v.dy);
   deck.card.animate(
@@ -245,6 +271,7 @@ function resetCard(deck) {
     const st = s.querySelector(".stamp");
     if (st) st.style.color = "";
   });
+  updateTeaser(deck);
 }
 
 // ===================================================================
@@ -343,6 +370,7 @@ function urgencyColor(days) {
 // backend /card/stamp discount payload -> pocket/congrats record
 function discountToRec(d) {
   return {
+    id: (d && d.id) || "",
     shop: (d && d.shop) || cafeName,
     deal: (d && d.deal) || "Reward",
     desc: (d && d.description) || "",
@@ -357,6 +385,7 @@ function discountToRec(d) {
 function mapDiscount(item) {
   const days = daysUntil(item.due_date);
   return {
+    id: item.id,
     shop: cafeName,
     deal: item.deal || "Reward",
     desc: item.description || "",
@@ -400,12 +429,10 @@ function activeCoupon(d) {
   const c = document.createElement("div");
   c.className = "coupon";
   c.setAttribute("role", "button");
-  // expiry line — plain when far off, coloured + countdown when ≤5 days
+  // expiry line — always red; adds a countdown when ≤5 days
   let expText = "Expires " + (d.due || "—");
-  let expStyle = "";
   if (typeof d.days === "number" && d.days <= 5) {
     expText = "Expires " + d.due + " · " + d.days + " day" + (d.days > 1 ? "s" : "") + " left";
-    expStyle = ` style="color:${d.terra};font-weight:800"`;
   }
   c.innerHTML = `
     <span class="coupon__stripe" style="background:${d.terra}"></span>
@@ -413,7 +440,7 @@ function activeCoupon(d) {
       <p class="coupon__shop">${escapeHtml(d.shop)}</p>
       <p class="coupon__deal">${escapeHtml(d.deal)}</p>
       <p class="coupon__desc">${escapeHtml(d.desc)}</p>
-      <p class="coupon__exp"${expStyle}>${escapeHtml(expText)}</p>
+      <p class="coupon__exp">${escapeHtml(expText)}</p>
     </div>
     <span class="coupon__go" aria-hidden="true">›</span>`;
   c.addEventListener("click", () => { closeDrawer(); setTimeout(() => showCongrats(d), 180); });
@@ -481,6 +508,15 @@ pocketBtn.addEventListener("click", openDrawer);
 drawerClose.addEventListener("click", closeDrawer);
 scrim.addEventListener("click", closeDrawer);
 
+const signoutBtn = document.getElementById("signoutBtn");
+if (signoutBtn) {
+  signoutBtn.addEventListener("click", () => {
+    ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
+      .forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
+    location.replace("auth.html");
+  });
+}
+
 // ===================================================================
 // Congratulation ticket (with barcode)
 // ===================================================================
@@ -490,17 +526,115 @@ const congratsContinue = document.getElementById("congratsContinue");
 const ticketDiscount = document.getElementById("ticketDiscount");
 const ticketDue = document.getElementById("ticketDue");
 const ticketQr = document.getElementById("ticketQr");
+const ticketHint = document.getElementById("ticketHint");
+const ticketCode = document.getElementById("ticketCode");
+const ticketUsed = document.getElementById("ticketUsed");
+
+// ---- Realtime: watch for the cashier redeeming the ticket that's on screen ----
+// PocketBase realtime is Server-Sent Events: open /api/realtime, grab the clientId
+// from the PB_CONNECT event, then POST the subscription (authenticated). When the
+// staff /redeem hook saves status=redeemed, PB pushes an "update" to this client.
+let rtSource = null, rtTopic = null, rtHandler = null, rtOnRedeem = null;
+
+function rtStop() {
+  if (rtSource) {
+    try { if (rtTopic && rtHandler) rtSource.removeEventListener(rtTopic, rtHandler); } catch (_) {}
+    try { rtSource.close(); } catch (_) {}
+  }
+  rtSource = null; rtTopic = null; rtHandler = null; rtOnRedeem = null;
+}
+
+function rtWatchDiscount(id, onRedeem) {
+  rtStop();
+  if (!id || !token || typeof EventSource === "undefined") return;
+  rtTopic = "discounts/" + id;
+  rtOnRedeem = onRedeem;
+  rtSource = new EventSource(API + "/api/realtime");
+  // (re)subscribe on every connect — EventSource reconnects transparently
+  rtSource.addEventListener("PB_CONNECT", (e) => {
+    let clientId = "";
+    try { clientId = JSON.parse(e.data).clientId; } catch (_) {}
+    if (!clientId) return;
+    fetch(API + "/api/realtime", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: token },
+      body: JSON.stringify({ clientId: clientId, subscriptions: [rtTopic] }),
+    }).catch(() => {});
+  });
+  rtHandler = (e) => {
+    let rec = null;
+    try { rec = JSON.parse(e.data).record; } catch (_) {}
+    if (rec && rec.status === "redeemed" && rtOnRedeem) rtOnRedeem(rec);
+  };
+  rtSource.addEventListener(rtTopic, rtHandler);
+}
+
+// Fly the rubber-stamp tool down onto the ticket (same tool as the loyalty card),
+// press, and lift away — revealing the "Used" mark at the moment of contact.
+function playUsedStamp(onContact, onDone) {
+  const t = congrats.querySelector(".ticket");
+  if (!t || REDUCED || typeof stamper.animate !== "function") { onContact(); onDone(); return; }
+  const S = 1.7; // scale the tool up so its ink face matches the ~150px "Used" circle
+  const rect = t.getBoundingClientRect();
+  const x = rect.left + rect.width / 2 - STAMPER_W / 2;
+  // transform-origin is bottom-centre; the rubber face sits ~55px above the base,
+  // so lower the tool as it grows to keep the ink landing on the ticket centre.
+  const yHit = rect.top + rect.height / 2 - (STAMPER_H - 55 * S);
+  const up = yHit - 320;
+  const prevZ = stamper.style.zIndex;
+  stamper.style.zIndex = "230"; // above the congrats overlay (z 205)
+  stamper.style.opacity = "1";
+  const anim = stamper.animate([
+    { transform: `translate(${x}px, ${up}px) rotate(-8deg) scale(${1.08 * S},${1.08 * S})`, opacity: 0, offset: 0 },
+    { transform: `translate(${x}px, ${up + 150}px) rotate(-4deg) scale(${1.08 * S},${1.08 * S})`, opacity: 1, offset: 0.14 },
+    { transform: `translate(${x}px, ${yHit}px) rotate(0deg) scale(${1.07 * S},${0.9 * S})`, opacity: 1, offset: 0.4 },
+    { transform: `translate(${x}px, ${yHit - 4}px) rotate(0deg) scale(${0.99 * S},${1.02 * S})`, opacity: 1, offset: 0.5 },
+    { transform: `translate(${x}px, ${yHit - 16}px) rotate(2deg) scale(${1 * S},${1 * S})`, opacity: 1, offset: 0.62 },
+    { transform: `translate(${x}px, ${up}px) rotate(7deg) scale(${1.05 * S},${1.05 * S})`, opacity: 0, offset: 1 },
+  ], { duration: 840, easing: "cubic-bezier(0.45,0.05,0.35,1)", fill: "forwards" });
+  setTimeout(onContact, 336); // reveal the mark as the tool presses down
+  anim.onfinish = () => { stamper.style.opacity = "0"; stamper.style.zIndex = prevZ || ""; onDone(); };
+}
+
+// Reveal the "Used" mark over the ticket. `animate` = play the stamp-tool press
+// (live redeem); false = show instantly (reopening an already-used ticket).
+function markTicketUsed(rec, animate) {
+  if (congrats.hidden) return;
+  // reflect in memory so the pocket already shows it as used
+  const d = discounts.find((x) => (rec.id && x.id === rec.id) || x.code === rec.code);
+  if (d) { d.status = "redeemed"; d.redeemedAt = rec.redeemed_at || new Date().toISOString(); }
+  rtStop();
+  const reveal = () => {
+    ticketUsed.hidden = false;
+    ticketUsed.classList.remove("stamp-in"); void ticketUsed.offsetWidth; ticketUsed.classList.add("stamp-in");
+    congrats.classList.add("is-used");
+    if (ticketHint) ticketHint.textContent = "Redeemed — enjoy your reward 🎉";
+    if (navigator.vibrate) { try { navigator.vibrate(60); } catch (_) {} }
+  };
+  if (animate) playUsedStamp(reveal, () => {});
+  else reveal();
+}
 
 function showCongrats(rec) {
   congratsSub.innerHTML = `Show this to <b>${escapeHtml(rec.shop)}</b> staff to claim your reward`;
   ticketDiscount.textContent = rec.short || shortDiscount(rec.deal);
   ticketDue.textContent = rec.due || dueDateStr();
   try { ticketQr.innerHTML = qrSvgDotted(rec.code, QR_COLOR); } catch (_) {}
+  if (ticketCode) ticketCode.textContent = rec.code || "—";
+  // fresh state (in case this ticket was previously shown used)
+  congrats.classList.remove("is-used");
+  ticketUsed.hidden = true; ticketUsed.classList.remove("stamp-in");
+  if (ticketHint) ticketHint.textContent = "Show this QR to the staff";
   congrats.hidden = false;
   congrats.setAttribute("aria-hidden", "false");
   requestAnimationFrame(() => congrats.classList.add("show"));
+  // if it's already redeemed (e.g. reopened from Past), show the stamp immediately;
+  // otherwise watch live and play the stamp-tool press when the cashier redeems it
+  if (rec.status === "redeemed") { markTicketUsed(rec, false); }
+  else { rtWatchDiscount(rec.id, () => markTicketUsed(rec, true)); }
 }
 function hideCongrats() {
+  rtStop();
   congrats.classList.remove("show");
   congrats.setAttribute("aria-hidden", "true");
   setTimeout(() => { congrats.hidden = true; }, 320);
@@ -539,6 +673,7 @@ function renderSaved(deck, stamps) {
   });
   deck.stamped = stamps.length;
   deck.countEl.textContent = String(stamps.length);
+  updateTeaser(deck);
 }
 
 async function init() {
@@ -551,6 +686,13 @@ async function init() {
       stampsRequired = d.items[0].stamps_required || 8;
       cafeName = d.items[0].cafe_name || cafeName;
     }
+  } catch (_) {}
+
+  // the reward pool — teased on the card ("win Free coffee · 20% OFF…")
+  try {
+    const rr = await fetch(API + "/api/collections/reward_options/records?perPage=50&filter=(active=true)&sort=-created");
+    const rd = await rr.json();
+    rewardPool = ((rd && rd.items) || []).map((x) => x.deal).filter(Boolean);
   } catch (_) {}
 
   // signed-in user: refresh the session and load their card state
@@ -572,7 +714,7 @@ async function init() {
   }
 
   const g = document.getElementById("greeting");
-  if (g) g.textContent = `Hello, ${(user.name || "there").trim()} 👋`;
+  if (g) g.textContent = `Welcome back, ${(user.name || "there").trim()} 👋`;
 
   // build the single card from the café config
   const cfg = Object.assign({}, CARDS[0], {

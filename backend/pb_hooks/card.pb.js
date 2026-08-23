@@ -74,6 +74,7 @@ routerAdd("POST", "/card/stamp", (e) => {
 
     const z = (n) => (n < 10 ? "0" + n : "" + n);
     discount = {
+      id: d.id,
       code,
       deal: d.getString("deal"),
       description: d.getString("description"),
