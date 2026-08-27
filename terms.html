@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <title>Reloy · Terms &amp; Privacy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
+      --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+      --glass-fill: rgba(255,255,255,0.34); --glass-fill-strong: rgba(255,255,255,0.55);
+      --glass-border: rgba(255,255,255,0.7); --glass-hi: rgba(255,255,255,0.9);
+      --glass-shadow: 0 34px 70px -28px rgba(20,20,20,0.5);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
+      background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
+      min-height: 100dvh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+    .bg::before, .bg::after { content: ""; position: absolute; border-radius: 50%; filter: blur(72px); opacity: 0.55; will-change: transform; }
+    .bg::before { width: 52vmax; height: 52vmax; top: -16vmax; right: -12vmax; background: radial-gradient(circle at 50% 50%, #c4c4c4, transparent 66%); animation: orbA 34s ease-in-out infinite; }
+    .bg::after { width: 46vmax; height: 46vmax; bottom: -18vmax; left: -14vmax; background: radial-gradient(circle at 50% 50%, #3a3a3a, transparent 64%); animation: orbB 40s ease-in-out infinite; }
+    @keyframes orbA  { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9vmax,7vmax) scale(1.14); } }
+    @keyframes orbB  { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(7vmax,-6vmax) scale(0.92); } }
+
+    .wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 20px 18px 60px; }
+
+    .back {
+      display: inline-flex; align-items: center; gap: 6px; text-decoration: none; cursor: pointer;
+      color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px; margin-bottom: 14px;
+      background: rgba(255,255,255,0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5);
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    .back:hover { color: var(--ink); background: rgba(255,255,255,0.6); }
+
+    .doc {
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(20px) saturate(165%); -webkit-backdrop-filter: blur(20px) saturate(165%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), inset 0 0 0 1px rgba(255,255,255,0.22);
+      border-radius: 24px; padding: 30px 26px 34px;
+    }
+    .doc h1 { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 27px; letter-spacing: -0.4px; margin: 0 0 4px; }
+    .doc__eff { font-size: 12.5px; color: var(--faint); font-weight: 700; margin: 0 0 22px; }
+    .doc h2 { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; margin: 26px 0 8px; }
+    .doc h2 .n { color: var(--faint); margin-right: 6px; }
+    .doc p, .doc li { font-size: 14px; line-height: 1.65; color: #333333; }
+    .doc p { margin: 0 0 10px; }
+    .doc ul { margin: 0 0 10px; padding-left: 20px; }
+    .doc li { margin-bottom: 5px; }
+    .doc b { color: var(--ink); }
+    .doc a { color: var(--ink); }
+    .hr { height: 1px; background: rgba(20,20,20,0.1); margin: 34px 0 6px; }
+    .lead {
+      font-size: 13.5px; line-height: 1.6; color: var(--dim);
+      background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 14px; padding: 14px 16px; margin: 0 0 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <main class="wrap">
+    <a class="back" href="auth.html">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Back
+    </a>
+
+    <div class="doc">
+      <h1>Terms of Service &amp; Privacy Policy</h1>
+      <p class="doc__eff">Last updated: 2026 · Applies to the Reloy loyalty service</p>
+
+      <p class="lead">Reloy is a digital loyalty card. You collect stamps at a participating café, and when a card is full you may earn a reward offered by that café. Please read these terms — by creating an account or using Reloy you agree to them.</p>
+
+      <h2><span class="n">1.</span>Who we are &amp; what Reloy is</h2>
+      <p>Reloy ("Reloy", "we", "us") provides the software and platform that lets a café run a digital stamp-card loyalty program. Reloy is <b>a technology service only</b>. The rewards, discounts, products and services you receive are offered, priced, honoured and fulfilled by the <b>independent café</b> you visit — not by Reloy. Your relationship for any reward or purchase is with that café.</p>
+
+      <h2><span class="n">2.</span>Eligibility &amp; your account</h2>
+      <ul>
+        <li>You must be legally able to enter into an agreement to use Reloy. If you are a minor, use Reloy only with the consent of a parent or guardian.</li>
+        <li>You register with your mobile number and verify it with a one-time code (OTP). You are responsible for keeping access to your number and device secure.</li>
+        <li>One account per person. You agree to provide accurate information and not to impersonate anyone else.</li>
+        <li>You are responsible for all activity that happens under your account.</li>
+      </ul>
+
+      <h2><span class="n">3.</span>Stamps &amp; rewards</h2>
+      <ul>
+        <li>Stamps are collected by tapping the café's card or scanning at the café. A reward is granted when a card is completed, drawn at random from the rewards that café currently offers.</li>
+        <li>Rewards and discounts have <b>no cash value</b>, cannot be exchanged for money, and are <b>non-transferable</b> and non-resellable.</li>
+        <li>Rewards may <b>expire</b>. Each reward shows its own expiry; expired, used, or unclaimed rewards are forfeited.</li>
+        <li>The café may <b>add, change, limit, or withdraw</b> any reward, the number of stamps required, or the whole program at any time, with or without notice.</li>
+        <li>Reloy does not guarantee that any reward will be available, honoured, or fit any particular purpose. Any dispute about a reward, its quality, or a purchase is between you and the café.</li>
+      </ul>
+
+      <h2><span class="n">4.</span>Acceptable use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Create fake stamps or rewards, use multiple or automated accounts, or otherwise manipulate or defraud the loyalty program.</li>
+        <li>Copy, share, sell, or reuse tap links, codes, or QR codes to obtain stamps or rewards you did not legitimately earn.</li>
+        <li>Interfere with, probe, or attempt to gain unauthorised access to the service, its security, or other users' accounts.</li>
+        <li>Use Reloy for any unlawful purpose.</li>
+      </ul>
+      <p>If we reasonably believe an account has broken these rules, we or the café may suspend or close it and cancel any affected stamps or rewards.</p>
+
+      <h2><span class="n">5.</span>Service "as is" &amp; availability</h2>
+      <p>Reloy is provided <b>"as is" and "as available"</b>, without warranties of any kind, whether express or implied, to the fullest extent permitted by law. We do not warrant that the service will be uninterrupted, error-free, or always available. We may modify, suspend, or discontinue any part of the service — including a café's program — at any time.</p>
+
+      <h2><span class="n">6.</span>Limitation of liability</h2>
+      <p>To the maximum extent permitted by applicable law, Reloy and its operators shall not be liable for any indirect, incidental, or consequential loss, or for any loss of rewards, discounts, data, profits, or goodwill, arising out of or connected with your use of (or inability to use) the service. Reloy is not responsible for the acts, omissions, products, or services of any café. Nothing in these terms excludes any liability that cannot be excluded under applicable law.</p>
+
+      <h2><span class="n">7.</span>Privacy</h2>
+      <p>We collect and process only what the loyalty service needs to work:</p>
+      <ul>
+        <li><b>What we collect:</b> your mobile number, the name you choose, and your loyalty activity (stamps, cards completed, rewards earned and redeemed).</li>
+        <li><b>Why:</b> to verify your identity by OTP, to run your loyalty card, to show your rewards, and to give the café aggregate statistics about its own program.</li>
+        <li><b>SMS:</b> by signing up you consent to receive a one-time verification code by SMS. We do not send marketing SMS without your consent.</li>
+        <li><b>Sharing:</b> we do not sell your personal data. Your loyalty activity is visible to the café you use. We use service providers (such as an SMS provider and hosting) only to operate the service.</li>
+        <li><b>Retention &amp; security:</b> we keep your data while your account is active and as needed for the café's records, and we take reasonable measures to protect it. No system is perfectly secure.</li>
+        <li><b>Your choices:</b> you can stop using Reloy at any time and ask for your account to be closed by contacting us.</li>
+      </ul>
+
+      <h2><span class="n">8.</span>Termination</h2>
+      <p>You may stop using Reloy and request account closure at any time. We may suspend or end your access if you break these terms or if we stop offering the service.</p>
+
+      <h2><span class="n">9.</span>Changes to these terms</h2>
+      <p>We may update these terms from time to time. The latest version will always be available in the app. Continuing to use Reloy after a change means you accept the updated terms.</p>
+
+      <h2><span class="n">10.</span>Governing law</h2>
+      <p>These terms are governed by the laws of the Islamic Republic of Iran, and any dispute shall be subject to the competent courts of Iran.</p>
+
+      <h2><span class="n">11.</span>Contact</h2>
+      <p>Questions about these terms or your data? Contact us at <a href="mailto:support@reloy.ir">support@reloy.ir</a>.</p>
+
+      <div class="hr"></div>
+      <p style="font-size:12px;color:var(--faint);margin-top:14px;">By using Reloy you confirm that you have read and agree to these Terms of Service and Privacy Policy.</p>
+    </div>
+  </main>
+</body>
+</html>
