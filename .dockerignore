@@ -1,0 +1,10 @@
+# Keep the build context small and correct.
+backend/pb_data
+backend/pocketbase
+backend/pocketbase.exe
+pocketbase
+pocketbase.exe
+*.log
+.git
+node_modules
+.DS_Store

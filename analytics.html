@@ -4,51 +4,98 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache" />
-  <title>LoyTap · Analytics</title>
+  <title>Reloy · Analytics</title>
   <script>try{if(localStorage.getItem('loytap_owner')!=='1')location.replace('auth.html');}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --ink:#1c2b3a; --dim:#586675; --faint:#a99f86; --line:#c7bda3; --paper:#efe8d6; --paper2:#e2d9c3; --sage:#7a8a5f; --navy:#26384a; --gold:#c9862f; --bad:#c0503f; --ok:#4f9d5a; }
+    :root {
+      --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
+      --paper:#f0f0f0; --paper2:#e2e2e2; --bad:#c0503f;
+      --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+      --glass-fill: rgba(255,255,255,0.34); --glass-fill-strong: rgba(255,255,255,0.55);
+      --glass-border: rgba(255,255,255,0.7); --glass-hi: rgba(255,255,255,0.9);
+      --glass-shadow: 0 34px 70px -28px rgba(20,20,20,0.5);
+    }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
-    body { font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
-      background: radial-gradient(130% 120% at 50% -10%, #f2ecdf 0%, #e9e1cf 48%, #dcd2bb 100%); min-height: 100dvh; }
-    .wrap { max-width: 520px; margin: 0 auto; padding: 20px 18px 48px; }
+    body {
+      font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
+      background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
+      min-height: 100dvh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
 
-    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-    .back { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1.5px solid var(--line); color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px; cursor: pointer; text-decoration: none; }
-    .back:hover { color: var(--ink); border-color: var(--dim); }
-    .signout { background: linear-gradient(155deg,#fdf1ee,#f7ddd6); border: 1px solid rgba(192,80,63,0.22); color: var(--bad); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px; cursor: pointer; }
-    .head { margin: 12px 2px 18px; }
+    /* ---------------- Aurora background ---------------- */
+    .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+    .bg::before, .bg::after { content: ""; position: absolute; border-radius: 50%; filter: blur(72px); opacity: 0.6; will-change: transform; }
+    .bg::before { width: 52vmax; height: 52vmax; top: -16vmax; right: -12vmax; background: radial-gradient(circle at 50% 50%, #c4c4c4, transparent 66%); animation: orbA 34s ease-in-out infinite; }
+    .bg::after { width: 46vmax; height: 46vmax; bottom: -18vmax; left: -14vmax; background: radial-gradient(circle at 50% 50%, #3a3a3a, transparent 64%); animation: orbB 40s ease-in-out infinite; }
+    .stain { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; will-change: transform; }
+    .stain--1 { width: 46vmax; height: 46vmax; top: -10vmax; left: -8vmax; background: radial-gradient(circle at 42% 40%, #d8d8d8, transparent 66%); animation: float1 28s ease-in-out infinite; }
+    .stain--2 { width: 42vmax; height: 42vmax; bottom: -12vmax; right: 8vmax; background: radial-gradient(circle at 50% 50%, #808080, transparent 66%); animation: float2 32s ease-in-out infinite; }
+    @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(10vmax,6vmax) scale(1.12); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1.05); } 50% { transform: translate(-8vmax,-5vmax) scale(0.94); } }
+    @keyframes orbA  { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9vmax,7vmax) scale(1.14); } }
+    @keyframes orbB  { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(7vmax,-6vmax) scale(0.92); } }
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .wrap { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding: 20px 18px 48px; }
+
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; animation: fadeDown 0.6s var(--ease-spring) both; }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px; text-decoration: none; cursor: pointer;
+      color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px;
+      background: rgba(255,255,255,0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5);
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    .back:hover { color: var(--ink); background: rgba(255,255,255,0.6); }
+    .signout {
+      color: var(--bad); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px; cursor: pointer;
+      background: linear-gradient(155deg, rgba(253,241,238,0.55), rgba(247,221,214,0.42));
+      backdrop-filter: blur(8px); border: 1px solid rgba(192,80,63,0.28);
+      transition: background 0.2s ease;
+    }
+    .signout:hover { background: linear-gradient(155deg, rgba(253,241,238,0.72), rgba(247,221,214,0.58)); }
+
+    .head { margin: 12px 2px 18px; animation: fadeUp 0.6s var(--ease-spring) 0.08s both; }
     .head h1 { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 26px; margin: 0; letter-spacing: -0.4px; }
     .head p { margin: 3px 0 0; font-size: 14px; color: var(--dim); }
 
     .loading { text-align: center; color: var(--faint); font-size: 14px; padding: 60px 0; }
     .empty { text-align: center; color: var(--faint); font-size: 13.5px; line-height: 1.6; padding: 30px 16px; }
 
-    /* Today pulse */
-    .today-card { background: linear-gradient(150deg, var(--navy), #1a2735); color: #f2ecdf; border-radius: 20px; padding: 16px 18px 18px; margin-bottom: 16px; box-shadow: 0 18px 40px -20px rgba(28,43,58,0.6), inset 0 1px 0 rgba(255,255,255,0.06); }
-    .today-card__h { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1.6px; color: rgba(242,236,223,0.6); margin: 0 0 12px; }
+    /* ---------------- Shared glass surface ---------------- */
+    .glass {
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(20px) saturate(165%); -webkit-backdrop-filter: blur(20px) saturate(165%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), inset 0 0 0 1px rgba(255,255,255,0.22);
+    }
+
+    /* Today pulse — solid black, the hero stat */
+    .today-card { background: #171717; color: #ffffff; border-radius: 20px; padding: 16px 18px 18px; margin-bottom: 16px; box-shadow: 0 18px 40px -20px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.1); animation: cardIn 0.7s var(--ease-spring) 0.14s both; }
+    .today-card__h { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1.6px; color: rgba(255,255,255,0.6); margin: 0 0 12px; }
     .today-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .today-stat { text-align: center; }
     .today-stat__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 32px; line-height: 1; letter-spacing: -0.5px; }
-    .today-stat__k { display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: rgba(242,236,223,0.65); }
+    .today-stat__k { display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.65); }
 
-    /* KPI cards */
-    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .kpi { background: linear-gradient(160deg, var(--paper), var(--paper2)); border: 1px solid rgba(0,0,0,0.06); border-radius: 18px; padding: 15px 16px; box-shadow: 0 14px 30px -20px rgba(28,43,58,0.45); }
+    /* KPI cards — frosted glass */
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; animation: cardIn 0.7s var(--ease-spring) 0.2s both; }
+    .kpi { border-radius: 18px; padding: 15px 16px; }
     .kpi__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; line-height: 1; color: var(--ink); letter-spacing: -0.5px; }
     .kpi__k { display: block; margin-top: 7px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--faint); }
 
-    /* section cards */
-    .card { background: linear-gradient(160deg, var(--paper), var(--paper2)); border: 1px solid rgba(0,0,0,0.06); border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 18px 40px -24px rgba(28,43,58,0.45); }
+    /* section cards — frosted glass */
+    .card { border-radius: 20px; padding: 18px; margin-bottom: 16px; animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
     .card__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; margin: 0 0 2px; }
     .card__sub { margin: 0 0 14px; font-size: 12px; color: var(--dim); }
 
     .rings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .ring-card { display: flex; flex-direction: column; align-items: center; text-align: center; background: #fffdf7; border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; padding: 16px 12px; }
+    .ring-card { display: flex; flex-direction: column; align-items: center; text-align: center; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 16px; padding: 16px 12px; }
     .donut { width: 132px; height: 132px; }
     .donut__num { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 26px; fill: var(--ink); }
     .donut__sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; fill: var(--faint); text-transform: uppercase; }
@@ -60,44 +107,28 @@
     .bar-row__top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; gap: 8px; }
     .bar-row__label { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bar-row__val { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--dim); }
-    .bar-row__track { position: relative; height: 12px; border-radius: 8px; background: rgba(28,43,58,0.07); overflow: hidden; }
-    .bar-row__issued { position: absolute; inset: 0 auto 0 0; height: 100%; background: rgba(122,138,95,0.4); border-radius: 8px; }
-    .bar-row__redeemed { position: absolute; inset: 0 auto 0 0; height: 100%; background: linear-gradient(90deg, var(--navy), var(--sage)); border-radius: 8px; }
-
-    /* status donut + legend */
-    .status-row { display: flex; align-items: center; gap: 18px; }
-    .legend { display: flex; flex-direction: column; gap: 9px; flex: 1; }
-    .legend__item { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--dim); }
-    .legend__dot { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
-    .legend__n { margin-left: auto; font-family: "Quicksand", sans-serif; font-weight: 700; color: var(--ink); }
+    .bar-row__track { position: relative; height: 12px; border-radius: 8px; background: rgba(20,20,20,0.08); overflow: hidden; }
+    .bar-row__issued { position: absolute; inset: 0 auto 0 0; height: 100%; background: rgba(20,20,20,0.18); border-radius: 8px; }
+    .bar-row__redeemed { position: absolute; inset: 0 auto 0 0; height: 100%; background: #171717; border-radius: 8px; }
 
     /* stat tiles (at-a-glance) */
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .stat { background: #fffdf7; border: 1px solid rgba(0,0,0,0.05); border-radius: 15px; padding: 14px 15px; }
-    .stat--warn { background: linear-gradient(160deg, #fdf5e6, #f7ecd4); border-color: rgba(201,134,47,0.25); }
+    .stat { background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 15px; padding: 14px 15px; }
+    .stat--warn { border: 1.5px solid rgba(20,20,20,0.35); }
     .stat__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 26px; line-height: 1; color: var(--ink); }
-    .stat--warn .stat__v { color: var(--gold); }
     .stat__k { display: block; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: var(--dim); }
     .stat__s { display: block; margin-top: 2px; font-size: 11px; color: var(--faint); }
 
-    /* line chart */
-    .chart { width: 100%; height: auto; display: block; }
-    .chart__grid { stroke: rgba(28,43,58,0.08); stroke-width: 1; }
-    .chart__lab { font-size: 8.5px; font-weight: 700; fill: var(--faint); }
-    .tl-legend { display: flex; gap: 16px; justify-content: center; margin-top: 12px; }
-    .tl-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); font-weight: 600; }
-    .tl-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-
     /* daily stamp activity */
-    .act-toggle { display: inline-flex; background: rgba(28,43,58,0.07); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
+    .act-toggle { display: inline-flex; background: rgba(20,20,20,0.07); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
     .act-toggle button { border: none; background: transparent; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; color: var(--dim); padding: 7px 15px; border-radius: 9px; cursor: pointer; }
-    .act-toggle button.is-on { background: #fffdf7; color: var(--ink); box-shadow: 0 3px 8px -4px rgba(60,40,20,0.4); }
-    .act-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: linear-gradient(150deg, var(--navy), #1a2735); color: #f2ecdf; border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; }
+    .act-toggle button.is-on { background: #fff; color: var(--ink); box-shadow: 0 3px 8px -4px rgba(20,20,20,0.35); }
+    .act-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #171717; color: #ffffff; border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; }
     .act-stats b { display: block; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 28px; line-height: 1; }
-    .act-stats span { font-size: 12px; color: rgba(242,236,223,0.7); margin-top: 3px; display: block; }
+    .act-stats span { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 3px; display: block; }
     .act-cmp { margin: 0 2px 14px; font-size: 13px; font-weight: 700; }
-    .act-cmp.up { color: var(--sage); } .act-cmp.down { color: var(--bad); } .act-cmp.flat { color: var(--faint); }
-    .act-day { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fffdf7; border: 1px solid rgba(0,0,0,0.05); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }
+    .act-cmp.up { color: var(--ink); } .act-cmp.down { color: var(--bad); } .act-cmp.flat { color: var(--faint); }
+    .act-day { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }
     .act-day__l b { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; }
     .act-day__l span { display: block; font-size: 12.5px; color: var(--dim); margin-top: 2px; }
     .act-day__r { text-align: right; flex: 0 0 auto; }
@@ -107,14 +138,21 @@
     .act-ymax { position: absolute; top: 0; left: 0; font-size: 9.5px; font-weight: 700; color: var(--faint); }
     .act-bars { display: flex; align-items: flex-end; gap: 3px; height: 150px; }
     .act-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; background: none; border: none; padding: 0; cursor: pointer; }
-    .act-bar__fill { width: 80%; min-height: 3px; border-radius: 6px 6px 2px 2px; background: rgba(122,138,95,0.4); transition: height 0.3s ease, background 0.2s ease; }
-    .act-bar:hover .act-bar__fill { background: rgba(122,138,95,0.6); }
-    .act-bar.is-sel .act-bar__fill { background: linear-gradient(180deg, var(--sage), #67754e); }
+    .act-bar__fill { width: 80%; min-height: 3px; border-radius: 6px 6px 2px 2px; background: rgba(20,20,20,0.18); transition: height 0.3s ease, background 0.2s ease; }
+    .act-bar:hover .act-bar__fill { background: rgba(20,20,20,0.32); }
+    .act-bar.is-sel .act-bar__fill { background: #171717; }
     .act-bar__lab { font-size: 9px; font-weight: 700; color: var(--faint); white-space: nowrap; }
     .act-bar.is-sel .act-bar__lab { color: var(--ink); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bg::before, .bg::after, .stain { animation: none; }
+      .top, .head, .today-card, .kpis, .card { animation: none; opacity: 1; transform: none; }
+    }
   </style>
 </head>
 <body>
+  <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
+
   <main class="wrap">
     <div class="top">
       <a class="back" href="owner.html">
@@ -143,65 +181,22 @@
       location.replace("auth.html");
     };
 
-    // ---- SVG donut helpers ----
-    function ring(pct, color, sub) {
+    // ---- SVG donut helper (single-value ring, monochrome) ----
+    function ring(pct, sub) {
       const r = 52, c = 2 * Math.PI * r, on = Math.max(0, Math.min(100, pct)) / 100 * c;
       return `<svg viewBox="0 0 130 130" class="donut">
-        <circle cx="65" cy="65" r="${r}" fill="none" stroke="rgba(28,43,58,0.08)" stroke-width="14"/>
-        <circle cx="65" cy="65" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"
+        <circle cx="65" cy="65" r="${r}" fill="none" stroke="rgba(20,20,20,0.08)" stroke-width="14"/>
+        <circle cx="65" cy="65" r="${r}" fill="none" stroke="#171717" stroke-width="14" stroke-linecap="round"
           stroke-dasharray="${on.toFixed(1)} ${(c - on).toFixed(1)}" transform="rotate(-90 65 65)"/>
         <text x="65" y="66" text-anchor="middle" class="donut__num">${pct}%</text>
         <text x="65" y="84" text-anchor="middle" class="donut__sub">${esc(sub)}</text>
-      </svg>`;
-    }
-    function multiRing(parts) {
-      const r = 52, c = 2 * Math.PI * r;
-      const total = parts.reduce((s, p) => s + p.val, 0);
-      let off = 0, segs = "";
-      if (total > 0) {
-        for (const p of parts) {
-          if (p.val <= 0) continue;
-          const len = p.val / total * c;
-          segs += `<circle cx="65" cy="65" r="${r}" fill="none" stroke="${p.color}" stroke-width="14"
-            stroke-dasharray="${len.toFixed(1)} ${(c - len).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 65 65)"/>`;
-          off += len;
-        }
-      }
-      return `<svg viewBox="0 0 130 130" class="donut">
-        <circle cx="65" cy="65" r="${r}" fill="none" stroke="rgba(28,43,58,0.08)" stroke-width="14"/>
-        ${segs}
-        <text x="65" y="66" text-anchor="middle" class="donut__num">${total}</text>
-        <text x="65" y="84" text-anchor="middle" class="donut__sub">rewards</text>
-      </svg>`;
-    }
-
-    // SVG line chart of the 14-day timeline (earned vs redeemed)
-    function lineChart(tl) {
-      const W = 340, H = 156, padL = 6, padR = 6, padT = 10, padB = 26;
-      const innerW = W - padL - padR, innerH = H - padT - padB, baseY = padT + innerH;
-      const n = tl.length;
-      const max = Math.max(1, ...tl.map((x) => Math.max(x.earned, x.redeemed)));
-      const X = (i) => padL + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
-      const Y = (v) => padT + (1 - v / max) * innerH;
-      const pts = (key) => tl.map((x, i) => X(i).toFixed(1) + "," + Y(x[key]).toFixed(1)).join(" ");
-      const area = (key) => `M ${X(0).toFixed(1)},${baseY} L ${pts(key)} L ${X(n - 1).toFixed(1)},${baseY} Z`;
-      const dots = (key, color) => tl.map((x, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(x[key]).toFixed(1)}" r="2.4" fill="${color}"/>`).join("");
-      const labs = tl.map((x, i) => i % 2 === 0 ? `<text class="chart__lab" x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(x.label)}</text>` : "").join("");
-      const grid = [0, 0.5, 1].map((f) => `<line class="chart__grid" x1="${padL}" y1="${(padT + f * innerH).toFixed(1)}" x2="${W - padR}" y2="${(padT + f * innerH).toFixed(1)}"/>`).join("");
-      return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-        ${grid}
-        <path d="${area("earned")}" fill="rgba(122,138,95,0.16)"/>
-        <polyline points="${pts("earned")}" fill="none" stroke="#7a8a5f" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-        <polyline points="${pts("redeemed")}" fill="none" stroke="#26384a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-        ${dots("earned", "#7a8a5f")}${dots("redeemed", "#26384a")}
-        ${labs}
       </svg>`;
     }
 
     function render(d) {
       const t = d.totals, r = d.rates;
       if (!t.customers && !t.issued) {
-        $("content").innerHTML = `<div class="card"><p class="empty">No data yet.<br/>Once customers start collecting stamps and earning rewards, your analytics will appear here.</p></div>`;
+        $("content").innerHTML = `<div class="card glass"><p class="empty">No data yet.<br/>Once customers start collecting stamps and earning rewards, your analytics will appear here.</p></div>`;
         return;
       }
 
@@ -211,7 +206,7 @@
         ["+" + t.newCustomers, "New · 14 days"],
         [t.cardsCompleted, "Cards completed"],
         [t.redeemed, "Rewards redeemed"],
-      ].map((k) => `<div class="kpi"><div class="kpi__v">${k[0]}</div><span class="kpi__k">${k[1]}</span></div>`).join("");
+      ].map((k) => `<div class="kpi glass"><div class="kpi__v">${k[0]}</div><span class="kpi__k">${k[1]}</span></div>`).join("");
 
       // reward bars
       const maxIssued = Math.max(1, ...d.byDeal.map((x) => x.issued));
@@ -238,16 +233,16 @@
 
         <div class="kpis">${kpis}</div>
 
-        <div class="card">
+        <div class="card glass">
           <h2 class="card__title">Loyalty</h2>
           <p class="card__sub">Are customers coming back to finish their card?</p>
           <div class="rings">
-            <div class="ring-card">${ring(r.comeback, "#7a8a5f", "come back")}<span class="ring-card__t">Comeback rate</span><span class="ring-card__s">${t.returning} of ${t.customers} completed a card · ${t.repeat} repeat</span></div>
-            <div class="ring-card">${ring(r.redemption, "#26384a", "redeemed")}<span class="ring-card__t">Redemption rate</span><span class="ring-card__s">${t.redeemed30} of ${t.issued30} claimed · last 30 days</span></div>
+            <div class="ring-card">${ring(r.comeback, "come back")}<span class="ring-card__t">Comeback rate</span><span class="ring-card__s">${t.returning} of ${t.customers} completed a card · ${t.repeat} repeat</span></div>
+            <div class="ring-card">${ring(r.redemption, "redeemed")}<span class="ring-card__t">Redemption rate</span><span class="ring-card__s">${t.redeemed30} of ${t.issued30} claimed · last 30 days</span></div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card glass">
           <h2 class="card__title">At a glance</h2>
           <p class="card__sub">What needs attention right now</p>
           <div class="stat-grid">
@@ -258,13 +253,13 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card glass">
           <h2 class="card__title">Most-used rewards</h2>
           <p class="card__sub">Which prizes your customers claim · last 30 days</p>
           <div class="bars">${bars}</div>
         </div>
 
-        <div class="card" id="actCard"></div>`;
+        <div class="card glass" id="actCard"></div>`;
 
       if (d.activity) setupActivity(d.activity);
     }
@@ -326,12 +321,12 @@
       } catch (e) {}
       try {
         const res = await fetch(API + "/owner/stats", { method: "POST", headers: { Authorization: token } });
-        if (!res.ok) { $("content").innerHTML = `<div class="card"><p class="empty">Couldn’t load analytics — please sign in again as the café owner.</p></div>`; return; }
+        if (!res.ok) { $("content").innerHTML = `<div class="card glass"><p class="empty">Couldn’t load analytics — please sign in again as the café owner.</p></div>`; return; }
         const data = await res.json();
         if (data.cafe) $("cafeName").textContent = data.cafe;
         render(data);
       } catch (e) {
-        $("content").innerHTML = `<div class="card"><p class="empty">Cannot reach the server.</p></div>`;
+        $("content").innerHTML = `<div class="card glass"><p class="empty">Cannot reach the server.</p></div>`;
       }
     }
     load();

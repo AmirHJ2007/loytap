@@ -1,18 +1,24 @@
 :root {
-  --cream: #e7dfcc;
+  --cream: #e8e8e8;
   --radius: 24px;
   --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
   /* per-card theme defaults (overridden inline on each .wcard) */
-  --paper: #efe8d6;
-  --paper-2: #e2d9c3;
-  --ink: #1c2b3a;
-  --ink-dim: #586675;
-  --ink-faint: #a99f86;
-  --line: #c7bda3;
-  --stamp-ink: #1c2b3a;
-  --terra: #2f4257;
-  --terra-deep: #26384a;
-  --gold: #7a8a5f;
+  --paper: #f0f0f0;
+  --paper-2: #e2e2e2;
+  --ink: #171717;
+  --ink-dim: #565656;
+  --ink-faint: #9a9a9a;
+  --line: #cccccc;
+  --stamp-ink: #171717;
+  --terra: #2a2a2a;
+  --terra-deep: #1c1c1c;
+  --gold: #8a8a8a;
+  /* glassmorphism surface tokens (neutral monochrome glass) */
+  --glass-fill: rgba(255, 255, 255, 0.34);
+  --glass-fill-strong: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-hi: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 34px 70px -28px rgba(20, 20, 20, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -20,20 +26,45 @@ html, body { height: 100%; margin: 0; }
 
 body {
   font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
-  color: #1c2b3a;
-  background: radial-gradient(130% 120% at 50% -10%, #f2ecdf 0%, var(--cream) 48%, #dcd2bb 100%);
+  color: #171717;
+  background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------------- Background ---------------- */
+/* ---------------- Aurora background (gives the glass something to refract) ---- */
 .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
-.stain { position: absolute; border-radius: 50%; filter: blur(60px); mix-blend-mode: multiply; opacity: 0.45; will-change: transform; }
-.stain--1 { width: 44vmax; height: 44vmax; background: radial-gradient(circle at 40% 40%, #d8cdb2, transparent 68%); top: -12vmax; left: -8vmax; animation: float1 26s ease-in-out infinite; }
-.stain--2 { width: 40vmax; height: 40vmax; background: radial-gradient(circle at 50% 50%, #cfc4a8, transparent 68%); bottom: -14vmax; right: -10vmax; animation: float2 30s ease-in-out infinite; }
-@keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8vmax,5vmax) scale(1.1); } }
-@keyframes float2 { 0%,100% { transform: translate(0,0) scale(1.05); } 50% { transform: translate(-7vmax,-4vmax) scale(0.95); } }
-.grain { position: absolute; inset: 0; opacity: 0.06; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+/* two extra drifting orbs via pseudo-elements */
+.bg::before, .bg::after {
+  content: ""; position: absolute; border-radius: 50%;
+  filter: blur(72px); opacity: 0.6; will-change: transform;
+}
+.bg::before {
+  width: 52vmax; height: 52vmax; top: -16vmax; right: -12vmax;
+  background: radial-gradient(circle at 50% 50%, #c4c4c4, transparent 66%);
+  animation: orbA 34s ease-in-out infinite;
+}
+.bg::after {
+  width: 46vmax; height: 46vmax; bottom: -18vmax; left: -14vmax;
+  background: radial-gradient(circle at 50% 50%, #3a3a3a, transparent 64%);
+  animation: orbB 40s ease-in-out infinite;
+}
+.stain { position: absolute; border-radius: 50%; filter: blur(66px); opacity: 0.5; will-change: transform; }
+.stain--1 {
+  width: 46vmax; height: 46vmax; top: -10vmax; left: -8vmax;
+  background: radial-gradient(circle at 42% 40%, #d8d8d8, transparent 66%);
+  animation: float1 28s ease-in-out infinite;
+}
+.stain--2 {
+  width: 42vmax; height: 42vmax; bottom: -12vmax; right: 8vmax;
+  background: radial-gradient(circle at 50% 50%, #808080, transparent 66%);
+  animation: float2 32s ease-in-out infinite;
+}
+@keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(10vmax,6vmax) scale(1.12); } }
+@keyframes float2 { 0%,100% { transform: translate(0,0) scale(1.05); } 50% { transform: translate(-8vmax,-5vmax) scale(0.94); } }
+@keyframes orbA  { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9vmax,7vmax) scale(1.14); } }
+@keyframes orbB  { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(7vmax,-6vmax) scale(0.92); } }
+.grain { position: absolute; inset: 0; opacity: 0.05; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
 /* ---------------- Stage & wallet ---------------- */
 .stage {
@@ -44,29 +75,31 @@ body {
   gap: 18px;
 }
 
-/* Stamp button pinned to the bottom of the screen */
+/* Manual stamp button — hidden by default: stamps are only granted by a real NFC
+   tap. It's revealed (.dev-on, added by app.js) only on localhost for testing. */
 .stampbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: flex; justify-content: center;
+  display: none; justify-content: center;
   padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
+.stampbar.dev-on { display: flex; }
 .stampbar__btn {
   pointer-events: auto;
   width: min(92vw, 360px);
   font-size: 17px; padding: 16px 20px; border-radius: 16px;
-  box-shadow: 0 14px 30px -10px rgba(28, 43, 58, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 14px 30px -10px rgba(20,20,20, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .wallet-head { position: absolute; top: 26px; left: 0; right: 0; text-align: center; z-index: 2; }
-.wallet-title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.3px; color: #1c2b3a; }
-.greeting { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 19px; margin: 0; color: #1c2b3a; text-align: center; }
+.wallet-title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 24px; margin: 0; letter-spacing: -0.3px; color: #171717; text-shadow: 0 1px 10px rgba(255,255,255,0.4); animation: fadeDown 0.7s var(--ease-spring) both; }
+.greeting { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 19px; margin: 0; color: #171717; text-align: center; text-shadow: 0 1px 10px rgba(255,255,255,0.4); animation: fadeDown 0.7s var(--ease-spring) 0.08s both; }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
 .wallet {
   position: relative;
-  width: min(96vw, 540px);
+  width: min(100%, 460px);
   margin: 0 auto;
-  transform: translateX(-12px); /* nudge the card slightly left */
-  overflow: hidden;
+  overflow: visible; /* let the glass card's soft shadow breathe */
 }
 
 .wcard {
@@ -100,16 +133,32 @@ body {
   position: absolute; inset: 0;
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
   border-radius: var(--radius);
-  padding: 20px 20px;
+  padding: 22px 22px;
   display: flex; flex-direction: column;
-  background: linear-gradient(158deg, var(--paper), var(--paper-2));
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 22px 40px -20px rgba(60,40,20,0.5), inset 0 0 0 2px rgba(255,255,255,0.45), inset 0 0 0 3px var(--paper-2);
+  /* frosted glass */
+  background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+  backdrop-filter: blur(20px) saturate(165%);
+  -webkit-backdrop-filter: blur(20px) saturate(165%);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22);
   overflow: hidden;
   transition: opacity 0s linear 0.45s;
 }
-.face::before { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 55% at 22% -8%, rgba(255,255,255,0.5), transparent 55%); pointer-events: none; }
-.face--front { opacity: 1; }
+/* diagonal light streak + soft top-corner glow for the glass sheen */
+.face::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(130% 60% at 20% -10%, rgba(255,255,255,0.6), transparent 52%),
+    linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.18) 46%, transparent 60%);
+}
+.face--front { opacity: 1; animation: cardIn 0.9s var(--ease-spring) both; }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(26px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 .face--back { transform: rotateY(180deg); opacity: 0; align-items: center; justify-content: center; text-align: center; }
 .card.is-flipped .face--front { opacity: 0; }
 .card.is-flipped .face--back { opacity: 1; }
@@ -129,52 +178,56 @@ body {
 /* ---------------- Oram card header ---------------- */
 .oram-sheen {
   position: absolute; top: 0; left: 0; width: 55%; height: 100%;
-  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.5) 50%, transparent 80%);
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%);
   transform: translateX(-170%) skewX(-12deg);
   pointer-events: none; z-index: 3;
-  animation: sheen 1.2s ease-out 0.4s 1;
+  animation: sheen 7s ease-in-out 0.9s infinite;
 }
-@keyframes sheen { to { transform: translateX(340%) skewX(-12deg); } }
-
-.oram-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 6px; position: relative; z-index: 1; }
-.oram-logo {
-  width: 90px; height: 90px; border-radius: 50%; overflow: hidden;
-  background: #ece5d3;
-  box-shadow: 0 12px 24px -10px rgba(28,43,58,0.45);
-  opacity: 0;
-  animation: logoIn 0.9s var(--ease-spring) 0.15s forwards, logoFloat 4.5s ease-in-out 1.15s infinite;
+@keyframes sheen {
+  0%   { transform: translateX(-170%) skewX(-12deg); }
+  16%  { transform: translateX(340%) skewX(-12deg); }
+  100% { transform: translateX(340%) skewX(-12deg); }
 }
-/* zoom the badge so it fills the circle (the source PNG has margins) */
-.oram-logo img { width: 100%; height: 100%; object-fit: cover; object-position: center 47%; display: block; transform: scale(1.34); }
-@keyframes logoIn { from { opacity: 0; transform: scale(0.4) rotate(-16deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
-@keyframes logoFloat { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-6px) rotate(1.5deg); } }
 
-.oram-name { font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 4px; margin: 14px 0 0; color: var(--ink); text-transform: uppercase; }
-.oram-sub { margin: 4px 0 0; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); }
+.oram-head { display: flex; flex-direction: column; align-items: flex-start; text-align: left; margin-bottom: 14px; position: relative; z-index: 1; }
+.oram-name {
+  font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
+  margin: 0; color: var(--ink); text-transform: uppercase;
+  opacity: 0; transform-origin: 0% 50%;
+  animation: nameIn 0.7s var(--ease-spring) 0.12s forwards;
+}
+@keyframes nameIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.82); letter-spacing: 0; }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 2.5px; }
+}
+.oram-sub { margin: 3px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
 
-.oram-progress { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin: 10px 0 16px; font-family: "Quicksand","Nunito",sans-serif; position: relative; z-index: 1; }
+.oram-progress { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin: 0 0 16px; font-family: "Quicksand","Nunito",sans-serif; position: relative; z-index: 1; }
 .oram-progress .count { font-weight: 700; font-size: 28px; color: var(--ink); }
 .oram-progress .counter__sep { opacity: 0.4; font-size: 22px; color: var(--ink-faint); }
 .oram-progress > span:nth-of-type(3) { font-size: 22px; color: var(--ink-faint); font-weight: 700; }
 .oram-progress__label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); margin-left: 8px; align-self: center; }
 
-/* ---------------- Reward teaser (standalone banner under the card) ---------------- */
+/* ---------------- Reward teaser (inline box on the card, under the stamp grid) ---------------- */
 .reward-teaser {
-  width: min(96vw, 540px);
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 18px; border-radius: 18px;
-  background: linear-gradient(120deg, rgba(122,138,95,0.24), rgba(38,56,74,0.14));
-  border: 1px solid rgba(122,138,95,0.32);
-  box-shadow: 0 16px 32px -20px rgba(60,40,20,0.5), inset 0 1px 0 rgba(255,255,255,0.45);
-  position: relative; z-index: 1;
-  animation: teaserIn 0.5s ease both;
+  width: 100%; box-sizing: border-box;
+  display: flex; align-items: center; gap: 11px;
+  padding: 12px 15px; border-radius: 15px;
+  background: linear-gradient(120deg, rgba(120,120,120,0.30), rgba(255,255,255,0.14));
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.4);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 20px -12px rgba(20,20,20,0.45);
+  position: relative; z-index: 1; overflow: hidden;
+  animation: teaserIn 0.55s var(--ease-spring) 0.55s both;
 }
 .reward-teaser[hidden] { display: none; }
-.reward-teaser__gift { font-size: 27px; flex: 0 0 auto; line-height: 1; animation: giftBob 2.4s ease-in-out infinite; }
+.reward-teaser__gift { font-size: 22px; flex: 0 0 auto; line-height: 1; animation: giftBob 2.4s ease-in-out infinite; }
 .reward-teaser__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.reward-teaser__main { font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 15px; color: #1c2b3a; letter-spacing: -0.2px; }
-.reward-teaser__main b { font-weight: 800; color: #26384a; }
-.reward-teaser__sub { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #7a8a5f; }
+.reward-teaser__main { font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 13px; color: #171717; letter-spacing: -0.2px; }
+.reward-teaser__main b { font-weight: 800; color: #1c1c1c; }
+.reward-teaser__sub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #6f6f6f; }
 @keyframes teaserIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes giftBob { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
 
@@ -184,14 +237,20 @@ body {
   position: relative; border-radius: 50%; display: grid; place-items: center;
   aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 84px;
   color: var(--ink-faint);
-  background: repeating-conic-gradient(rgba(0,0,0,0.012) 0deg 10deg, transparent 10deg 20deg), rgba(255,251,240,0.5);
-  border: 2px dashed var(--line);
-  transition: border-color 0.4s ease;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.55), transparent 60%),
+    rgba(255, 251, 242, 0.28);
+  border: 1.5px dashed rgba(110, 110, 110, 0.42);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 6px rgba(70,70,70,0.06);
+  transition: border-color 0.4s ease, transform 0.3s var(--ease-spring);
+  animation: slotIn 0.5s var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 0.35s);
 }
+@keyframes slotIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
 .slot__num { position: absolute; font-size: 9px; font-weight: 700; bottom: 2px; left: 50%; transform: translateX(-50%); color: var(--ink-faint); }
 .slot .stamp { position: absolute; inset: 0; display: grid; place-items: center; color: var(--stamp-ink); opacity: 0; transform: scale(0.2); will-change: transform, opacity; z-index: 1; }
 .slot .stamp svg { width: 76%; height: 76%; }
-.slot .stamp .stamp-mark { width: 136%; height: 136%; object-fit: cover; display: block; }
+.slot .stamp .stamp-mark { width: 90%; height: 90%; object-fit: contain; display: block; }
 .slot.is-stamped { border-color: rgba(0,0,0,0.08); }
 .slot.is-stamped .stamp { animation: starIn 0.5s var(--ease-spring) forwards; }
 @keyframes starIn {
@@ -222,7 +281,7 @@ body {
 .btn--ghost:hover { color: var(--ink); border-color: var(--ink-dim); }
 
 /* ---------------- Stamp tool ---------------- */
-.stamper { position: fixed; top: 0; left: 0; width: 120px; height: 150px; transform-origin: 50% 100%; opacity: 0; pointer-events: none; z-index: 40; filter: drop-shadow(0 12px 14px rgba(60,35,15,0.3)); will-change: transform, opacity; }
+.stamper { position: fixed; top: 0; left: 0; width: 120px; height: 150px; transform-origin: 50% 100%; opacity: 0; pointer-events: none; z-index: 40; filter: drop-shadow(0 12px 14px rgba(40,40,40,0.3)); will-change: transform, opacity; }
 
 /* ---------------- Reward / back ---------------- */
 .reward { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; z-index: 1; }
@@ -249,30 +308,34 @@ body {
   position: absolute; top: 16px; left: 16px; z-index: 60;
   width: 46px; height: 46px; border-radius: 14px;
   display: grid; place-items: center; cursor: pointer;
-  color: #c0503f;
-  background: linear-gradient(155deg, #fdf1ee, #f7ddd6);
-  border: 1px solid rgba(192,80,63,0.22);
-  box-shadow: 0 8px 18px -8px rgba(150,50,30,0.35), inset 0 1px 0 rgba(255,255,255,0.6);
+  color: #171717;
+  background: linear-gradient(155deg, rgba(246,246,246,0.62), rgba(228,228,228,0.5));
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 10px 22px -10px rgba(20,20,20,0.4), inset 0 1px 0 var(--glass-hi);
   transition: transform 0.16s ease, box-shadow 0.3s ease;
 }
-.signout-btn:hover { box-shadow: 0 12px 22px -8px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
+.signout-btn:hover { box-shadow: 0 12px 22px -8px rgba(20,20,20,0.45), inset 0 1px 0 rgba(255,255,255,0.6); }
 .signout-btn:active { transform: scale(0.94); }
-.signout-btn:focus-visible { outline: 2px solid #c0503f; outline-offset: 3px; }
+.signout-btn:focus-visible { outline: 2px solid #171717; outline-offset: 3px; }
 
 /* ---------------- Discounts pocket ---------------- */
 .pocket-btn {
   position: fixed; top: 16px; right: 16px; z-index: 60;
   width: 46px; height: 46px; border-radius: 14px;
   display: grid; place-items: center; cursor: pointer;
-  color: #26384a;
-  background: linear-gradient(155deg, #efe8d6, #e2d9c3);
-  border: 1px solid rgba(0,0,0,0.07);
-  box-shadow: 0 8px 18px -8px rgba(90,60,30,0.5), inset 0 1px 0 rgba(255,255,255,0.6);
+  color: #1c1c1c;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 22px -10px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi);
   transition: transform 0.16s ease, box-shadow 0.3s ease;
 }
-.pocket-btn:hover { box-shadow: 0 12px 22px -8px rgba(90,60,30,0.6), inset 0 1px 0 rgba(255,255,255,0.6); }
+.pocket-btn:hover { box-shadow: 0 12px 22px -8px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.6); }
 .pocket-btn:active { transform: scale(0.94); }
-.pocket-btn:focus-visible { outline: 2px solid #26384a; outline-offset: 3px; }
+.pocket-btn:focus-visible { outline: 2px solid #1c1c1c; outline-offset: 3px; }
 .pocket-btn.pop { animation: pocketPop 0.5s var(--ease-spring); }
 @keyframes pocketPop { 0%,100% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } }
 
@@ -281,20 +344,20 @@ body {
   min-width: 20px; height: 20px; padding: 0 5px;
   display: grid; place-items: center;
   font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 11px;
-  color: #f2fbf5; background: #2f4257;
+  color: #f2fbf5; background: #2a2a2a;
   border: 2px solid var(--cream); border-radius: 10px;
 }
 .pocket-badge.bump { animation: pocketPop 0.5s var(--ease-spring); }
 .pocket-badge[hidden] { display: none; }
 
-.scrim { position: fixed; inset: 0; z-index: 190; background: rgba(50,32,16,0.34); opacity: 0; transition: opacity 0.3s ease; }
+.scrim { position: fixed; inset: 0; z-index: 190; background: rgba(30,30,30,0.34); opacity: 0; transition: opacity 0.3s ease; }
 .scrim.show { opacity: 1; }
 
 .drawer {
   position: fixed; top: 0; right: 0; z-index: 200;
-  width: min(88vw, 330px); height: 100%;
-  background: linear-gradient(160deg, #efe8d6, #e2d9c3);
-  box-shadow: -18px 0 50px -20px rgba(60,40,20,0.6);
+  width: min(92vw, 360px); height: 100%;
+  background: linear-gradient(160deg, #ececec, #e2e2e2);
+  box-shadow: -18px 0 50px -20px rgba(40,40,40,0.6);
   transform: translateX(100%);
   transition: transform 0.42s var(--ease-spring);
   display: flex; flex-direction: column;
@@ -302,11 +365,11 @@ body {
 }
 .drawer.open { transform: translateX(0); }
 .drawer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.drawer__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #1c2b3a; }
-.drawer__close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #586675; font-size: 15px; cursor: pointer; }
-.drawer__close:hover { color: #1c2b3a; }
+.drawer__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #171717; }
+.drawer__close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 15px; cursor: pointer; }
+.drawer__close:hover { color: #171717; }
 .drawer__list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #a99f86; }
+.drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #9a9a9a; }
 
 .coupon {
   position: relative;
@@ -314,38 +377,64 @@ body {
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
   padding: 12px 12px 12px 16px;
   border-radius: 14px;
-  background: #f7fdf9;
+  background: #fafafa;
   border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 6px 16px -10px rgba(60,40,20,0.5);
+  box-shadow: 0 6px 16px -10px rgba(40,40,40,0.5);
   overflow: hidden; cursor: pointer;
   animation: couponIn 0.4s var(--ease-spring);
   transition: transform 0.14s ease, box-shadow 0.3s ease;
 }
-.coupon:hover { box-shadow: 0 10px 22px -10px rgba(60,40,20,0.6); }
+.coupon:hover { box-shadow: 0 10px 22px -10px rgba(40,40,40,0.6); }
 .coupon:active { transform: scale(0.98); }
 @keyframes couponIn { 0% { opacity: 0; transform: translateY(-8px) scale(0.96); } 100% { opacity: 1; transform: none; } }
 .coupon__stripe { width: 6px; align-self: stretch; border-radius: 4px; }
 .coupon__body { min-width: 0; }
-.coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #a99f86; margin: 0; }
-.coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #1c2b3a; }
-.coupon__desc { font-size: 11px; color: #586675; margin: 1px 0 0; }
-.coupon__exp { font-size: 11px; font-weight: 700; color: #c0503f; margin: 3px 0 0; }
+.coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #9a9a9a; margin: 0; }
+.coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #171717; }
+.coupon__desc { font-size: 11px; color: #565656; margin: 1px 0 0; }
+.coupon__exp { font-size: 11px; font-weight: 700; color: #171717; margin: 3px 0 0; }
 .coupon__go { font-size: 26px; font-weight: 700; color: var(--ink-faint); line-height: 1; padding-right: 2px; }
 
 /* Past (used / expired) coupons — dimmed, non-interactive */
-.drawer__section { flex-shrink: 0; margin: 10px 4px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #a99f86; }
-.coupon--past { cursor: default; opacity: 0.62; background: #f2ede2; }
-.coupon--past:hover { box-shadow: 0 6px 16px -10px rgba(60,40,20,0.5); }
+.drawer__section { flex-shrink: 0; margin: 10px 4px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9a9a9a; }
+.coupon--past { cursor: default; opacity: 0.62; background: #f2f2f2; }
+.coupon--past:hover { box-shadow: 0 6px 16px -10px rgba(40,40,40,0.5); }
 .coupon--past:active { transform: none; }
-.coupon--past .coupon__deal { text-decoration: line-through; text-decoration-color: rgba(28,43,58,0.35); }
-.coupon__stamp { align-self: center; font-family: "Quicksand", "Nunito", sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #586675; border: 1.5px solid rgba(88,102,117,0.4); border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
+.coupon--past .coupon__deal { text-decoration: line-through; text-decoration-color: rgba(20,20,20,0.35); }
+.coupon__stamp { align-self: center; font-family: "Quicksand", "Nunito", sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #565656; border: 1.5px solid rgba(90,90,90,0.4); border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
+
+/* ---------------- Fanned wallet stack (active coupons) ---------------- */
+.coupon-stack { position: relative; flex-shrink: 0; transition: height 0.42s var(--ease-spring); }
+.coupon-stack .coupon {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 96px; align-items: start;
+  transform-origin: 50% 0;
+  animation: none; /* the fan layout provides motion instead of couponIn */
+  transition: transform 0.44s var(--ease-spring), box-shadow 0.32s ease, opacity 0.32s ease;
+  will-change: transform;
+}
+.coupon-stack .coupon:hover { box-shadow: 0 18px 32px -16px rgba(20,20,20,0.6); }
+.coupon-stack.is-spread .coupon { box-shadow: 0 8px 20px -12px rgba(20,20,20,0.4); }
+/* the tapped card's content: keep the deal near the top so it shows in the peek */
+.coupon-stack .coupon__desc, .coupon-stack .coupon__exp { margin-top: 2px; }
+
+.stack-toggle {
+  flex-shrink: 0; align-self: center; margin-top: 6px;
+  background: rgba(255,255,255,0.55); border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 999px; padding: 8px 18px; cursor: pointer;
+  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 12px;
+  color: #565656; letter-spacing: 0.3px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.14s ease;
+}
+.stack-toggle:hover { background: rgba(255,255,255,0.85); color: #171717; }
+.stack-toggle:active { transform: scale(0.96); }
 
 /* ---------------- Congratulation ticket ---------------- */
 .congrats {
   position: fixed; inset: 0; z-index: 205;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
   padding: 40px 22px;
-  background: linear-gradient(165deg, #33475b 0%, #22303f 45%, #161f2a 100%);
+  background: linear-gradient(165deg, #3a3a3a 0%, #262626 45%, #161616 100%);
   opacity: 0; transition: opacity 0.3s ease;
 }
 .congrats[hidden] { display: none; }
@@ -371,18 +460,18 @@ body {
 
 .ticket__pop { font-size: 44px; line-height: 1; }
 .ticket__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; margin: 8px 0 0; letter-spacing: -0.4px;
-  background: linear-gradient(90deg, #7a8a5f, #3a5068 55%, #a7b389); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.ticket__sub { margin: 8px 4px 0; font-size: 14.5px; line-height: 1.4; color: #586675; }
-.ticket__sub b { color: #1c2b3a; }
-.ticket__divider { border-top: 2px dashed #d8cfbb; margin: 18px 0; }
+  background: linear-gradient(90deg, #5a5a5a, #333333 55%, #8a8a8a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ticket__sub { margin: 8px 4px 0; font-size: 14.5px; line-height: 1.4; color: #565656; }
+.ticket__sub b { color: #171717; }
+.ticket__divider { border-top: 2px dashed #d6d6d6; margin: 18px 0; }
 .ticket__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .ticket__stats > div { display: flex; flex-direction: column; gap: 4px; }
-.ticket__k { font-size: 11.5px; font-weight: 600; color: #a99f86; }
-.ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #1c2b3a; }
+.ticket__k { font-size: 11.5px; font-weight: 600; color: #9a9a9a; }
+.ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #171717; }
 .ticket__qr { width: 150px; height: 150px; margin: 6px auto 0; }
 .ticket__qr svg { display: block; width: 100%; height: 100%; }
-.ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #586675; transition: color 0.3s ease; }
-.ticket__code { margin: 8px auto 0; display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #1c2b3a; background: #efe8d6; border: 1px dashed #c7bda3; border-radius: 9px; padding: 6px 14px; }
+.ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #565656; transition: color 0.3s ease; }
+.ticket__code { margin: 8px auto 0; display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #171717; background: #ececec; border: 1px dashed #cccccc; border-radius: 9px; padding: 6px 14px; }
 
 /* "Used" stamp — slammed onto the ticket in realtime when the cashier redeems */
 .ticket__used { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; }
@@ -391,10 +480,10 @@ body {
   display: flex; align-items: center; justify-content: center; box-sizing: border-box;
   width: 150px; height: 150px; border-radius: 50%;
   font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 36px; letter-spacing: 2px;
-  text-transform: uppercase; color: #c0503f; opacity: 0.9;
-  border: 5px solid #c0503f;
+  text-transform: uppercase; color: #171717; opacity: 0.9;
+  border: 5px solid #171717;
   transform: rotate(-14deg);
-  box-shadow: inset 0 0 0 3px rgba(192,80,63,0.28), 0 8px 22px -12px rgba(192,80,63,0.6);
+  box-shadow: inset 0 0 0 3px rgba(20,20,20,0.28), 0 8px 22px -12px rgba(20,20,20,0.6);
   text-shadow: 0 1px 0 rgba(255,255,255,0.4);
 }
 .ticket__used.stamp-in .ticket__usedmark { animation: stampSlam 0.5s cubic-bezier(0.2, 1.5, 0.35, 1) both; }
@@ -406,7 +495,7 @@ body {
 }
 /* the QR fades out under the stamp, and the ticket gives a little recoil */
 .congrats.is-used .ticket__qr { opacity: 0.18; filter: grayscale(1); transition: opacity 0.4s ease, filter 0.4s ease; }
-.congrats.is-used .ticket__hint { color: #23a468; font-weight: 700; }
+.congrats.is-used .ticket__hint { color: #4a4a4a; font-weight: 700; }
 .congrats.is-used .ticket { animation: ticketRecoil 0.4s ease; }
 @keyframes ticketRecoil { 0%,100% { transform: translateY(0) scale(1); } 22% { transform: translateY(4px) scale(0.985); } 55% { transform: translateY(-1px) scale(1.004); } }
 
@@ -425,10 +514,112 @@ body {
 
 /* ---------------- Reduced motion ---------------- */
 @media (prefers-reduced-motion: reduce) {
-  .stain { animation: none; }
+  .stain, .bg::before, .bg::after { animation: none; }
   .wcard, .card { transition: transform 0.3s ease; }
   .face { transition-delay: 0.15s; }
+  .face--front, .slot, .reward-teaser, .oram-sheen, .wallet-title, .greeting, .oram-name { animation: none; opacity: 1; transform: none; }
   .slot.is-stamped .stamp { animation: none; opacity: var(--sa,1); transform: translate(var(--dx,0), var(--dy,0)) scale(1) rotate(var(--r,0deg)); }
   .slot.is-stamped .halo { animation: none; }
   .reward__prize.shine::after { animation: none; }
+}
+
+/* ---------------- Toast (cooldown / invalid-tap feedback) ---------------- */
+.toast {
+  position: fixed; left: 50%; bottom: 32px; transform: translate(-50%, 20px);
+  max-width: min(88vw, 420px); z-index: 250;
+  padding: 13px 18px; border-radius: 14px;
+  background: rgba(20,20,20, 0.96); color: #f4f4f4;
+  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 14px;
+  text-align: center; line-height: 1.35;
+  box-shadow: 0 16px 34px -14px rgba(0, 0, 0, 0.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ================= Glassy bottom navigation ================= */
+/* discounts now live in the tab bar; retire the top-corner buttons */
+.pocket-btn { display: none; }
+.signout-btn { display: none; }
+/* keep the card clear of the floating bar */
+.stage { padding-bottom: 104px; }
+/* dev-only Stamp button sits above the bar */
+.stampbar.dev-on { bottom: 88px; }
+
+.tabbar {
+  position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%); z-index: 210;
+  display: flex; padding: 7px; border-radius: 22px;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 18px 40px -16px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi);
+  animation: tabbarIn 0.6s var(--ease-spring) 0.25s both;
+}
+@keyframes tabbarIn { from { opacity: 0; transform: translate(-50%, 26px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.tabbar__ind {
+  position: absolute; top: 7px; left: 7px;
+  width: 84px; height: calc(100% - 14px);
+  border-radius: 16px; background: #171717;
+  transform: translateX(calc(var(--ti, 1) * 84px));
+  transition: transform 0.44s var(--ease-spring);
+  z-index: 0;
+}
+.tab {
+  position: relative; z-index: 1;
+  width: 84px; padding: 9px 0 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: 0; cursor: pointer; color: #565656;
+  transition: color 0.35s ease;
+}
+.tab.is-active { color: #ffffff; }
+.tab__ico { position: relative; display: grid; place-items: center; height: 24px; }
+.tab.is-active .tab__ico { animation: tabPop 0.5s var(--ease-spring); }
+@keyframes tabPop { 0% { transform: scale(1); } 42% { transform: scale(1.3) translateY(-2px); } 100% { transform: scale(1); } }
+.tab__ico svg { width: 23px; height: 23px; }
+.tab__label { font-family: "Quicksand", "Nunito", sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; }
+.tab__badge {
+  position: absolute; top: -6px; right: -9px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px; background: #171717; color: #fff; font-size: 9px; font-weight: 800;
+  display: grid; place-items: center; box-shadow: 0 0 0 2px var(--glass-fill-strong);
+}
+.tab.is-active .tab__badge { background: #fff; color: #171717; }
+.tab__badge[hidden] { display: none; }
+
+/* ================= Settings bottom sheet ================= */
+.sheet {
+  position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 130%); opacity: 0;
+  width: min(92vw, 400px); z-index: 205; overflow: hidden;
+  padding: 14px 20px 20px; border-radius: 24px;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  transition: transform 0.46s var(--ease-spring), opacity 0.3s ease;
+}
+.sheet.open { transform: translate(-50%, 0); opacity: 1; }
+.sheet__grip { width: 42px; height: 4px; border-radius: 3px; background: rgba(20,20,20,0.18); margin: 2px auto 12px; }
+.sheet__title { font-family: "Quicksand", "Nunito", sans-serif; font-size: 20px; font-weight: 700; margin: 0 0 12px; color: #171717; }
+.sheet__rows { display: flex; flex-direction: column; margin-bottom: 16px; }
+.srow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 2px; border-bottom: 1px solid rgba(20,20,20,0.08); }
+.srow:last-child { border-bottom: 0; }
+.srow__k { font-size: 13px; font-weight: 700; color: #565656; flex: 0 0 auto; }
+.srow__v { font-size: 14px; font-weight: 700; color: #171717; min-width: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet__signout {
+  width: 100%; padding: 14px; border-radius: 14px; border: 0; cursor: pointer;
+  background: #171717; color: #fff; font-family: "Quicksand", "Nunito", sans-serif;
+  font-weight: 700; font-size: 15px; letter-spacing: 0.2px;
+  transition: transform 0.14s ease, background 0.2s ease;
+}
+.sheet__signout:hover { background: #000; }
+.sheet__signout:active { transform: scale(0.98); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar { animation: none; }
+  .tab.is-active .tab__ico { animation: none; }
+  .tabbar__ind, .sheet { transition: none; }
 }

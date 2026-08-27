@@ -5,15 +5,46 @@
 // so it comes back identically on sign-in. On completion it draws a weighted-random
 // reward, mints a discount, and resets the card.
 //
-//   POST /card/stamp  (auth)  -> { stamp, stamp_count, required, completed, discount? }
+//   POST /card/stamp  (auth) { tag }  -> { stamp, stamp_count, required, completed, discount? }
+//
+// A stamp is only granted for a real NFC tap: the request must carry the tag's
+// secret `code`, which must match an ACTIVE row in nfc_tags. The client `nfc=1`
+// flag is gone — the server never trusts the browser to say "this was a tap".
+// A per-user cooldown (cafe_card.stamp_cooldown_minutes) caps how often the same
+// customer can earn a stamp, so a copied static-tag URL is worth at most one stamp
+// per window.
 
 routerAdd("POST", "/card/stamp", (e) => {
   const u = e.auth;
   if (!u) return e.json(401, { error: "Not signed in" });
 
+  // require a valid, active tag code
+  const tagCode = String((e.requestInfo().body || {}).tag || "").trim();
+  if (!tagCode) return e.json(400, { error: "Tap your café's card to collect a stamp." });
+  let tag = null;
+  try { tag = $app.findFirstRecordByFilter("nfc_tags", "code = {:c}", { c: tagCode }); } catch (err) { tag = null; }
+  if (!tag || !tag.getBool("active")) {
+    return e.json(400, { error: "This card isn't recognised." });
+  }
+
   const card = $app.findRecordsByFilter("cafe_card", "stamps_required >= 0", "", 1, 0, {})[0];
   const required = card ? card.getInt("stamps_required") : 8;
   const inkColor = "#1c2b3a";
+
+  // per-user cooldown: reject if this customer stamped too recently
+  const cooldownMin = card ? card.getInt("stamp_cooldown_minutes") : 0;
+  if (cooldownMin > 0) {
+    const last = $app.findRecordsByFilter("stamp_events", "user = {:u}", "-created", 1, 0, { u: u.id })[0];
+    if (last) {
+      const lastMs = new Date(String(last.getString("created")).replace(" ", "T")).getTime();
+      const elapsed = Date.now() - lastMs;
+      const windowMs = cooldownMin * 60000;
+      if (!isNaN(lastMs) && elapsed < windowMs) {
+        const retryAfter = Math.ceil((windowMs - elapsed) / 60000);
+        return e.json(429, { error: "You already collected a stamp recently. Come back soon!", retry_after: retryAfter });
+      }
+    }
+  }
 
   // generate this stamp's hand-pressed look
   const stamp = {
@@ -33,11 +64,15 @@ routerAdd("POST", "/card/stamp", (e) => {
   stamps.push(stamp);
   let count = stamps.length;
 
-  // audit log
+  // audit log (records the real tap source + which tag)
   const ev = new Record($app.findCollectionByNameOrId("stamp_events"));
   ev.set("user", u.id);
-  ev.set("source", "manual");
+  ev.set("source", "nfc");
+  ev.set("tag", tagCode);
   $app.save(ev);
+
+  // note when this tag was last tapped
+  try { tag.set("last_used", new Date().toISOString()); $app.save(tag); } catch (err) {}
 
   let completed = false;
   let discount = null;

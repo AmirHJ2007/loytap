@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache" />
   <title>LoyTap · Loyalty Wallet</title>
-  <script>try{if(localStorage.getItem('loytap_signed_in')!=='1')location.replace('auth.html');}catch(e){}</script>
+  <script>try{if(localStorage.getItem('loytap_signed_in')!=='1'){var _t=new URLSearchParams(location.search).get('t');if(_t)localStorage.setItem('reloy_pending_tap',JSON.stringify({code:_t,at:Date.now()}));location.replace('auth.html');}}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=30" />
+  <link rel="stylesheet" href="styles.css?v=41" />
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -42,7 +42,6 @@
     </header>
     <p class="greeting" id="greeting">Welcome back 👋</p>
     <div class="wallet" id="wallet"></div>
-    <div class="reward-teaser" id="rewardTeaser" aria-live="polite" hidden></div>
   </main>
 
   <!-- Stamp button, pinned to the bottom of the screen -->
@@ -116,9 +115,45 @@
     <button class="congrats__continue" id="congratsContinue" type="button">Continue</button>
   </div>
 
+  <!-- Settings bottom sheet -->
+  <aside class="sheet" id="settings" aria-hidden="true" aria-label="Settings">
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <h2 class="sheet__title">Settings</h2>
+    <div class="sheet__rows">
+      <div class="srow"><span class="srow__k">Name</span><span class="srow__v" id="setName">—</span></div>
+      <div class="srow"><span class="srow__k">Café</span><span class="srow__v" id="setCafe">—</span></div>
+      <div class="srow"><span class="srow__k">Version</span><span class="srow__v">Reloy 1.0</span></div>
+    </div>
+    <button class="sheet__signout" id="setSignout" type="button">Sign out</button>
+  </aside>
+
+  <!-- Glassy bottom navigation -->
+  <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
+    <span class="tabbar__ind" aria-hidden="true"></span>
+    <button class="tab" id="tabDiscounts" type="button" aria-label="Discounts">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-8-8V3.6a1 1 0 0 1 1-1H12l8.6 8.6a2 2 0 0 1 0 2.2z"/><circle cx="7.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg>
+        <span class="tab__badge" id="tabBadge" hidden>0</span>
+      </span>
+      <span class="tab__label">Discounts</span>
+    </button>
+    <button class="tab is-active" id="tabWallet" type="button" aria-label="Wallet">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/><path d="M21 8.5h-5a2.5 2.5 0 0 0 0 5h5a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/></svg>
+      </span>
+      <span class="tab__label">Wallet</span>
+    </button>
+    <button class="tab" id="tabSettings" type="button" aria-label="Settings">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.1" fill="none"/><circle cx="15" cy="12" r="2.1" fill="none"/><circle cx="8" cy="17" r="2.1" fill="none"/></svg>
+      </span>
+      <span class="tab__label">Settings</span>
+    </button>
+  </nav>
+
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=30"></script>
+  <script src="app.js?v=41"></script>
 </body>
 </html>

@@ -10,12 +10,12 @@ const CARDS = [
     stamps: 8, cols: 4,
     reward: { percent: "20% OFF", desc: "your next order", code: "ORAM20" },
     theme: {
-      "--paper": "#ece5d3", "--paper-2": "#e2d9c3", "--ink": "#1c2b3a",
-      "--ink-dim": "#586675", "--ink-faint": "#a99f86", "--line": "#c7bda3",
-      "--stamp-ink": "#1c2b3a", "--terra": "#26384a", "--terra-deep": "#16232f", "--gold": "#7a8a5f",
+      "--paper": "#f0f0f0", "--paper-2": "#e2e2e2", "--ink": "#171717",
+      "--ink-dim": "#565656", "--ink-faint": "#9a9a9a", "--line": "#cccccc",
+      "--stamp-ink": "#171717", "--terra": "#1c1c1c", "--terra-deep": "#161616", "--gold": "#8a8a8a",
     },
-    inks: ["#16232f", "#1c2b3a", "#7a8a5f"],
-    confetti: ["#1c2b3a", "#7a8a5f", "#c7bda3", "#26384a", "#e2d9c3"],
+    inks: ["#161616", "#171717", "#5a5a5a"],
+    confetti: ["#171717", "#5a5a5a", "#cccccc", "#1c1c1c", "#e2e2e2"],
   },
 ];
 
@@ -31,8 +31,8 @@ let token = "";
 try { token = localStorage.getItem("loytap_token") || ""; } catch (_) {}
 let cafeName = "Aurora Coffee";
 
-// The stamp mark is the Oram line-art logo (a stamped café-logo look).
-const STAR_SVG = `<img class="stamp-mark" src="oram-stamp.png?v=9" alt="" />`;
+// The stamp mark is an infinity-knot badge (a stamped brand-mark look).
+const STAR_SVG = `<img class="stamp-mark" src="knot-stamp.png?v=1" alt="" />`;
 
 // Dotted QR with rounded finder "eyes" (matches the reference look).
 // High error-correction so the rounded styling stays scannable.
@@ -68,6 +68,27 @@ let activeIndex = 0;
 let busy = false;
 let pendingReset = null; // deck to reset to empty after the congrats "Continue"
 
+// Local testing only: on localhost, show the manual Stamp button and drive the
+// real tap flow with a seeded dev tag. Never active on the deployed site.
+const DEV_MODE = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+const DEV_TAG = "DEVTAG";
+
+// Lightweight transient message (used for cooldown / invalid-tap feedback).
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.className = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("is-on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("is-on"), 3200);
+}
+
 // ===================================================================
 // Build the cards (front face only — reward is a full-screen ticket)
 // ===================================================================
@@ -80,7 +101,7 @@ function poolLine() {
   return "win " + names + (rewardPool.length > 2 ? " & more" : "");
 }
 function updateTeaser(deck) {
-  const box = document.getElementById("rewardTeaser");
+  const box = deck && deck.el.querySelector(".reward-teaser");
   if (!box || !deck) return;
   const remaining = deck.cfg.stamps - deck.stamped;
   let gift, main, sub;
@@ -103,7 +124,7 @@ function buildCard(cfg, index) {
   for (const [k, v] of Object.entries(cfg.theme)) el.style.setProperty(k, v);
 
   const slotsHtml = Array.from({ length: cfg.stamps }, (_, i) => `
-    <div class="slot"><span class="halo"></span><span class="slot__num">${i + 1}</span><span class="stamp">${STAR_SVG}</span></div>`).join("");
+    <div class="slot" style="--i:${i}"><span class="halo"></span><span class="slot__num">${i + 1}</span><span class="stamp">${STAR_SVG}</span></div>`).join("");
 
   el.innerHTML = `
     <div class="card">
@@ -111,7 +132,6 @@ function buildCard(cfg, index) {
         <span class="notch notch--l"></span><span class="notch notch--r"></span>
         <div class="oram-sheen" aria-hidden="true"></div>
         <header class="oram-head">
-          <div class="oram-logo"><img src="oram-logo.png?v=4" alt="Oram" /></div>
           <h1 class="oram-name">Oram</h1>
           <p class="oram-sub">Cafe &amp; Restaurant</p>
         </header>
@@ -120,6 +140,7 @@ function buildCard(cfg, index) {
           <span class="oram-progress__label">stamps collected</span>
         </div>
         <div class="grid" style="--cols:${cfg.cols}">${slotsHtml}</div>
+        <div class="reward-teaser" aria-live="polite" hidden></div>
       </section>
     </div>`;
 
@@ -134,7 +155,13 @@ function buildCard(cfg, index) {
     stamped: 0,
   };
 
-  deck.stampBtn.onclick = () => addStamp(deck);
+  // No manual/self-serve stamping in production — stamps are only granted by a real
+  // NFC tap (see the ?t= handler in init). On localhost only, reveal the button and
+  // wire it to a dev tag so the flow can be tested without a physical card.
+  if (DEV_MODE) {
+    document.querySelector(".stampbar")?.classList.add("dev-on");
+    deck.stampBtn.onclick = () => addStamp(deck, DEV_TAG);
+  }
   return deck;
 }
 
@@ -166,17 +193,25 @@ function setActive(i) { if (busy) return; activeIndex = i; layout(); }
 // ===================================================================
 // The backend adds the stamp (and decides its look + any reward), so the
 // exact same stars come back on sign-in and stamps can't be faked.
-async function addStamp(deck) {
+// A stamp is only ever granted by tapping the café's NFC card: `tagCode` is the
+// tag's secret from the tap URL. The server validates it and enforces the cooldown.
+async function addStamp(deck, tagCode) {
   if (busy || deck.stamped >= deck.cfg.stamps) return;
+  if (!tagCode) return; // no self-serve stamping — a real tap is required
   busy = true;
   deck.stampBtn.disabled = true;
-  let res = null;
+  let res = null, r = null;
   try {
-    const r = await fetch(API + "/card/stamp", { method: "POST", headers: { Authorization: token } });
+    r = await fetch(API + "/card/stamp", {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify({ tag: tagCode }),
+    });
     res = await r.json();
     if (!r.ok) throw new Error((res && res.error) || "stamp failed");
   } catch (err) {
     busy = false; deck.stampBtn.disabled = false;
+    if (res && res.error) toast(res.error);
     return;
   }
   const slot = deck.slots[deck.stamped];
@@ -336,6 +371,10 @@ const drawerList = document.getElementById("drawerList");
 const drawerEmpty = document.getElementById("drawerEmpty");
 
 let discounts = [];
+// fanned-stack state for the active coupons
+let activeEls = [];
+let stackEl = null;
+let spread = false;
 
 function shortDiscount(p) {
   const m = String(p).match(/(\d+)\s*%/);
@@ -360,11 +399,11 @@ function daysUntil(iso) {
   if (isNaN(t)) return Infinity;
   return Math.ceil((t - Date.now()) / 864e5);
 }
-// stripe colour by urgency: red ≤2 days, yellow ≤5 days, else green
+// stripe tone by urgency (monochrome): darker = more urgent
 function urgencyColor(days) {
-  if (days <= 2) return "#c0503f"; // red
-  if (days <= 5) return "#e0a92e"; // yellow/amber
-  return "#23a468";                // green
+  if (days <= 2) return "#171717"; // urgent — near black
+  if (days <= 5) return "#6f6f6f"; // soon — mid grey
+  return "#b8b8b8";                // plenty of time — light grey
 }
 
 // backend /card/stamp discount payload -> pocket/congrats record
@@ -377,7 +416,7 @@ function discountToRec(d) {
     code: (d && d.code) || "",
     short: shortDiscount((d && d.deal) || ""),
     due: (d && d.due) || dueDateStr(),
-    terra: "#23a468",
+    terra: "#b8b8b8",
   };
 }
 
@@ -443,7 +482,12 @@ function activeCoupon(d) {
       <p class="coupon__exp">${escapeHtml(expText)}</p>
     </div>
     <span class="coupon__go" aria-hidden="true">›</span>`;
-  c.addEventListener("click", () => { closeDrawer(); setTimeout(() => showCongrats(d), 180); });
+  c.addEventListener("click", () => {
+    // collapsed multi-card stack: first tap spreads the fan; then a tap opens the reward
+    if (activeEls.length > 1 && !spread) { setSpread(true); return; }
+    closeDrawer();
+    setTimeout(() => showCongrats(d), 180);
+  });
   return c;
 }
 
@@ -462,6 +506,46 @@ function pastCoupon(d, kind) {
   return c;
 }
 
+// Fan geometry
+const STACK = { CARD: 96, GAP: 12, PEEK: 54, TIGHT: 9, CAP: 3 };
+
+// Position the active coupons — either a compact fan (collapsed) or a full
+// scrollable spread. The fan caps its depth so even 20 rewards stay short.
+function layoutStack() {
+  if (!stackEl) return;
+  const n = activeEls.length;
+  const S = STACK;
+  if (spread || n === 1) {
+    activeEls.forEach((c, i) => {
+      c.style.transform = `translateY(${i * (S.CARD + S.GAP)}px) scale(1)`;
+      c.style.zIndex = String(n - i);
+      c.style.opacity = "1";
+    });
+    stackEl.style.height = (n * (S.CARD + S.GAP) - S.GAP) + "px";
+  } else {
+    let maxY = 0;
+    activeEls.forEach((c, i) => {
+      let ty, sc, op;
+      if (i <= S.CAP) { ty = i * S.PEEK; sc = 1 - i * 0.04; op = i < 3 ? 1 : 0.94; }
+      else { ty = S.CAP * S.PEEK + (i - S.CAP) * S.TIGHT; sc = 1 - S.CAP * 0.04 - 0.03; op = 0.72; }
+      c.style.transform = `translateY(${ty}px) scale(${sc})`;
+      c.style.zIndex = String(n - i);
+      c.style.opacity = String(op);
+      maxY = Math.max(maxY, ty);
+    });
+    stackEl.style.height = (maxY + S.CARD) + "px";
+  }
+}
+
+function setSpread(v) {
+  spread = v;
+  if (stackEl) stackEl.classList.toggle("is-spread", v);
+  const t = document.getElementById("stackToggle");
+  if (t) t.textContent = v ? "Stack them back" : "Browse all " + activeEls.length;
+  layoutStack();
+}
+function toggleSpread() { setSpread(!spread); }
+
 function renderDiscounts() {
   const active = [];
   const past = [];
@@ -470,14 +554,41 @@ function renderDiscounts() {
     if (!st.past) active.push(d);
     else if (st.visible) past.push({ d: d, kind: st.kind });
   });
+  // most urgent (soonest to expire) sits at the front of the fan
+  active.sort((a, b) => (typeof a.days === "number" ? a.days : 1e9) - (typeof b.days === "number" ? b.days : 1e9));
 
   // badge counts only usable (active) discounts
   pocketBadge.hidden = active.length === 0;
   pocketBadge.textContent = String(active.length);
+  const tabBadge = document.getElementById("tabBadge");
+  if (tabBadge) { tabBadge.hidden = active.length === 0; tabBadge.textContent = String(active.length); }
   drawerEmpty.style.display = active.length || past.length ? "none" : "block";
 
-  drawerList.querySelectorAll(".coupon, .drawer__section").forEach((n) => n.remove());
-  active.forEach((d) => drawerList.appendChild(activeCoupon(d)));
+  drawerList.querySelectorAll(".coupon-stack, .stack-toggle, .drawer__section, .coupon").forEach((n) => n.remove());
+
+  // active rewards as a fanned wallet stack
+  activeEls = [];
+  stackEl = null;
+  spread = false;
+  if (active.length) {
+    const stack = document.createElement("div");
+    stack.className = "coupon-stack";
+    active.forEach((d) => { const c = activeCoupon(d); stack.appendChild(c); activeEls.push(c); });
+    drawerList.appendChild(stack);
+    stackEl = stack;
+    layoutStack();
+    if (active.length > 1) {
+      const t = document.createElement("button");
+      t.id = "stackToggle";
+      t.className = "stack-toggle";
+      t.type = "button";
+      t.textContent = "Browse all " + active.length;
+      t.addEventListener("click", toggleSpread);
+      drawerList.appendChild(t);
+    }
+  }
+
+  // past (used/expired) below, dimmed
   if (past.length) {
     const h = document.createElement("p");
     h.className = "drawer__section";
@@ -487,35 +598,87 @@ function renderDiscounts() {
   }
 }
 
-async function openDrawer() {
-  scrim.hidden = false;
-  requestAnimationFrame(() => { scrim.classList.add("show"); drawer.classList.add("open"); });
-  drawer.setAttribute("aria-hidden", "false");
-  // load the signed-in user's discounts from the backend
+// ---- shared scrim + bottom-nav overlays ----
+const settingsSheet = document.getElementById("settings");
+const tabbarEl = document.getElementById("tabbar");
+const tabBtns = {
+  discounts: document.getElementById("tabDiscounts"),
+  wallet: document.getElementById("tabWallet"),
+  settings: document.getElementById("tabSettings"),
+};
+const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
+
+function setTab(name) {
+  if (tabbarEl) tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
+  for (const k in tabBtns) if (tabBtns[k]) tabBtns[k].classList.toggle("is-active", k === name);
+}
+function showScrim() { scrim.hidden = false; requestAnimationFrame(() => scrim.classList.add("show")); }
+function maybeHideScrim() {
+  const anyOpen = drawer.classList.contains("open") || (settingsSheet && settingsSheet.classList.contains("open"));
+  if (!anyOpen) { scrim.classList.remove("show"); setTimeout(() => { scrim.hidden = true; }, 320); }
+}
+
+async function loadDiscounts() {
   try {
     const r = await fetch(API + "/api/collections/discounts/records?perPage=100&sort=-created", { headers: { Authorization: token } });
     const data = await r.json();
     if (data && data.items) { discounts = data.items.map(mapDiscount); renderDiscounts(); }
   } catch (_) {}
 }
-function closeDrawer() {
-  scrim.classList.remove("show");
+async function openDrawer() {
+  if (settingsSheet) closeSettings(true);
+  showScrim();
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  setTab("discounts");
+  loadDiscounts();
+}
+function closeDrawer(keepTab) {
   drawer.classList.remove("open");
   drawer.setAttribute("aria-hidden", "true");
-  setTimeout(() => { scrim.hidden = true; }, 320);
+  maybeHideScrim();
+  if (!keepTab) setTab("wallet");
 }
-pocketBtn.addEventListener("click", openDrawer);
-drawerClose.addEventListener("click", closeDrawer);
-scrim.addEventListener("click", closeDrawer);
 
-const signoutBtn = document.getElementById("signoutBtn");
-if (signoutBtn) {
-  signoutBtn.addEventListener("click", () => {
-    ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
-      .forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
-    location.replace("auth.html");
-  });
+function openSettings() {
+  closeDrawer(true);
+  try {
+    const nm = (localStorage.getItem("loytap_name") || "").trim();
+    const cf = (localStorage.getItem("loytap_cafe") || cafeName || "").trim();
+    const nEl = document.getElementById("setName"); if (nEl) nEl.textContent = nm || "—";
+    const cEl = document.getElementById("setCafe"); if (cEl) cEl.textContent = cf || "—";
+  } catch (_) {}
+  showScrim();
+  settingsSheet.classList.add("open");
+  settingsSheet.setAttribute("aria-hidden", "false");
+  setTab("settings");
 }
+function closeSettings(keepTab) {
+  if (!settingsSheet) return;
+  settingsSheet.classList.remove("open");
+  settingsSheet.setAttribute("aria-hidden", "true");
+  maybeHideScrim();
+  if (!keepTab) setTab("wallet");
+}
+
+function doSignout() {
+  ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
+    .forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
+  location.replace("auth.html");
+}
+
+pocketBtn.addEventListener("click", openDrawer);
+drawerClose.addEventListener("click", () => closeDrawer());
+scrim.addEventListener("click", () => { closeDrawer(); closeSettings(); });
+
+if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => { drawer.classList.contains("open") ? closeDrawer() : openDrawer(); });
+if (tabBtns.wallet) tabBtns.wallet.addEventListener("click", () => { closeDrawer(true); closeSettings(true); setTab("wallet"); });
+if (tabBtns.settings) tabBtns.settings.addEventListener("click", () => { settingsSheet.classList.contains("open") ? closeSettings() : openSettings(); });
+
+const setSignout = document.getElementById("setSignout");
+if (setSignout) setSignout.addEventListener("click", doSignout);
+const signoutBtn = document.getElementById("signoutBtn");
+if (signoutBtn) signoutBtn.addEventListener("click", doSignout);
 
 // ===================================================================
 // Congratulation ticket (with barcode)
@@ -733,9 +896,38 @@ async function init() {
     decks[0].stampBtn.disabled = true;
     decks[0].stampBtn.querySelector(".btn__label").textContent = "Complete!";
   }
+  // NFC tap: the card's URL carries the tag's secret code as ?t=<CODE>. If the
+  // user had to sign in first, the code was stashed before the auth redirect and
+  // is restored here (fresh taps only, consumed once). The server validates the
+  // code and enforces the cooldown — the client never decides whether it's a real tap.
+  const params = new URLSearchParams(window.location.search);
+  let tapCode = params.get("t");
+  if (!tapCode) {
+    try {
+      const raw = localStorage.getItem("reloy_pending_tap");
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p && p.code && Date.now() - (p.at || 0) < 120000) tapCode = p.code;
+      }
+    } catch (_) {}
+  }
+  try { localStorage.removeItem("reloy_pending_tap"); } catch (_) {}
+  // strip ?t= from the address bar so a refresh/copy can't re-trigger a stamp
+  if (params.get("t")) {
+    try { history.replaceState(null, "", location.pathname); } catch (_) {}
+  }
+
+  if (tapCode) {
+    setTimeout(() => {
+      if (decks[0] && !busy && decks[0].stamped < decks[0].cfg.stamps) {
+        addStamp(decks[0], tapCode);
+      }
+    }, 700);
+  }
 
   sizeConfetti();
   layout();
+  loadDiscounts(); // populate the Discounts tab badge on load
 }
 
 window.addEventListener("resize", () => { if (decks.length) { sizeConfetti(); layout(); } });

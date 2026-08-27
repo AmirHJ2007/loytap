@@ -1,0 +1,11 @@
+{
+  "platform": "docker",
+  "app": "reloy",
+  "port": 8090,
+  "disks": [
+    {
+      "name": "data",
+      "mountTo": "/pb/pb_data"
+    }
+  ]
+}
