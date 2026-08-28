@@ -95,28 +95,61 @@
     .add-btn:active { transform: scale(0.97); }
 
     .rw-list { display: flex; flex-direction: column; gap: 10px; }
-    .rw { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.45); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.5); border-radius: 14px; padding: 13px 13px 13px 15px; animation: pop 0.3s ease; }
+    .rw {
+      position: relative; display: flex; align-items: center; gap: 12px; overflow: hidden;
+      background: linear-gradient(150deg, rgba(255,255,255,0.62), rgba(255,255,255,0.4));
+      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px;
+      padding: 11px 11px 11px 12px;
+      box-shadow: 0 10px 22px -16px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+      animation: rwIn 0.5s var(--ease-spring) both; animation-delay: calc(var(--i,0) * 55ms);
+      transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease;
+    }
+    .rw:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -16px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.8); }
+    .rw--off { opacity: 0.62; }
+    @keyframes rwIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } }
     @keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
+    .rw__badge {
+      flex: 0 0 auto; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; line-height: 1;
+      background: linear-gradient(150deg, #2b2b2b, #121212); color: #fff;
+      font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 15px; letter-spacing: -0.5px;
+      box-shadow: 0 8px 16px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .rw__badge--emoji { font-size: 23px; }
     .rw__main { min-width: 0; flex: 1; }
-    .rw__top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .rw__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .rw__deal { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); }
-    .rw__off { font-size: 11px; font-weight: 700; color: var(--faint); background: rgba(0,0,0,0.06); border-radius: 20px; padding: 2px 8px; }
-    .rw__desc { margin: 2px 0 0; font-size: 12px; color: var(--dim); }
-    .rw__exp { margin: 4px 0 0; font-size: 11px; font-weight: 700; color: var(--dim); }
-    .rw__del { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; border: 1px solid rgba(192,80,63,0.3); background: rgba(192,80,63,0.1); color: var(--bad); font-size: 15px; cursor: pointer; transition: background 0.2s ease; }
-    .rw__del:hover { background: rgba(192,80,63,0.2); }
+    .rw__off { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #8a6d00; background: rgba(214,178,42,0.2); border-radius: 20px; padding: 3px 9px; }
+    .rw__desc { margin: 2px 0 0; font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rw__exp { display: inline-flex; align-items: center; gap: 5px; margin: 6px 0 0; font-size: 10.5px; font-weight: 700; color: var(--dim); background: rgba(20,20,20,0.05); border-radius: 20px; padding: 3px 9px; }
+    .rw__del { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(192,80,63,0.3); background: rgba(192,80,63,0.1); color: var(--bad); font-size: 15px; cursor: pointer; transition: background 0.2s ease, transform 0.14s ease; }
+    .rw__del:hover { background: rgba(192,80,63,0.2); transform: scale(1.07); }
     .rw__confirm { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; animation: pop 0.2s ease; }
     .rw__ask { font-size: 12px; font-weight: 700; color: var(--bad); }
     .rw__yes, .rw__no { border: none; border-radius: 9px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; padding: 6px 11px; cursor: pointer; }
     .rw__yes { background: var(--bad); color: #fff; }
     .rw__no { background: rgba(0,0,0,0.08); color: var(--dim); }
-    .rw-empty { text-align: center; color: var(--faint); font-size: 13px; padding: 14px; }
+    .rw-empty { text-align: center; color: var(--faint); font-size: 13px; padding: 22px 14px; }
 
-    .add-form { background: rgba(255,255,255,0.4); backdrop-filter: blur(6px); border: 1px dashed rgba(20,20,20,0.25); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
-    .add-form input[type=text], .add-form input:not([type]) { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-bottom: 10px; }
-    .add-form input[type=number] { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; }
+    /* add form expands smoothly instead of snapping open */
+    .add-form { overflow: hidden; max-height: 0; opacity: 0; padding: 0 14px; margin-bottom: 0; border: 0; border-radius: 16px; background: rgba(255,255,255,0.4); backdrop-filter: blur(6px);
+      transition: max-height 0.5s var(--ease-spring), opacity 0.35s ease, padding 0.5s var(--ease-spring), margin 0.4s ease; }
+    .add-form.is-open { max-height: 780px; opacity: 1; padding: 16px 14px; margin-bottom: 14px; border: 1px dashed rgba(20,20,20,0.22); }
+
+    /* live preview — the exact dark ticket customers will see */
+    .pv-card { position: relative; overflow: hidden; border-radius: 14px; padding: 13px 14px; margin-bottom: 14px;
+      background: linear-gradient(150deg, #2b2b2b 0%, #161616 60%, #0c0c0c 100%); color: #fff;
+      box-shadow: 0 14px 26px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08); }
+    .pv-card::after { content: ""; position: absolute; top: -24px; right: -24px; width: 82px; height: 82px; border-radius: 50%; background: rgba(255,255,255,0.14); filter: blur(20px); }
+    .pv-kicker { font-family: "Quicksand", sans-serif; font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.4px; color: rgba(255,255,255,0.5); }
+    .pv-deal { position: relative; z-index: 1; margin: 5px 0 0; font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 23px; letter-spacing: -0.5px;
+      background: linear-gradient(180deg, #fff, #cfcfcf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .pv-desc { position: relative; z-index: 1; margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,0.62); min-height: 14px; }
+    .pv-exp { display: inline-block; margin-top: 9px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.6); border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px; }
+
+    .add-form input[type=text], .add-form input:not([type]) { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-bottom: 10px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .add-form input[type=number] { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
     .fl--exp { flex: 1; }
-    .add-form input:focus { border-color: var(--ink); }
+    .add-form input:focus, .fl select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,20,0.08); }
     .add-hint { margin: 0 0 12px; font-size: 12px; color: var(--dim); line-height: 1.5; }
     .add-form__row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
     .fl { font-size: 12px; font-weight: 700; color: var(--dim); display: flex; flex-direction: column; gap: 5px; }
@@ -150,7 +183,8 @@
 
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after, .stain { animation: none; }
-      .own-cafe, .own-badge, .own-hi, .analytics-cta, .tiles, .box, .signout-cta { animation: none; opacity: 1; transform: none; }
+      .own-cafe, .own-badge, .own-hi, .analytics-cta, .tiles, .box, .signout-cta, .rw { animation: none; opacity: 1; transform: none; }
+      .add-form { transition: none; }
     }
   </style>
 </head>
@@ -192,7 +226,13 @@
         <button class="add-btn" id="addBtn" type="button">+ Add</button>
       </div>
 
-      <div class="add-form" id="addForm" hidden>
+      <div class="add-form" id="addForm">
+        <div class="pv-card" aria-hidden="true">
+          <span class="pv-kicker">Reward preview</span>
+          <p class="pv-deal" id="pvDeal">Your deal</p>
+          <p class="pv-desc" id="pvDesc"></p>
+          <span class="pv-exp" id="pvExp">Expires 2 weeks after it's won</span>
+        </div>
         <input type="text" id="fDeal" placeholder="Deal — e.g. 20% OFF or Free coffee" />
         <input type="text" id="fDesc" placeholder="Short description (optional)" />
         <div class="add-form__row">
@@ -277,14 +317,18 @@
         const d = await r.json();
         const items = (d && d.items) || [];
         if (!items.length) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
-        list.innerHTML = items.map((x) => {
+        list.innerHTML = items.map((x, i) => {
+          const deal = x.deal || "Reward";
           const tag = x.active ? "" : `<span class="rw__off">hidden</span>`;
           const amt = Number(x.expiry_amount) || 0;
           const unit = x.expiry_unit || "";
-          const exp = amt && unit ? `<p class="rw__exp">Expires ${amt} ${unit}${amt > 1 ? "s" : ""} after it's won</p>` : "";
-          return `<div class="rw">
+          const exp = amt && unit ? `<span class="rw__exp">⏳ ${amt} ${unit}${amt > 1 ? "s" : ""}</span>` : "";
+          const pctM = deal.match(/(\d+)\s*%/);
+          const badge = pctM ? `<span class="rw__badge">${pctM[1]}%</span>` : `<span class="rw__badge rw__badge--emoji">🎁</span>`;
+          return `<div class="rw${x.active ? "" : " rw--off"}" style="--i:${i}">
+            ${badge}
             <div class="rw__main">
-              <div class="rw__top"><span class="rw__deal">${esc(x.deal || "Reward")}</span>${tag}</div>
+              <div class="rw__top"><span class="rw__deal">${esc(deal)}</span>${tag}</div>
               ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
               ${exp}
             </div>
@@ -341,7 +385,7 @@
         if (failed) { $("addErr").textContent = "Couldn’t save — are you signed in as owner?"; $("addErr").hidden = false; loadRewards(); return; }
         $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1"; $("fActive").checked = true;
         $("fExpAmt").value = "2"; $("fExpUnit").value = "week";
-        $("addForm").hidden = true;
+        $("addForm").classList.remove("is-open"); $("addBtn").textContent = "+ Add"; updatePreview();
         loadRewards();
       } catch (e) {
         $("addErr").textContent = "Cannot reach the server."; $("addErr").hidden = false;
@@ -350,8 +394,26 @@
       }
     }
 
-    $("addBtn").onclick = () => { $("addForm").hidden = !$("addForm").hidden; if (!$("addForm").hidden) $("fDeal").focus(); };
-    $("cancelBtn").onclick = () => { $("addForm").hidden = true; };
+    function updatePreview() {
+      const deal = $("fDeal").value.trim() || "Your deal";
+      const desc = $("fDesc").value.trim();
+      const amt = Math.max(1, parseInt($("fExpAmt").value, 10) || 1);
+      const unit = $("fExpUnit").value;
+      $("pvDeal").textContent = deal;
+      $("pvDesc").textContent = desc;
+      $("pvExp").textContent = `Expires ${amt} ${unit}${amt > 1 ? "s" : ""} after it's won`;
+    }
+    ["fDeal", "fDesc", "fExpAmt", "fExpUnit"].forEach((id) => {
+      const el = $(id); if (!el) return;
+      el.addEventListener("input", updatePreview); el.addEventListener("change", updatePreview);
+    });
+
+    $("addBtn").onclick = () => {
+      const open = $("addForm").classList.toggle("is-open");
+      $("addBtn").textContent = open ? "Close" : "+ Add";
+      if (open) { updatePreview(); $("fDeal").focus(); }
+    };
+    $("cancelBtn").onclick = () => { $("addForm").classList.remove("is-open"); $("addBtn").textContent = "+ Add"; };
     $("saveBtn").onclick = addReward;
     $("copyCode").onclick = async () => { const b = $("copyCode"); try { await navigator.clipboard.writeText($("staffCode").textContent); b.textContent = "Copied!"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch (e) {} };
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
