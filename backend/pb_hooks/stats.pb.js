@@ -274,6 +274,11 @@ routerAdd("POST", "/owner/stats", (e) => {
     activeRate: { windowDays: 30, rate: arNow.rate, active: arNow.active, total: arNow.total,
       prevRate: arPrev.rate, delta: arNow.rate - arPrev.rate },
     crowded: { windowDays: 30, days: dayLbl, slots: slotLbl, grid: grid, max: mx, min: mn },
+    // of everyone active in the last 30 days, the share whose FIRST-ever stamp here
+    // was also in that window (new) vs those who'd stamped before it (loyal). A
+    // first-ever stamp in the window is itself activity, so new ⊆ active.
+    newVsLoyal: { windowDays: 30, active: arNow.active, new: cbSeries[13].newMembers,
+      loyal: arNow.active - cbSeries[13].newMembers, newRate: pct(cbSeries[13].newMembers, arNow.active) },
     totals: { customers, newCustomers, returning, repeat, inProgress, avgStamps, stamps,
       cardsCompleted, issued, redeemed, expired, active, expiringSoon, issued30, redeemed30 },
     rates: { comeback: pct(returning, customers), redemption: pct(redeemed30, issued30) },

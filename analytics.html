@@ -181,6 +181,20 @@
     .ar-legend .dot--on { background: #171717; }
     .ar-legend .dot--all { background: rgba(20,20,20,0.18); }
 
+    /* new vs loyal split bar */
+    .nl-top { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 12px; }
+    .nl-v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: -1.2px; color: var(--ink); }
+    .nl-v span { font-size: 18px; font-weight: 700; color: var(--dim); margin-left: 5px; letter-spacing: 0; }
+    .nl-bar { display: flex; height: 34px; border-radius: 12px; overflow: hidden; background: rgba(20,20,20,0.09); }
+    .nl-bar__seg { height: 100%; }
+    .nl-bar__seg--new { background: #171717; }
+    .nl-bar__seg--loyal { background: #c2c2c2; }
+    .nl-legend { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--dim); }
+    .nl-legend b { font-family: "Quicksand", sans-serif; font-size: 15px; color: var(--ink); margin-right: 3px; }
+    .nl-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    .nl-legend .dot--new { background: #171717; }
+    .nl-legend .dot--loyal { background: #c2c2c2; }
+
     /* crowded-times heatmap */
     .hm { display: grid; grid-template-columns: 30px repeat(6, 1fr); gap: 4px; }
     .hm__corner { }
@@ -289,6 +303,8 @@
 
         <div class="card glass" id="arCard"></div>
 
+        <div class="card glass" id="nlCard"></div>
+
         <div class="card glass" id="hmCard"></div>
 
         <div class="card glass">
@@ -328,6 +344,7 @@
       if (d.comeback) setupComeback(d.comeback);
       if (d.visitRhythm) setupVisitRhythm(d.visitRhythm);
       if (d.activeRate) setupActiveRate(d.activeRate);
+      if (d.newVsLoyal) setupNewVsLoyal(d.newVsLoyal);
       if (d.crowded) setupCrowded(d.crowded);
       if (d.activity) setupActivity(d.activity);
 
@@ -404,6 +421,36 @@
           <span><span class="dot dot--on"></span><b>${ar.active}</b>active · last ${ar.windowDays}d</span>
           <span><span class="dot dot--all"></span><b>${ar.total}</b>members all-time</span>
         </div>`;
+      const info = card.querySelector(".cb-info");
+      card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
+    }
+
+    // ---- new vs loyal: split of the last-30-day active base ----
+    function setupNewVsLoyal(nl) {
+      const card = $("nlCard");
+      let body;
+      if (!nl.active) {
+        body = `<p class="empty">No customers have stamped in the last ${nl.windowDays} days yet.</p>`;
+      } else {
+        const newW = (nl.new / nl.active) * 100;
+        body = `
+          <div class="nl-top"><div class="nl-v">${nl.newRate}%<span>new</span></div></div>
+          <div class="nl-bar">
+            <div class="nl-bar__seg nl-bar__seg--new" style="width:${newW}%"></div>
+            <div class="nl-bar__seg nl-bar__seg--loyal" style="width:${100 - newW}%"></div>
+          </div>
+          <div class="nl-legend">
+            <span><span class="dot dot--new"></span><b>${nl.new}</b>new · first stamp in ${nl.windowDays}d</span>
+            <span><span class="dot dot--loyal"></span><b>${nl.loyal}</b>loyal · stamped before</span>
+          </div>`;
+      }
+      card.innerHTML = `
+        <h2 class="card__title">New vs loyal <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
+        <p class="card__sub">Of everyone active in the last ${nl.windowDays} days, how many are brand-new</p>
+        <div class="cb-info" hidden>
+          Among customers who stamped in the last ${nl.windowDays} days, this splits them into <b>new</b> — their very first stamp here landed inside these ${nl.windowDays} days — and <b>loyal</b>, who had already stamped before. A big new share means strong acquisition; a big loyal share means a sticky, returning base.
+        </div>
+        ${body}`;
       const info = card.querySelector(".cb-info");
       card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
     }
