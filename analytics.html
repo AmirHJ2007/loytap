@@ -100,17 +100,25 @@
     .act-toggle { display: inline-flex; background: rgba(20,20,20,0.07); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
     .act-toggle button { border: none; background: transparent; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; color: var(--dim); padding: 7px 15px; border-radius: 9px; cursor: pointer; }
     .act-toggle button.is-on { background: #fff; color: var(--ink); box-shadow: 0 3px 8px -4px rgba(20,20,20,0.35); }
-    .act-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #171717; color: #ffffff; border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; }
+    /* selected-day box — a small stat-tile group, stamps emphasised */
+    .act-sel { background: linear-gradient(158deg, rgba(255,255,255,0.62), rgba(255,255,255,0.34)); border: 1px solid var(--glass-border); border-radius: 16px; padding: 14px 15px; margin-bottom: 16px; box-shadow: inset 0 1px 0 var(--glass-hi); }
+    .act-sel__head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .act-sel__head b { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); }
+    .act-sel__dot { width: 9px; height: 9px; border-radius: 50%; background: #171717; flex: 0 0 auto; }
+    .act-sel__tag { margin-left: auto; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--faint); background: rgba(20,20,20,0.06); padding: 3px 9px; border-radius: 999px; }
+    .act-sel__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .act-sel__stat { text-align: center; background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.5); border-radius: 12px; padding: 11px 6px; }
+    .act-sel__stat b { display: block; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 24px; line-height: 1; color: var(--ink); }
+    .act-sel__stat span { display: block; margin-top: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--dim); }
+    .act-sel__stat--hero { background: #171717; border-color: #171717; }
+    .act-sel__stat--hero b { color: #fff; }
+    .act-sel__stat--hero span { color: rgba(255,255,255,0.65); }
+    /* period totals — black box, now below the chart */
+    .act-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #171717; color: #ffffff; border-radius: 16px; padding: 16px 18px; margin: 18px 0 10px; }
     .act-stats b { display: block; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 28px; line-height: 1; }
     .act-stats span { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 3px; display: block; }
-    .act-cmp { margin: 0 2px 14px; font-size: 13px; font-weight: 700; }
+    .act-cmp { margin: 0 2px; font-size: 13px; font-weight: 700; }
     .act-cmp.up { color: var(--ink); } .act-cmp.down { color: var(--bad); } .act-cmp.flat { color: var(--faint); }
-    .act-day { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }
-    .act-day__l b { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; }
-    .act-day__l span { display: block; font-size: 12.5px; color: var(--dim); margin-top: 2px; }
-    .act-day__r { text-align: right; flex: 0 0 auto; }
-    .act-day__r b { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 24px; color: var(--ink); }
-    .act-day__r span { display: block; font-size: 11px; color: var(--faint); font-weight: 700; }
     .act-chart { position: relative; padding-top: 14px; }
     .act-ymax { position: absolute; top: 0; left: 0; font-size: 9.5px; font-weight: 700; color: var(--faint); }
     .act-bars { display: flex; align-items: flex-end; gap: 3px; height: 150px; }
@@ -534,22 +542,26 @@
       }).join("");
       return `
         <h2 class="card__title">Daily stamp activity</h2>
-        <p class="card__sub">Select a day to see its visits and rewards</p>
+        <p class="card__sub">Tap a day to see its visits and rewards</p>
         <div class="act-toggle">
           <button data-p="7" class="${actPeriod === 7 ? "is-on" : ""}">7 days</button>
           <button data-p="30" class="${actPeriod === 30 ? "is-on" : ""}">30 days</button>
         </div>
+        <div class="act-sel">
+          <div class="act-sel__head"><span class="act-sel__dot"></span><b>${esc(sel.label)}</b><span class="act-sel__tag">Selected day</span></div>
+          <div class="act-sel__stats">
+            <div class="act-sel__stat act-sel__stat--hero"><b>${sel.stamps}</b><span>Stamp${plural(sel.stamps)}</span></div>
+            <div class="act-sel__stat"><b>${sel.members}</b><span>Member${plural(sel.members)}</span></div>
+            <div class="act-sel__stat"><b>${sel.rewards}</b><span>Reward${plural(sel.rewards)}</span></div>
+          </div>
+        </div>
+        <div class="act-chart"><span class="act-ymax">${max}</span><div class="act-bars">${bars}</div></div>
         <div class="act-stats">
           <div><b>${data.stamps}</b><span>Stamps</span></div>
           <div><b>${data.members}</b><span>Members</span></div>
           <div><b>${data.rewards}</b><span>Rewards</span></div>
         </div>
-        <p class="act-cmp ${cmpCls}">${esc(cmpTxt)}</p>
-        <div class="act-day">
-          <div class="act-day__l"><b>${esc(sel.label)}</b><span>${sel.stamps} stamp${plural(sel.stamps)} from ${sel.members} member${plural(sel.members)}</span></div>
-          <div class="act-day__r"><b>${sel.rewards}</b><span>Rewards</span></div>
-        </div>
-        <div class="act-chart"><span class="act-ymax">${max}</span><div class="act-bars">${bars}</div></div>`;
+        <p class="act-cmp ${cmpCls}">${esc(cmpTxt)}</p>`;
     }
 
     function renderActivity() {
