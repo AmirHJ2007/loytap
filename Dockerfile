@@ -21,6 +21,8 @@ COPY backend/pb_migrations/ /pb/pb_migrations/
 
 # Frontend assets — copied as real files (pb_public/ symlinks don't survive into an image).
 COPY *.html *.js *.css *.png /pb/pb_public/
+# Self-hosted fonts (woff2) so typography works where Google Fonts is blocked.
+COPY fonts/ /pb/pb_public/fonts/
 
 EXPOSE 8090
 

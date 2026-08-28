@@ -1,0 +1,14 @@
+/* Self-hosted Quicksand + Nunito — served single-origin so the app's typography
+   works inside Iran, where Google Fonts (fonts.googleapis.com / gstatic.com) is
+   often blocked. woff2 files live in fonts/. */
+
+@font-face { font-family: "Quicksand"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/quicksand-400.woff2") format("woff2"); }
+@font-face { font-family: "Quicksand"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/quicksand-500.woff2") format("woff2"); }
+@font-face { font-family: "Quicksand"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/quicksand-600.woff2") format("woff2"); }
+@font-face { font-family: "Quicksand"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/quicksand-700.woff2") format("woff2"); }
+
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/nunito-400.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/nunito-500.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/nunito-600.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/nunito-700.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-style: normal; font-weight: 800; font-display: swap; src: url("fonts/nunito-800.woff2") format("woff2"); }
