@@ -389,6 +389,12 @@ function shortDiscount(p) {
   const m = String(p).match(/(\d+)\s*%/);
   return m ? `-${m[1]}%` : p;
 }
+// stored phone is normalized like "9121234567" -> display "0912 123 4567"
+function formatPhone(raw) {
+  const d = String(raw || "").replace(/\D/g, "").replace(/^98/, "").replace(/^0/, "");
+  if (!/^9\d{9}$/.test(d)) return raw ? String(raw) : "—";
+  return "0" + d.slice(0, 3) + " " + d.slice(3, 6) + " " + d.slice(6);
+}
 function dueDateStr() {
   const d = new Date(Date.now() + 30 * 864e5);
   const z = (n) => String(n).padStart(2, "0");
@@ -470,18 +476,20 @@ function addDiscountToPocket(rec) {
 
 function activeCoupon(d) {
   const c = document.createElement("div");
-  c.className = "coupon-card";
-  c.setAttribute("role", "button");
   const urgent = typeof d.days === "number" && d.days <= 5;
+  c.className = "coupon-card" + (urgent ? " is-urgent" : "");
+  c.setAttribute("role", "button");
   let expText = d.due || "—";
   if (urgent) expText = d.days <= 0 ? "Expires today" : d.days + " day" + (d.days > 1 ? "s" : "") + " left";
-  const glow = urgent ? "rgba(214,54,44,0.4)" : "rgba(23,23,23,0.14)";
+  const glow = urgent ? "rgba(255,90,74,0.55)" : "rgba(255,255,255,0.16)";
   c.innerHTML = `
     <span class="coupon-card__glow" style="background:${glow}"></span>
+    <span class="coupon-card__shine" aria-hidden="true"></span>
+    <span class="coupon-card__kicker">Reward</span>
     <p class="coupon-card__deal">${escapeHtml(d.deal)}</p>
     <p class="coupon-card__desc">${escapeHtml(d.desc)}</p>
     <span class="coupon-card__notch"></span>
-    <p class="coupon-card__exp${urgent ? " is-urgent" : ""}">${escapeHtml(expText)}</p>`;
+    <p class="coupon-card__exp${urgent ? " is-urgent" : ""}">${urgent ? '<span class="coupon-card__dot"></span>' : ""}${escapeHtml(expText)}</p>`;
   c.addEventListener("click", () => {
     closeDrawer();
     setTimeout(() => showCongrats(d), 180);
@@ -661,9 +669,8 @@ function openSettings() {
   closeDrawer(true);
   try {
     const nm = (localStorage.getItem("loytap_name") || "").trim();
-    const cf = (localStorage.getItem("loytap_cafe") || (memberships[0] && memberships[0].cafeName) || "").trim();
     const nEl = document.getElementById("setName"); if (nEl) nEl.textContent = nm || "—";
-    const cEl = document.getElementById("setCafe"); if (cEl) cEl.textContent = cf || "—";
+    const pEl = document.getElementById("setPhone"); if (pEl) pEl.textContent = formatPhone(localStorage.getItem("loytap_phone") || "");
   } catch (_) {}
   showScrim();
   settingsSheet.classList.add("open");
@@ -679,7 +686,7 @@ function closeSettings(keepTab) {
 }
 
 function doSignout() {
-  ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
+  ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe", "loytap_phone"]
     .forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
   location.replace("auth.html");
 }
@@ -943,6 +950,7 @@ async function init() {
     return;
   }
   myUserId = user.id;
+  try { if (user.phone) localStorage.setItem("loytap_phone", user.phone); } catch (_) {}
 
   const g = document.getElementById("greeting");
   if (g) g.textContent = `Welcome back, ${(user.name || "there").trim()} 👋`;

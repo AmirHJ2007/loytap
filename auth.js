@@ -248,6 +248,7 @@ $("verifyBtn").addEventListener("click", async () => {
       if (signedUser) {
         localStorage.setItem("loytap_name", signedUser.name || "");
         localStorage.setItem("loytap_role", signedUser.role || "customer");
+        if (signedUser.phone) localStorage.setItem("loytap_phone", signedUser.phone);
       }
     } catch (_) {}
     finish();

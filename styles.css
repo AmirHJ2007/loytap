@@ -418,55 +418,97 @@ body {
 
 .coupon-grid {
   flex-shrink: 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;
+  perspective: 900px;
 }
 
+/* Active reward — a bold dark "ticket" that pops off the light drawer */
 .coupon-card {
   position: relative;
   isolation: isolate;
   display: flex; flex-direction: column;
-  min-height: 128px;
-  padding: 16px 14px 13px;
-  border-radius: 20px;
-  background: linear-gradient(160deg, rgba(255,255,255,0.94), rgba(255,255,255,0.7));
-  border: 1px solid rgba(20,20,20,0.06);
-  box-shadow: 0 14px 28px -16px rgba(20,20,20,0.32), inset 0 1px 0 rgba(255,255,255,0.95);
+  min-height: 138px;
+  padding: 15px 15px 13px;
+  border-radius: 18px;
+  background: linear-gradient(150deg, #2b2b2b 0%, #171717 55%, #0c0c0c 100%);
+  color: #fff;
+  box-shadow: 0 18px 34px -18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.09);
   overflow: hidden; cursor: pointer;
-  animation: cardPopIn 0.46s var(--ease-spring) both;
-  transition: transform 0.16s ease, box-shadow 0.3s ease;
+  transform-origin: 50% 100%;
+  animation: couponIn 0.6s var(--ease-spring) both;
+  transition: transform 0.24s var(--ease-spring), box-shadow 0.3s ease;
 }
-.coupon-card:hover { box-shadow: 0 20px 36px -14px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.95); }
-.coupon-card:active { transform: scale(0.96); }
-@keyframes cardPopIn { 0% { opacity: 0; transform: translateY(12px) scale(0.92); } 100% { opacity: 1; transform: none; } }
+.coupon-card:hover { transform: translateY(-5px) scale(1.025); box-shadow: 0 26px 44px -18px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12); }
+.coupon-card:active { transform: translateY(-1px) scale(0.98); }
+@keyframes couponIn { 0% { opacity: 0; transform: translateY(18px) scale(0.9) rotate(-2deg); } 100% { opacity: 1; transform: none; } }
 .coupon-grid .coupon-card:nth-child(1) { animation-delay: 0.02s; }
-.coupon-grid .coupon-card:nth-child(2) { animation-delay: 0.07s; }
-.coupon-grid .coupon-card:nth-child(3) { animation-delay: 0.12s; }
-.coupon-grid .coupon-card:nth-child(4) { animation-delay: 0.17s; }
-.coupon-grid .coupon-card:nth-child(n+5) { animation-delay: 0.22s; }
+.coupon-grid .coupon-card:nth-child(2) { animation-delay: 0.08s; }
+.coupon-grid .coupon-card:nth-child(3) { animation-delay: 0.14s; }
+.coupon-grid .coupon-card:nth-child(4) { animation-delay: 0.20s; }
+.coupon-grid .coupon-card:nth-child(5) { animation-delay: 0.26s; }
+.coupon-grid .coupon-card:nth-child(n+6) { animation-delay: 0.30s; }
 
+/* soft coloured glow bleeding from the top-right */
 .coupon-card__glow {
-  position: absolute; top: -30px; right: -30px; width: 100px; height: 100px; z-index: -1;
-  border-radius: 50%; filter: blur(20px); pointer-events: none;
+  position: absolute; top: -26px; right: -26px; width: 96px; height: 96px; z-index: 0;
+  border-radius: 50%; filter: blur(22px); pointer-events: none; opacity: 0.55;
+}
+.coupon-card.is-urgent .coupon-card__glow { animation: couponGlow 1.9s ease-in-out infinite; }
+@keyframes couponGlow { 0%,100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+
+/* diagonal shine that sweeps across once on entry, and again on hover */
+.coupon-card__shine {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.22) 47%, rgba(255,255,255,0.06) 54%, transparent 64%);
+  transform: translateX(-130%);
+  animation: couponShine 1s ease 0.35s both;
+}
+.coupon-card:hover .coupon-card__shine { animation: couponShine 0.75s ease; }
+@keyframes couponShine { 0% { transform: translateX(-130%); } 100% { transform: translateX(130%); } }
+
+.coupon-card__kicker {
+  position: relative; z-index: 1; align-self: flex-start;
+  font-family: "Quicksand", "Nunito", sans-serif; font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.4px; color: rgba(255,255,255,0.5);
+  margin-bottom: 6px;
 }
 .coupon-card__deal {
   position: relative; z-index: 1;
-  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 800; font-size: 18px;
-  line-height: 1.2; margin: 0; color: #171717;
+  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 800; font-size: 27px;
+  line-height: 1; margin: 0; letter-spacing: -0.6px;
+  background: linear-gradient(180deg, #ffffff, #cfcfcf); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .coupon-card__desc {
   position: relative; z-index: 1;
-  font-size: 11px; color: #6b6b6b; margin: 4px 0 0;
+  font-size: 11px; color: rgba(255,255,255,0.62); margin: 5px 0 0;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.coupon-card__notch { flex: 1; min-height: 10px; margin: 8px 0; border-bottom: 1.5px dashed rgba(20,20,20,0.16); }
-.coupon-card__exp { position: relative; z-index: 1; font-size: 11px; font-weight: 700; color: #6f6f6f; margin: 0; }
-.coupon-card__exp.is-urgent { color: #d6362c; }
+/* perforated tear line, pushed to the bottom, with punched notches at both edges */
+.coupon-card__notch { position: relative; height: 0; margin: auto -15px 11px; align-self: stretch; border-top: 1.5px dashed rgba(255,255,255,0.22); }
+.coupon-card__notch::before, .coupon-card__notch::after {
+  content: ""; position: absolute; top: 0; width: 12px; height: 12px; border-radius: 50%;
+  background: #e7e7e7; transform: translate(-50%, -50%);
+}
+.coupon-card__notch::before { left: 0; }
+.coupon-card__notch::after { left: 100%; }
+.coupon-card__exp {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); margin: 0;
+}
+.coupon-card__exp.is-urgent { color: #ff6f61; }
+.coupon-card__dot { width: 6px; height: 6px; border-radius: 50%; background: #ff5a4a; box-shadow: 0 0 7px rgba(255,90,74,0.9); animation: couponGlow 1.4s ease-in-out infinite; }
 
-/* Past (used / expired) coupons — dimmed, non-interactive */
-.coupon-card--past { cursor: default; opacity: 0.58; animation: none; background: linear-gradient(158deg, rgba(232,232,232,0.75), rgba(220,220,220,0.55)); }
-.coupon-card--past:hover { box-shadow: 0 14px 30px -18px rgba(20,20,20,0.45), inset 0 1px 0 var(--glass-hi); }
+/* Past (used / expired) coupons — faded light chips, clearly spent */
+.coupon-card--past {
+  cursor: default; color: #6b6b6b; animation: none; min-height: 104px;
+  background: linear-gradient(158deg, rgba(236,236,236,0.9), rgba(222,222,222,0.7));
+  box-shadow: 0 8px 18px -14px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.7);
+}
+.coupon-card--past:hover { transform: none; box-shadow: 0 8px 18px -14px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.7); }
 .coupon-card--past:active { transform: none; }
-.coupon-card--past .coupon-card__deal { text-decoration: line-through; text-decoration-color: rgba(20,20,20,0.35); }
+.coupon-card--past .coupon-card__deal { background: none; -webkit-text-fill-color: initial; color: #8a8a8a; font-size: 22px; text-decoration: line-through; text-decoration-color: rgba(20,20,20,0.3); }
+.coupon-card--past .coupon-card__desc { color: #9a9a9a; }
+.coupon-card--past .coupon-card__notch::before { border-top-color: rgba(20,20,20,0.14); }
 .coupon-card__stamp {
   position: relative; z-index: 1; align-self: flex-start;
   font-family: "Quicksand", "Nunito", sans-serif; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
@@ -489,8 +531,10 @@ body {
   content: ""; position: absolute; border-radius: 50%; pointer-events: none;
   filter: blur(60px); opacity: 0.5;
 }
-.congrats::before { top: 8%; left: 50%; transform: translateX(-50%); width: 280px; height: 280px; background: radial-gradient(circle, rgba(255,255,255,0.22), transparent 70%); }
-.congrats::after { bottom: 4%; right: 10%; width: 220px; height: 220px; background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%); }
+.congrats::before { top: 6%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.24), transparent 70%); animation: congGlowA 9s ease-in-out infinite; }
+.congrats::after { bottom: 3%; right: 6%; width: 240px; height: 240px; background: radial-gradient(circle, rgba(255,255,255,0.13), transparent 70%); animation: congGlowB 11s ease-in-out infinite; }
+@keyframes congGlowA { 0%,100% { transform: translateX(-50%) translateY(0) scale(1); } 50% { transform: translateX(-50%) translateY(20px) scale(1.08); } }
+@keyframes congGlowB { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-16px,-14px) scale(1.1); } }
 
 .ticket {
   position: relative;
@@ -503,8 +547,8 @@ body {
   -webkit-backdrop-filter: blur(22px) saturate(165%);
   padding: 30px 26px 26px;
   text-align: center;
-  transform: translateY(18px) scale(0.96); opacity: 0;
-  transition: transform 0.45s var(--ease-spring), opacity 0.3s ease;
+  transform: translateY(32px) scale(0.9) rotate(-1.5deg); opacity: 0;
+  transition: transform 0.55s var(--ease-spring), opacity 0.35s ease;
   --sc: 12px;
   -webkit-mask:
     radial-gradient(var(--sc) at 50% 0, #0000 98%, #000 100%) 50% 0 / calc(var(--sc) * 2) 51% repeat-x,
@@ -513,7 +557,7 @@ body {
     radial-gradient(var(--sc) at 50% 0, #0000 98%, #000 100%) 50% 0 / calc(var(--sc) * 2) 51% repeat-x,
     radial-gradient(var(--sc) at 50% 100%, #0000 98%, #000 100%) 50% 100% / calc(var(--sc) * 2) 51% repeat-x;
 }
-.congrats.show .ticket { transform: translateY(0) scale(1); opacity: 1; }
+.congrats.show .ticket { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
 /* glossy diagonal sheen — the "glass" highlight raking across the top */
 .ticket::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
@@ -521,8 +565,13 @@ body {
   pointer-events: none;
 }
 
-.ticket__pop { font-size: 44px; line-height: 1; }
-.ticket__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; margin: 8px 0 0; letter-spacing: -0.4px; color: #171717; }
+.ticket__pop { font-size: 44px; line-height: 1; display: inline-block; transform-origin: 70% 90%; }
+.ticket__title {
+  font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; margin: 8px 0 0; letter-spacing: -0.4px;
+  background: linear-gradient(100deg, #171717 0%, #171717 38%, #b9a06a 50%, #171717 62%, #171717 100%);
+  background-size: 220% 100%; background-position: 200% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 .ticket__sub { margin: 8px 4px 0; font-size: 14.5px; line-height: 1.4; color: #565656; }
 .ticket__sub b { color: #171717; }
 .ticket__divider { border-top: 2px dashed rgba(20,20,20,0.16); margin: 18px 0; }
@@ -531,11 +580,28 @@ body {
 .ticket__k { font-size: 11.5px; font-weight: 600; color: #9a9a9a; }
 .ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #171717; }
 .ticket__qr {
+  position: relative; overflow: hidden;
   width: 176px; height: 176px; margin: 8px auto 0; padding: 14px;
   background: #ffffff; border-radius: 24px;
   box-shadow: 0 16px 34px -18px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.9);
 }
 .ticket__qr svg { display: block; width: 100%; height: 100%; }
+/* scan line sweeping down the QR — signals "scan me" */
+.ticket__qr::after {
+  content: ""; position: absolute; left: 12px; right: 12px; top: 8px; height: 30px; z-index: 3; pointer-events: none;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, rgba(31,43,58,0) 0%, rgba(31,43,58,0.16) 55%, rgba(31,43,58,0) 100%);
+  box-shadow: 0 0 10px rgba(31,43,58,0.15);
+  animation: qrScan 2.6s cubic-bezier(0.55,0,0.45,1) 1s infinite;
+}
+@keyframes qrScan {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  50% { transform: translateY(122px); opacity: 1; }
+  60% { transform: translateY(122px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.congrats.is-used .ticket__qr::after { display: none; }
 .ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #565656; transition: color 0.3s ease; }
 .ticket__code {
   margin: 8px auto 0; display: inline-block;
@@ -579,6 +645,31 @@ body {
 .congrats__continue:hover { background: rgba(255,255,255,0.26); }
 .congrats__continue:active { transform: scale(0.98); }
 
+/* ---- celebratory entrance choreography (plays when .congrats gets .show) ---- */
+@keyframes cFadeUp { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: none; } }
+@keyframes popBounce {
+  0% { opacity: 0; transform: scale(0) rotate(-35deg); }
+  55% { opacity: 1; transform: scale(1.25) rotate(10deg); }
+  72% { transform: scale(0.92) rotate(-6deg); }
+  86% { transform: scale(1.06) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes titleShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes continueGlow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  50% { box-shadow: 0 0 22px -2px rgba(255,255,255,0.35); }
+}
+
+.congrats.show .ticket__pop { animation: popBounce 0.8s var(--ease-spring) 0.15s both; }
+.congrats.show .ticket__title { animation: titleShimmer 2s ease 0.45s 2; }
+.congrats.show .ticket__sub { animation: cFadeUp 0.5s ease 0.30s both; }
+.congrats.show .ticket__divider { animation: cFadeUp 0.5s ease 0.38s both; }
+.congrats.show .ticket__stats { animation: cFadeUp 0.5s ease 0.44s both; }
+.congrats.show .ticket__qr { animation: cFadeUp 0.55s var(--ease-spring) 0.54s both; }
+.congrats.show .ticket__hint { animation: cFadeUp 0.5s ease 0.66s both; }
+.congrats.show .ticket__code { animation: cFadeUp 0.5s ease 0.72s both; }
+.congrats.show .congrats__continue { animation: cFadeUp 0.5s ease 0.82s both, continueGlow 2.8s ease-in-out 1.6s infinite; }
+
 /* ---------------- Confetti ---------------- */
 .confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 220; pointer-events: none; }
 
@@ -591,6 +682,12 @@ body {
   .slot.is-stamped .stamp { animation: none; opacity: var(--sa,1); transform: translate(var(--dx,0), var(--dy,0)) scale(1) rotate(var(--r,0deg)); }
   .slot.is-stamped .halo { animation: none; }
   .reward__prize.shine::after { animation: none; }
+  /* congrats ticket: keep it readable, drop the choreography */
+  .congrats::before, .congrats::after, .ticket__qr::after, .ticket__pop,
+  .congrats.show .ticket__pop, .congrats.show .ticket__title, .congrats.show .ticket__sub,
+  .congrats.show .ticket__divider, .congrats.show .ticket__stats, .congrats.show .ticket__qr,
+  .congrats.show .ticket__hint, .congrats.show .ticket__code, .congrats.show .congrats__continue { animation: none; opacity: 1; transform: none; }
+  .ticket__title { background: none; color: #171717; -webkit-text-fill-color: #171717; }
 }
 
 /* ---------------- Toast (cooldown / invalid-tap feedback) ---------------- */
@@ -697,5 +794,6 @@ body {
   .tabbar { animation: none; }
   .tab.is-active .tab__ico { animation: none; }
   .tabbar__ind, .sheet, .drawer { transition: none; }
-  .discounts-page, .coupon-card { animation: none; }
+  .discounts-page, .coupon-card, .coupon-card__glow, .coupon-card__dot { animation: none; }
+  .coupon-card__shine { display: none; }
 }

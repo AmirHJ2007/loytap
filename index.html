@@ -7,7 +7,7 @@
   <title>LoyTap · Loyalty Wallet</title>
   <script>try{if(localStorage.getItem('loytap_signed_in')!=='1'){var _t=new URLSearchParams(location.search).get('t');if(_t)localStorage.setItem('reloy_pending_tap',JSON.stringify({code:_t,at:Date.now()}));location.replace('auth.html');}}catch(e){}</script>
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=46" />
+  <link rel="stylesheet" href="styles.css?v=48" />
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -121,7 +121,7 @@
     <h2 class="sheet__title">Settings</h2>
     <div class="sheet__rows">
       <div class="srow"><span class="srow__k">Name</span><span class="srow__v" id="setName">—</span></div>
-      <div class="srow"><span class="srow__k">Café</span><span class="srow__v" id="setCafe">—</span></div>
+      <div class="srow"><span class="srow__k">Phone</span><span class="srow__v" id="setPhone">—</span></div>
       <div class="srow"><span class="srow__k">Version</span><span class="srow__v">Reloy 1.0</span></div>
     </div>
     <button class="sheet__signout" id="setSignout" type="button">Sign out</button>
