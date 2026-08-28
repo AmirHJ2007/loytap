@@ -110,9 +110,11 @@
     .act-sel__stat { text-align: center; background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.5); border-radius: 12px; padding: 11px 6px; }
     .act-sel__stat b { display: block; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 24px; line-height: 1; color: var(--ink); }
     .act-sel__stat span { display: block; margin-top: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--dim); }
+    .act-sel__stat i { display: block; margin-top: 6px; font-style: normal; font-size: 10px; font-weight: 700; color: var(--faint); }
     .act-sel__stat--hero { background: #171717; border-color: #171717; }
     .act-sel__stat--hero b { color: #fff; }
     .act-sel__stat--hero span { color: rgba(255,255,255,0.65); }
+    .act-sel__stat--hero i { color: rgba(255,255,255,0.5); }
     /* period totals — black box, now below the chart */
     .act-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #171717; color: #ffffff; border-radius: 16px; padding: 16px 18px; margin: 18px 0 10px; }
     .act-stats b { display: block; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 28px; line-height: 1; }
@@ -534,6 +536,10 @@
       } else {
         cmpTxt = data.stamps > 0 ? "First activity in this window" : "No stamps yet in this window";
       }
+      // daily mean of each metric over the last 30 days (always the 30-day window)
+      const d30 = (ACT && ACT.d30 && ACT.d30.days) ? ACT.d30.days : [];
+      const mean = (key) => d30.length ? Math.round(d30.reduce((a, x) => a + x[key], 0) / d30.length * 10) / 10 : 0;
+      const mStamps = mean("stamps"), mMembers = mean("members"), mRewards = mean("rewards");
       const max = Math.max(1, ...data.days.map((x) => x.stamps));
       const bars = data.days.map((x, i) => {
         const h = (x.stamps / max * 100).toFixed(1);
@@ -550,9 +556,9 @@
         <div class="act-sel">
           <div class="act-sel__head"><span class="act-sel__dot"></span><b>${esc(sel.label)}</b><span class="act-sel__tag">Selected day</span></div>
           <div class="act-sel__stats">
-            <div class="act-sel__stat act-sel__stat--hero"><b>${sel.stamps}</b><span>Stamp${plural(sel.stamps)}</span></div>
-            <div class="act-sel__stat"><b>${sel.members}</b><span>Member${plural(sel.members)}</span></div>
-            <div class="act-sel__stat"><b>${sel.rewards}</b><span>Reward${plural(sel.rewards)}</span></div>
+            <div class="act-sel__stat act-sel__stat--hero"><b>${sel.stamps}</b><span>Stamp${plural(sel.stamps)}</span><i>30-day avg ${mStamps}</i></div>
+            <div class="act-sel__stat"><b>${sel.members}</b><span>Member${plural(sel.members)}</span><i>30-day avg ${mMembers}</i></div>
+            <div class="act-sel__stat"><b>${sel.rewards}</b><span>Reward${plural(sel.rewards)}</span><i>30-day avg ${mRewards}</i></div>
           </div>
         </div>
         <div class="act-chart"><span class="act-ymax">${max}</span><div class="act-bars">${bars}</div></div>
