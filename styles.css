@@ -354,96 +354,153 @@ body {
 .scrim.show { opacity: 1; }
 
 .drawer {
-  position: fixed; top: 0; right: 0; z-index: 200;
-  width: min(92vw, 360px); height: 100%;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 215;
+  width: 100%; max-height: min(86vh, 720px);
   background: linear-gradient(160deg, #ececec, #e2e2e2);
-  box-shadow: -18px 0 50px -20px rgba(40,40,40,0.6);
-  transform: translateX(100%);
+  box-shadow: 0 -18px 50px -20px rgba(40,40,40,0.6);
+  border-radius: 26px 26px 0 0;
+  transform: translateY(100%);
   transition: transform 0.42s var(--ease-spring);
   display: flex; flex-direction: column;
-  padding: 20px 18px;
+  padding: 12px 18px calc(20px + env(safe-area-inset-bottom, 0px));
 }
-.drawer.open { transform: translateX(0); }
-.drawer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.drawer__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #171717; }
-.drawer__close { width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 15px; cursor: pointer; }
+.drawer.open { transform: translateY(0); }
+.drawer__grip { width: 42px; height: 4px; border-radius: 3px; background: rgba(20,20,20,0.18); margin: 2px auto 14px; }
+.drawer__head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.drawer__title { flex: 1; min-width: 0; font-family: "Quicksand", "Nunito", sans-serif; font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer__close { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 15px; cursor: pointer; display: grid; place-items: center; }
 .drawer__close:hover { color: #171717; }
+.drawer__back { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.drawer__back:hover { color: #171717; }
+.drawer__back[hidden] { display: none; }
 .drawer__list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #9a9a9a; }
 
-.coupon {
-  position: relative;
-  flex-shrink: 0; /* keep full height when the pocket is full — the list scrolls instead */
-  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
-  padding: 12px 12px 12px 16px;
-  border-radius: 14px;
-  background: #fafafa;
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 6px 16px -10px rgba(40,40,40,0.5);
-  overflow: hidden; cursor: pointer;
-  animation: couponIn 0.4s var(--ease-spring);
+.cafe-list { display: flex; flex-direction: column; gap: 10px; }
+.cafe-row {
+  display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px;
+  padding: 13px 14px; border-radius: 16px; border: 0; cursor: pointer; text-align: left;
+  background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 6px 16px -10px rgba(40,40,40,0.4);
   transition: transform 0.14s ease, box-shadow 0.3s ease;
 }
-.coupon:hover { box-shadow: 0 10px 22px -10px rgba(40,40,40,0.6); }
-.coupon:active { transform: scale(0.98); }
-@keyframes couponIn { 0% { opacity: 0; transform: translateY(-8px) scale(0.96); } 100% { opacity: 1; transform: none; } }
-.coupon__stripe { width: 6px; align-self: stretch; border-radius: 4px; }
-.coupon__body { min-width: 0; }
-.coupon__shop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #9a9a9a; margin: 0; }
-.coupon__deal { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 2px 0 0; color: #171717; }
-.coupon__desc { font-size: 11px; color: #565656; margin: 1px 0 0; }
-.coupon__exp { font-size: 11px; font-weight: 700; color: #171717; margin: 3px 0 0; }
-.coupon__go { font-size: 26px; font-weight: 700; color: var(--ink-faint); line-height: 1; padding-right: 2px; }
+.cafe-row:hover { box-shadow: 0 10px 22px -10px rgba(40,40,40,0.5); }
+.cafe-row:active { transform: scale(0.98); }
+.cafe-row__avatar {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: #171717; color: #fff; font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 16px;
+  flex-shrink: 0;
+}
+.cafe-row__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cafe-row__name { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 14.5px; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cafe-row__sub { font-size: 11.5px; color: #7a7a7a; }
+.cafe-row__badge {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+  background: #171717; color: #fff; font-size: 11px; font-weight: 800;
+  display: grid; place-items: center;
+}
+.cafe-row__go { font-size: 22px; font-weight: 700; color: var(--ink-faint); line-height: 1; }
+
+.wallet-empty {
+  margin: 20vh auto 0; max-width: 300px; text-align: center; padding: 26px 22px;
+  border-radius: 20px; background: var(--glass-fill); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+}
+.wallet-empty__title { font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 17px; margin: 0 0 6px; color: #171717; }
+.wallet-empty__sub { font-size: 13px; line-height: 1.55; margin: 0; color: #7a7a7a; }
+
+/* ---------------- Café discount grid ---------------- */
+.discounts-page { animation: pageIn 0.42s var(--ease-spring) both; }
+@keyframes pageIn { 0% { opacity: 0; transform: translateX(26px); } 100% { opacity: 1; transform: none; } }
+
+.drawer__section { flex-shrink: 0; margin: 14px 4px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9a9a9a; }
+
+.coupon-grid {
+  flex-shrink: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;
+}
+
+.coupon-card {
+  position: relative;
+  isolation: isolate;
+  display: flex; flex-direction: column;
+  min-height: 128px;
+  padding: 16px 14px 13px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.94), rgba(255,255,255,0.7));
+  border: 1px solid rgba(20,20,20,0.06);
+  box-shadow: 0 14px 28px -16px rgba(20,20,20,0.32), inset 0 1px 0 rgba(255,255,255,0.95);
+  overflow: hidden; cursor: pointer;
+  animation: cardPopIn 0.46s var(--ease-spring) both;
+  transition: transform 0.16s ease, box-shadow 0.3s ease;
+}
+.coupon-card:hover { box-shadow: 0 20px 36px -14px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.95); }
+.coupon-card:active { transform: scale(0.96); }
+@keyframes cardPopIn { 0% { opacity: 0; transform: translateY(12px) scale(0.92); } 100% { opacity: 1; transform: none; } }
+.coupon-grid .coupon-card:nth-child(1) { animation-delay: 0.02s; }
+.coupon-grid .coupon-card:nth-child(2) { animation-delay: 0.07s; }
+.coupon-grid .coupon-card:nth-child(3) { animation-delay: 0.12s; }
+.coupon-grid .coupon-card:nth-child(4) { animation-delay: 0.17s; }
+.coupon-grid .coupon-card:nth-child(n+5) { animation-delay: 0.22s; }
+
+.coupon-card__glow {
+  position: absolute; top: -30px; right: -30px; width: 100px; height: 100px; z-index: -1;
+  border-radius: 50%; filter: blur(20px); pointer-events: none;
+}
+.coupon-card__deal {
+  position: relative; z-index: 1;
+  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 800; font-size: 18px;
+  line-height: 1.2; margin: 0; color: #171717;
+}
+.coupon-card__desc {
+  position: relative; z-index: 1;
+  font-size: 11px; color: #6b6b6b; margin: 4px 0 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.coupon-card__notch { flex: 1; min-height: 10px; margin: 8px 0; border-bottom: 1.5px dashed rgba(20,20,20,0.16); }
+.coupon-card__exp { position: relative; z-index: 1; font-size: 11px; font-weight: 700; color: #6f6f6f; margin: 0; }
+.coupon-card__exp.is-urgent { color: #d6362c; }
 
 /* Past (used / expired) coupons — dimmed, non-interactive */
-.drawer__section { flex-shrink: 0; margin: 10px 4px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9a9a9a; }
-.coupon--past { cursor: default; opacity: 0.62; background: #f2f2f2; }
-.coupon--past:hover { box-shadow: 0 6px 16px -10px rgba(40,40,40,0.5); }
-.coupon--past:active { transform: none; }
-.coupon--past .coupon__deal { text-decoration: line-through; text-decoration-color: rgba(20,20,20,0.35); }
-.coupon__stamp { align-self: center; font-family: "Quicksand", "Nunito", sans-serif; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #565656; border: 1.5px solid rgba(90,90,90,0.4); border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
-
-/* ---------------- Fanned wallet stack (active coupons) ---------------- */
-.coupon-stack { position: relative; flex-shrink: 0; transition: height 0.42s var(--ease-spring); }
-.coupon-stack .coupon {
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 96px; align-items: start;
-  transform-origin: 50% 0;
-  animation: none; /* the fan layout provides motion instead of couponIn */
-  transition: transform 0.44s var(--ease-spring), box-shadow 0.32s ease, opacity 0.32s ease;
-  will-change: transform;
+.coupon-card--past { cursor: default; opacity: 0.58; animation: none; background: linear-gradient(158deg, rgba(232,232,232,0.75), rgba(220,220,220,0.55)); }
+.coupon-card--past:hover { box-shadow: 0 14px 30px -18px rgba(20,20,20,0.45), inset 0 1px 0 var(--glass-hi); }
+.coupon-card--past:active { transform: none; }
+.coupon-card--past .coupon-card__deal { text-decoration: line-through; text-decoration-color: rgba(20,20,20,0.35); }
+.coupon-card__stamp {
+  position: relative; z-index: 1; align-self: flex-start;
+  font-family: "Quicksand", "Nunito", sans-serif; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+  color: #565656; border: 1.5px solid rgba(90,90,90,0.4); border-radius: 8px; padding: 3px 8px; white-space: nowrap;
 }
-.coupon-stack .coupon:hover { box-shadow: 0 18px 32px -16px rgba(20,20,20,0.6); }
-.coupon-stack.is-spread .coupon { box-shadow: 0 8px 20px -12px rgba(20,20,20,0.4); }
-/* the tapped card's content: keep the deal near the top so it shows in the peek */
-.coupon-stack .coupon__desc, .coupon-stack .coupon__exp { margin-top: 2px; }
-
-.stack-toggle {
-  flex-shrink: 0; align-self: center; margin-top: 6px;
-  background: rgba(255,255,255,0.55); border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 999px; padding: 8px 18px; cursor: pointer;
-  font-family: "Quicksand", "Nunito", sans-serif; font-weight: 700; font-size: 12px;
-  color: #565656; letter-spacing: 0.3px;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.14s ease;
-}
-.stack-toggle:hover { background: rgba(255,255,255,0.85); color: #171717; }
-.stack-toggle:active { transform: scale(0.96); }
 
 /* ---------------- Congratulation ticket ---------------- */
 .congrats {
-  position: fixed; inset: 0; z-index: 205;
+  position: fixed; inset: 0; z-index: 216;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
   padding: 40px 22px;
   background: linear-gradient(165deg, #3a3a3a 0%, #262626 45%, #161616 100%);
   opacity: 0; transition: opacity 0.3s ease;
+  overflow: hidden;
 }
 .congrats[hidden] { display: none; }
 .congrats.show { opacity: 1; }
+/* soft ambient glow the glass ticket floats over */
+.congrats::before, .congrats::after {
+  content: ""; position: absolute; border-radius: 50%; pointer-events: none;
+  filter: blur(60px); opacity: 0.5;
+}
+.congrats::before { top: 8%; left: 50%; transform: translateX(-50%); width: 280px; height: 280px; background: radial-gradient(circle, rgba(255,255,255,0.22), transparent 70%); }
+.congrats::after { bottom: 4%; right: 10%; width: 220px; height: 220px; background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%); }
 
 .ticket {
   position: relative;
+  isolation: isolate; /* keep the sheen pseudo-element clipped to the scalloped mask */
   width: min(88vw, 330px);
-  background: #ffffff;
+  background: linear-gradient(165deg, rgba(255,255,255,0.96), rgba(255,255,255,0.88));
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 30px 60px -22px rgba(0,0,0,0.65), 0 2px 0 rgba(255,255,255,0.6) inset;
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
   padding: 30px 26px 26px;
   text-align: center;
   transform: translateY(18px) scale(0.96); opacity: 0;
@@ -457,28 +514,41 @@ body {
     radial-gradient(var(--sc) at 50% 100%, #0000 98%, #000 100%) 50% 100% / calc(var(--sc) * 2) 51% repeat-x;
 }
 .congrats.show .ticket { transform: translateY(0) scale(1); opacity: 1; }
+/* glossy diagonal sheen — the "glass" highlight raking across the top */
+.ticket::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(115deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 78%, rgba(255,255,255,0.35) 100%);
+  pointer-events: none;
+}
 
 .ticket__pop { font-size: 44px; line-height: 1; }
-.ticket__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; margin: 8px 0 0; letter-spacing: -0.4px;
-  background: linear-gradient(90deg, #5a5a5a, #333333 55%, #8a8a8a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ticket__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 30px; margin: 8px 0 0; letter-spacing: -0.4px; color: #171717; }
 .ticket__sub { margin: 8px 4px 0; font-size: 14.5px; line-height: 1.4; color: #565656; }
 .ticket__sub b { color: #171717; }
-.ticket__divider { border-top: 2px dashed #d6d6d6; margin: 18px 0; }
+.ticket__divider { border-top: 2px dashed rgba(20,20,20,0.16); margin: 18px 0; }
 .ticket__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .ticket__stats > div { display: flex; flex-direction: column; gap: 4px; }
 .ticket__k { font-size: 11.5px; font-weight: 600; color: #9a9a9a; }
 .ticket__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; color: #171717; }
-.ticket__qr { width: 150px; height: 150px; margin: 6px auto 0; }
+.ticket__qr {
+  width: 176px; height: 176px; margin: 8px auto 0; padding: 14px;
+  background: #ffffff; border-radius: 24px;
+  box-shadow: 0 16px 34px -18px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.9);
+}
 .ticket__qr svg { display: block; width: 100%; height: 100%; }
 .ticket__hint { margin: 12px 0 0; font-size: 12.5px; color: #565656; transition: color 0.3s ease; }
-.ticket__code { margin: 8px auto 0; display: inline-block; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px; color: #171717; background: #ececec; border: 1px dashed #cccccc; border-radius: 9px; padding: 6px 14px; }
+.ticket__code {
+  margin: 8px auto 0; display: inline-block;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px;
+  color: #171717; background: rgba(20,20,20,0.06); border: 1px dashed rgba(20,20,20,0.22); border-radius: 9px; padding: 6px 14px;
+}
 
 /* "Used" stamp — slammed onto the ticket in realtime when the cashier redeems */
 .ticket__used { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 6; }
 .ticket__used[hidden] { display: none; } /* beat the .ticket__used display:flex so hidden actually hides */
 .ticket__usedmark {
   display: flex; align-items: center; justify-content: center; box-sizing: border-box;
-  width: 150px; height: 150px; border-radius: 50%;
+  width: 168px; height: 168px; border-radius: 50%;
   font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 36px; letter-spacing: 2px;
   text-transform: uppercase; color: #171717; opacity: 0.9;
   border: 5px solid #171717;
@@ -556,8 +626,13 @@ body {
   border: 1px solid var(--glass-border);
   box-shadow: 0 18px 40px -16px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi);
   animation: tabbarIn 0.6s var(--ease-spring) 0.25s both;
+  transition: transform 0.32s var(--ease-spring), opacity 0.28s ease;
 }
 @keyframes tabbarIn { from { opacity: 0; transform: translate(-50%, 26px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* hidden while the full-height discounts drawer is open, so that panel is the
+   topmost thing on screen instead of the toolbar poking out over it — the
+   settings sheet sits higher up and leaves the toolbar visible and tappable */
+.tabbar.is-hidden { opacity: 0; transform: translate(-50%, 100%); pointer-events: none; }
 
 .tabbar__ind {
   position: absolute; top: 7px; left: 7px;
@@ -592,7 +667,7 @@ body {
 .sheet {
   position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   transform: translate(-50%, 130%); opacity: 0;
-  width: min(92vw, 400px); z-index: 205; overflow: hidden;
+  width: min(92vw, 400px); z-index: 215; overflow: hidden;
   padding: 14px 20px 20px; border-radius: 24px;
   background: var(--glass-fill-strong);
   backdrop-filter: blur(22px) saturate(160%);
@@ -621,5 +696,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .tabbar { animation: none; }
   .tab.is-active .tab__ico { animation: none; }
-  .tabbar__ind, .sheet { transition: none; }
+  .tabbar__ind, .sheet, .drawer { transition: none; }
+  .discounts-page, .coupon-card { animation: none; }
 }

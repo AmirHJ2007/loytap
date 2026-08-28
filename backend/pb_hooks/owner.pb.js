@@ -22,6 +22,32 @@ routerAdd("POST", "/owner/login", (e) => {
   if (!password) return e.json(400, { error: "Enter your password" });
   if (!u.validatePassword(password)) return e.json(401, { error: "Wrong password" });
 
+  let cafeName = "";
+  try {
+    const card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id });
+    if (card) cafeName = card.getString("cafe_name");
+  } catch (err) {}
+
   const token = u.newAuthToken();
-  return e.json(200, { token, name: u.getString("name"), role: u.getString("role") });
+  return e.json(200, { token, name: u.getString("name"), role: u.getString("role"), cafe_name: cafeName });
 });
+
+// The owner's own café config — resolved from the auth token, never a client-
+// supplied id, so one owner can never read/target another café's settings.
+//   GET /owner/cafe  (admin auth) -> { id, cafe_name, staff_code, stamps_required, reward_expiry_days }
+routerAdd("GET", "/owner/cafe", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café configured for this owner" });
+
+  return e.json(200, {
+    id: card.id,
+    cafe_name: card.getString("cafe_name"),
+    staff_code: card.getString("staff_code"),
+    stamps_required: card.getInt("stamps_required"),
+    reward_expiry_days: card.getInt("reward_expiry_days"),
+  });
+}, $apis.requireAuth());

@@ -8,8 +8,12 @@
 // the loyalty-critical fields. Our own server logic (card.pb.js, otp.pb.js) mutates
 // users via $app.save(), which fires onRecordUpdate — NOT onRecordUpdateRequest —
 // so it is unaffected by this guard.
+//
+// Per-café stamp progress (stamp_count/cycles/stamps) now lives on `memberships`,
+// not `users` — that collection has updateRule=null too, so it gets the same
+// public-API lockout without needing a field-level guard here.
 
-const PROTECTED = ["stamp_count", "cycles", "stamps", "role", "phone"];
+const PROTECTED = ["role", "phone"];
 
 onRecordUpdateRequest((e) => {
   let isSuper = false;

@@ -29,7 +29,9 @@ const QR_COLOR = "#1c2b3a";
 const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
 let token = "";
 try { token = localStorage.getItem("loytap_token") || ""; } catch (_) {}
-let cafeName = "Aurora Coffee";
+let myUserId = "";
+// The customer's loyalty cards, one per café — [{id, cafeId, cafeName, stampsRequired, theme, stampCount, cycles, stamps}]
+let memberships = [];
 
 // The stamp mark is an infinity-knot badge (a stamped brand-mark look).
 const STAR_SVG = `<img class="stamp-mark" src="knot-stamp.png?v=1" alt="" />`;
@@ -214,6 +216,13 @@ async function addStamp(deck, tagCode) {
     if (res && res.error) toast(res.error);
     return;
   }
+  // tapped a DIFFERENT café than the one currently shown (e.g. a brand-new
+  // café's card) — the stamp was recorded server-side; reload to rebuild
+  // the wallet around that café instead of animating onto the wrong card.
+  if (res.cafe && deck.cfg.cafeId && res.cafe.id !== deck.cfg.cafeId) {
+    location.reload();
+    return;
+  }
   const slot = deck.slots[deck.stamped];
   deck.stamped++;
   const v = res.stamp;
@@ -367,14 +376,14 @@ const pocketBadge = document.getElementById("pocketBadge");
 const scrim = document.getElementById("scrim");
 const drawer = document.getElementById("drawer");
 const drawerClose = document.getElementById("drawerClose");
+const drawerBack = document.getElementById("drawerBack");
+const drawerTitle = document.getElementById("drawerTitle");
 const drawerList = document.getElementById("drawerList");
 const drawerEmpty = document.getElementById("drawerEmpty");
 
 let discounts = [];
-// fanned-stack state for the active coupons
-let activeEls = [];
-let stackEl = null;
-let spread = false;
+// null = showing the café list; otherwise the café whose discounts are shown
+let drawerCafeId = null;
 
 function shortDiscount(p) {
   const m = String(p).match(/(\d+)\s*%/);
@@ -399,33 +408,28 @@ function daysUntil(iso) {
   if (isNaN(t)) return Infinity;
   return Math.ceil((t - Date.now()) / 864e5);
 }
-// stripe tone by urgency (monochrome): darker = more urgent
-function urgencyColor(days) {
-  if (days <= 2) return "#171717"; // urgent — near black
-  if (days <= 5) return "#6f6f6f"; // soon — mid grey
-  return "#b8b8b8";                // plenty of time — light grey
-}
-
 // backend /card/stamp discount payload -> pocket/congrats record
 function discountToRec(d) {
   return {
     id: (d && d.id) || "",
-    shop: (d && d.shop) || cafeName,
+    cafeId: (d && d.cafe_id) || "",
+    shop: (d && d.shop) || "",
     deal: (d && d.deal) || "Reward",
     desc: (d && d.description) || "",
     code: (d && d.code) || "",
     short: shortDiscount((d && d.deal) || ""),
     due: (d && d.due) || dueDateStr(),
-    terra: "#b8b8b8",
   };
 }
 
-// backend discounts collection record -> pocket record
+// backend discounts collection record (expand=cafe) -> pocket record
 function mapDiscount(item) {
   const days = daysUntil(item.due_date);
+  const c = (item.expand && item.expand.cafe) || {};
   return {
     id: item.id,
-    shop: cafeName,
+    cafeId: item.cafe,
+    shop: c.cafe_name || "",
     deal: item.deal || "Reward",
     desc: item.description || "",
     code: item.code || "",
@@ -433,7 +437,6 @@ function mapDiscount(item) {
     due: formatDue(item.due_date),
     dueISO: item.due_date,
     days: days,
-    terra: urgencyColor(days),
     status: item.status,
     redeemedAt: item.redeemed_at || "",
   };
@@ -459,32 +462,27 @@ function pocketState(d) {
 function addDiscountToPocket(rec) {
   if (discounts.find((d) => d.code === rec.code)) return;
   discounts.unshift(rec);
-  renderDiscounts();
+  updateBadges();
+  renderDrawer();
   pocketBtn.classList.remove("pop"); void pocketBtn.offsetWidth; pocketBtn.classList.add("pop");
   pocketBadge.classList.remove("bump"); void pocketBadge.offsetWidth; pocketBadge.classList.add("bump");
 }
 
 function activeCoupon(d) {
   const c = document.createElement("div");
-  c.className = "coupon";
+  c.className = "coupon-card";
   c.setAttribute("role", "button");
-  // expiry line — always red; adds a countdown when ≤5 days
-  let expText = "Expires " + (d.due || "—");
-  if (typeof d.days === "number" && d.days <= 5) {
-    expText = "Expires " + d.due + " · " + d.days + " day" + (d.days > 1 ? "s" : "") + " left";
-  }
+  const urgent = typeof d.days === "number" && d.days <= 5;
+  let expText = d.due || "—";
+  if (urgent) expText = d.days <= 0 ? "Expires today" : d.days + " day" + (d.days > 1 ? "s" : "") + " left";
+  const glow = urgent ? "rgba(214,54,44,0.4)" : "rgba(23,23,23,0.14)";
   c.innerHTML = `
-    <span class="coupon__stripe" style="background:${d.terra}"></span>
-    <div class="coupon__body">
-      <p class="coupon__shop">${escapeHtml(d.shop)}</p>
-      <p class="coupon__deal">${escapeHtml(d.deal)}</p>
-      <p class="coupon__desc">${escapeHtml(d.desc)}</p>
-      <p class="coupon__exp">${escapeHtml(expText)}</p>
-    </div>
-    <span class="coupon__go" aria-hidden="true">›</span>`;
+    <span class="coupon-card__glow" style="background:${glow}"></span>
+    <p class="coupon-card__deal">${escapeHtml(d.deal)}</p>
+    <p class="coupon-card__desc">${escapeHtml(d.desc)}</p>
+    <span class="coupon-card__notch"></span>
+    <p class="coupon-card__exp${urgent ? " is-urgent" : ""}">${escapeHtml(expText)}</p>`;
   c.addEventListener("click", () => {
-    // collapsed multi-card stack: first tap spreads the fan; then a tap opens the reward
-    if (activeEls.length > 1 && !spread) { setSpread(true); return; }
     closeDrawer();
     setTimeout(() => showCongrats(d), 180);
   });
@@ -493,99 +491,96 @@ function activeCoupon(d) {
 
 function pastCoupon(d, kind) {
   const c = document.createElement("div");
-  c.className = "coupon coupon--past";
+  c.className = "coupon-card coupon-card--past";
   const label = kind === "used" ? "Used ✓" : "Expired";
   c.innerHTML = `
-    <span class="coupon__stripe" style="background:#c7bda3"></span>
-    <div class="coupon__body">
-      <p class="coupon__shop">${escapeHtml(d.shop)}</p>
-      <p class="coupon__deal">${escapeHtml(d.deal)}</p>
-      <p class="coupon__desc">${escapeHtml(d.desc)}</p>
-    </div>
-    <span class="coupon__stamp">${label}</span>`;
+    <p class="coupon-card__deal">${escapeHtml(d.deal)}</p>
+    <p class="coupon-card__desc">${escapeHtml(d.desc)}</p>
+    <span class="coupon-card__notch"></span>
+    <span class="coupon-card__stamp">${label}</span>`;
   return c;
 }
 
-// Fan geometry
-const STACK = { CARD: 96, GAP: 12, PEEK: 54, TIGHT: 9, CAP: 3 };
+// the tab badge / pocket badge always count ALL cafés' usable discounts
+function updateBadges() {
+  const count = discounts.filter((d) => !pocketState(d).past).length;
+  pocketBadge.hidden = count === 0;
+  pocketBadge.textContent = String(count);
+  const tabBadge = document.getElementById("tabBadge");
+  if (tabBadge) { tabBadge.hidden = count === 0; tabBadge.textContent = String(count); }
+}
 
-// Position the active coupons — either a compact fan (collapsed) or a full
-// scrollable spread. The fan caps its depth so even 20 rewards stay short.
-function layoutStack() {
-  if (!stackEl) return;
-  const n = activeEls.length;
-  const S = STACK;
-  if (spread || n === 1) {
-    activeEls.forEach((c, i) => {
-      c.style.transform = `translateY(${i * (S.CARD + S.GAP)}px) scale(1)`;
-      c.style.zIndex = String(n - i);
-      c.style.opacity = "1";
-    });
-    stackEl.style.height = (n * (S.CARD + S.GAP) - S.GAP) + "px";
-  } else {
-    let maxY = 0;
-    activeEls.forEach((c, i) => {
-      let ty, sc, op;
-      if (i <= S.CAP) { ty = i * S.PEEK; sc = 1 - i * 0.04; op = i < 3 ? 1 : 0.94; }
-      else { ty = S.CAP * S.PEEK + (i - S.CAP) * S.TIGHT; sc = 1 - S.CAP * 0.04 - 0.03; op = 0.72; }
-      c.style.transform = `translateY(${ty}px) scale(${sc})`;
-      c.style.zIndex = String(n - i);
-      c.style.opacity = String(op);
-      maxY = Math.max(maxY, ty);
-    });
-    stackEl.style.height = (maxY + S.CARD) + "px";
+function clearDrawerBody() {
+  drawerList.querySelectorAll(".cafe-list, .discounts-page").forEach((n) => n.remove());
+}
+
+// LEVEL 1 — the cafés this customer has a live loyalty card with
+function renderCafeList() {
+  clearDrawerBody();
+  if (drawerTitle) drawerTitle.textContent = "My Cafés";
+  if (drawerBack) drawerBack.hidden = true;
+
+  if (!memberships.length) {
+    drawerEmpty.innerHTML = "No cafés yet.<br/>Tap a café's card to start your first loyalty card.";
+    drawerEmpty.style.display = "block";
+    return;
   }
+  drawerEmpty.style.display = "none";
+
+  const list = document.createElement("div");
+  list.className = "cafe-list";
+  memberships.forEach((m) => {
+    const rewardCount = discounts.filter((d) => d.cafeId === m.cafeId && !pocketState(d).past).length;
+    const initial = (m.cafeName || "?").trim().charAt(0).toUpperCase();
+    const row = document.createElement("button");
+    row.className = "cafe-row";
+    row.type = "button";
+    row.innerHTML = `
+      <span class="cafe-row__avatar">${escapeHtml(initial)}</span>
+      <span class="cafe-row__body">
+        <span class="cafe-row__name">${escapeHtml(m.cafeName)}</span>
+        <span class="cafe-row__sub">${m.stampCount}/${m.stampsRequired} stamps${rewardCount ? " · " + rewardCount + " reward" + (rewardCount > 1 ? "s" : "") : ""}</span>
+      </span>
+      ${rewardCount ? `<span class="cafe-row__badge">${rewardCount}</span>` : ""}
+      <span class="cafe-row__go" aria-hidden="true">›</span>`;
+    row.addEventListener("click", () => { drawerCafeId = m.cafeId; renderDrawer(); });
+    list.appendChild(row);
+  });
+  drawerList.appendChild(list);
 }
 
-function setSpread(v) {
-  spread = v;
-  if (stackEl) stackEl.classList.toggle("is-spread", v);
-  const t = document.getElementById("stackToggle");
-  if (t) t.textContent = v ? "Stack them back" : "Browse all " + activeEls.length;
-  layoutStack();
-}
-function toggleSpread() { setSpread(!spread); }
+// LEVEL 2 — one café's discount grid
+function renderCafeDiscounts(cafeId) {
+  const m = memberships.find((x) => x.cafeId === cafeId);
+  if (drawerTitle) drawerTitle.textContent = (m && m.cafeName) || "Discounts";
+  if (drawerBack) drawerBack.hidden = false;
 
-function renderDiscounts() {
   const active = [];
   const past = [];
-  discounts.forEach((d) => {
+  discounts.filter((d) => d.cafeId === cafeId).forEach((d) => {
     const st = pocketState(d);
     if (!st.past) active.push(d);
     else if (st.visible) past.push({ d: d, kind: st.kind });
   });
-  // most urgent (soonest to expire) sits at the front of the fan
+  // most urgent (soonest to expire) sits first in the grid
   active.sort((a, b) => (typeof a.days === "number" ? a.days : 1e9) - (typeof b.days === "number" ? b.days : 1e9));
 
-  // badge counts only usable (active) discounts
-  pocketBadge.hidden = active.length === 0;
-  pocketBadge.textContent = String(active.length);
-  const tabBadge = document.getElementById("tabBadge");
-  if (tabBadge) { tabBadge.hidden = active.length === 0; tabBadge.textContent = String(active.length); }
+  clearDrawerBody();
+
+  // everything for this café lands in one wrapper so it can slide in as a unit
+  const page = document.createElement("div");
+  page.className = "discounts-page";
+  drawerList.appendChild(page);
+
+  drawerEmpty.innerHTML = "No discounts yet.<br/>Fill this card to earn one.";
   drawerEmpty.style.display = active.length || past.length ? "none" : "block";
 
-  drawerList.querySelectorAll(".coupon-stack, .stack-toggle, .drawer__section, .coupon").forEach((n) => n.remove());
-
-  // active rewards as a fanned wallet stack
-  activeEls = [];
-  stackEl = null;
-  spread = false;
+  // active rewards as a grid of coupon cards
   if (active.length) {
-    const stack = document.createElement("div");
-    stack.className = "coupon-stack";
-    active.forEach((d) => { const c = activeCoupon(d); stack.appendChild(c); activeEls.push(c); });
-    drawerList.appendChild(stack);
-    stackEl = stack;
-    layoutStack();
-    if (active.length > 1) {
-      const t = document.createElement("button");
-      t.id = "stackToggle";
-      t.className = "stack-toggle";
-      t.type = "button";
-      t.textContent = "Browse all " + active.length;
-      t.addEventListener("click", toggleSpread);
-      drawerList.appendChild(t);
-    }
+    const grid = document.createElement("div");
+    grid.className = "coupon-grid";
+    active.forEach((d) => grid.appendChild(activeCoupon(d)));
+    page.appendChild(grid);
   }
 
   // past (used/expired) below, dimmed
@@ -593,9 +588,17 @@ function renderDiscounts() {
     const h = document.createElement("p");
     h.className = "drawer__section";
     h.textContent = "Past";
-    drawerList.appendChild(h);
-    past.forEach((p) => drawerList.appendChild(pastCoupon(p.d, p.kind)));
+    page.appendChild(h);
+    const pastGrid = document.createElement("div");
+    pastGrid.className = "coupon-grid coupon-grid--past";
+    past.forEach((p) => pastGrid.appendChild(pastCoupon(p.d, p.kind)));
+    page.appendChild(pastGrid);
   }
+}
+
+function renderDrawer() {
+  if (drawerCafeId) renderCafeDiscounts(drawerCafeId);
+  else renderCafeList();
 }
 
 // ---- shared scrim + bottom-nav overlays ----
@@ -612,25 +615,39 @@ function setTab(name) {
   if (tabbarEl) tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
   for (const k in tabBtns) if (tabBtns[k]) tabBtns[k].classList.toggle("is-active", k === name);
 }
-function showScrim() { scrim.hidden = false; requestAnimationFrame(() => scrim.classList.add("show")); }
+function showScrim(hideTabbar) {
+  scrim.hidden = false;
+  requestAnimationFrame(() => scrim.classList.add("show"));
+  // the full-height drawer overlaps the toolbar's spot, so it hides it while open;
+  // the settings sheet sits higher up and leaves the toolbar clear, so it stays put
+  // and stays tappable — switching straight to another tab from Settings.
+  if (hideTabbar && tabbarEl) tabbarEl.classList.add("is-hidden");
+}
 function maybeHideScrim() {
   const anyOpen = drawer.classList.contains("open") || (settingsSheet && settingsSheet.classList.contains("open"));
-  if (!anyOpen) { scrim.classList.remove("show"); setTimeout(() => { scrim.hidden = true; }, 320); }
+  if (!anyOpen) {
+    scrim.classList.remove("show"); setTimeout(() => { scrim.hidden = true; }, 320);
+    if (tabbarEl) tabbarEl.classList.remove("is-hidden");
+  }
 }
 
 async function loadDiscounts() {
   try {
-    const r = await fetch(API + "/api/collections/discounts/records?perPage=100&sort=-created", { headers: { Authorization: token } });
+    const r = await fetch(API + "/api/collections/discounts/records?perPage=200&sort=-created&expand=cafe", { headers: { Authorization: token } });
     const data = await r.json();
-    if (data && data.items) { discounts = data.items.map(mapDiscount); renderDiscounts(); }
+    if (data && data.items) discounts = data.items.map(mapDiscount);
   } catch (_) {}
+  updateBadges();
+  renderDrawer();
 }
 async function openDrawer() {
   if (settingsSheet) closeSettings(true);
-  showScrim();
+  showScrim(true);
   drawer.classList.add("open");
   drawer.setAttribute("aria-hidden", "false");
   setTab("discounts");
+  drawerCafeId = null; // always start at the café list
+  renderDrawer();
   loadDiscounts();
 }
 function closeDrawer(keepTab) {
@@ -644,7 +661,7 @@ function openSettings() {
   closeDrawer(true);
   try {
     const nm = (localStorage.getItem("loytap_name") || "").trim();
-    const cf = (localStorage.getItem("loytap_cafe") || cafeName || "").trim();
+    const cf = (localStorage.getItem("loytap_cafe") || (memberships[0] && memberships[0].cafeName) || "").trim();
     const nEl = document.getElementById("setName"); if (nEl) nEl.textContent = nm || "—";
     const cEl = document.getElementById("setCafe"); if (cEl) cEl.textContent = cf || "—";
   } catch (_) {}
@@ -669,6 +686,7 @@ function doSignout() {
 
 pocketBtn.addEventListener("click", openDrawer);
 drawerClose.addEventListener("click", () => closeDrawer());
+if (drawerBack) drawerBack.addEventListener("click", () => { drawerCafeId = null; renderDrawer(); });
 scrim.addEventListener("click", () => { closeDrawer(); closeSettings(); });
 
 if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => { drawer.classList.contains("open") ? closeDrawer() : openDrawer(); });
@@ -839,26 +857,75 @@ function renderSaved(deck, stamps) {
   updateTeaser(deck);
 }
 
-async function init() {
-  // public café config
-  let stampsRequired = 8;
+// GET the signed-in customer's loyalty cards, one per café they've tapped into.
+async function loadMemberships() {
   try {
-    const r = await fetch(API + "/api/collections/cafe_card/records?perPage=1");
+    const r = await fetch(
+      API + "/api/collections/memberships/records?perPage=100&sort=-updated&expand=cafe" +
+      "&filter=" + encodeURIComponent(`(user='${myUserId}')`),
+      { headers: { Authorization: token } }
+    );
     const d = await r.json();
-    if (d.items && d.items[0]) {
-      stampsRequired = d.items[0].stamps_required || 8;
-      cafeName = d.items[0].cafe_name || cafeName;
-    }
-  } catch (_) {}
+    memberships = ((d && d.items) || []).map((it) => {
+      const c = (it.expand && it.expand.cafe) || {};
+      return {
+        id: it.id,
+        cafeId: it.cafe,
+        cafeName: c.cafe_name || "Café",
+        stampsRequired: c.stamps_required || 8,
+        theme: c.theme || "",
+        stampCount: it.stamp_count || 0,
+        cycles: it.cycles || 0,
+        stamps: Array.isArray(it.stamps) ? it.stamps : [],
+      };
+    });
+  } catch (_) { memberships = []; }
+}
 
-  // the reward pool — teased on the card ("win Free coffee · 20% OFF…")
+// the reward pool for ONE café — teased on that café's card ("win Free coffee · 20% OFF…")
+async function loadRewardPool(cafeId) {
   try {
-    const rr = await fetch(API + "/api/collections/reward_options/records?perPage=50&filter=(active=true)&sort=-created");
+    const rr = await fetch(
+      API + "/api/collections/reward_options/records?perPage=50&sort=-created" +
+      "&filter=" + encodeURIComponent(`(active=true && cafe='${cafeId}')`)
+    );
     const rd = await rr.json();
     rewardPool = ((rd && rd.items) || []).map((x) => x.deal).filter(Boolean);
-  } catch (_) {}
+  } catch (_) { rewardPool = []; }
+}
 
-  // signed-in user: refresh the session and load their card state
+// build + paint the wallet's card for one membership (its café, its saved stamps)
+async function renderWallet(m) {
+  await loadRewardPool(m.cafeId);
+  const cfg = Object.assign({}, CARDS[0], {
+    cafeId: m.cafeId,
+    name: m.cafeName,
+    stamps: m.stampsRequired,
+    cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
+    tag: `Collect ${m.stampsRequired} · earn a treat`,
+  });
+  wallet.innerHTML = "";
+  decks = [buildCard(cfg, 0)];
+  wallet.appendChild(decks[0].el);
+  renderSaved(decks[0], m.stamps);
+  if (m.stamps.length >= m.stampsRequired) {
+    decks[0].stampBtn.disabled = true;
+    decks[0].stampBtn.querySelector(".btn__label").textContent = "Complete!";
+  }
+  sizeConfetti();
+  layout();
+}
+
+function renderWalletEmpty() {
+  wallet.innerHTML = `
+    <div class="wallet-empty">
+      <p class="wallet-empty__title">No loyalty cards yet</p>
+      <p class="wallet-empty__sub">Tap a café's card to start earning stamps.</p>
+    </div>`;
+}
+
+async function init() {
+  // signed-in user: refresh the session
   let user = null;
   try {
     const r = await fetch(API + "/api/collections/users/auth-refresh", { method: "POST", headers: { Authorization: token } });
@@ -875,31 +942,18 @@ async function init() {
     location.replace("auth.html");
     return;
   }
+  myUserId = user.id;
 
   const g = document.getElementById("greeting");
   if (g) g.textContent = `Welcome back, ${(user.name || "there").trim()} 👋`;
 
-  // build the single card from the café config
-  const cfg = Object.assign({}, CARDS[0], {
-    name: cafeName,
-    stamps: stampsRequired,
-    cols: Math.max(1, Math.ceil(stampsRequired / 2)),
-    tag: `Collect ${stampsRequired} · earn a treat`,
-  });
-  decks = [buildCard(cfg, 0)];
-  wallet.appendChild(decks[0].el);
+  await loadMemberships();
 
-  // restore the saved stamps exactly as they were
-  const saved = Array.isArray(user.stamps) ? user.stamps : [];
-  renderSaved(decks[0], saved);
-  if (saved.length >= stampsRequired) {
-    decks[0].stampBtn.disabled = true;
-    decks[0].stampBtn.querySelector(".btn__label").textContent = "Complete!";
-  }
   // NFC tap: the card's URL carries the tag's secret code as ?t=<CODE>. If the
   // user had to sign in first, the code was stashed before the auth redirect and
   // is restored here (fresh taps only, consumed once). The server validates the
-  // code and enforces the cooldown — the client never decides whether it's a real tap.
+  // code, resolves which café it belongs to, and enforces the cooldown — the
+  // client never decides whether it's a real tap or which café it's for.
   const params = new URLSearchParams(window.location.search);
   let tapCode = params.get("t");
   if (!tapCode) {
@@ -917,17 +971,43 @@ async function init() {
     try { history.replaceState(null, "", location.pathname); } catch (_) {}
   }
 
-  if (tapCode) {
-    setTimeout(() => {
-      if (decks[0] && !busy && decks[0].stamped < decks[0].cfg.stamps) {
-        addStamp(decks[0], tapCode);
-      }
-    }, 700);
+  if (memberships.length) {
+    await renderWallet(memberships[0]);
+    if (tapCode) {
+      setTimeout(() => {
+        if (decks[0] && !busy && decks[0].stamped < decks[0].cfg.stamps) {
+          addStamp(decks[0], tapCode);
+        }
+      }, 700);
+    }
+  } else if (tapCode) {
+    // first-ever tap, no card yet: record the stamp, then reload to build
+    // the wallet around the café that tap just created a membership for
+    renderWalletEmpty();
+    setTimeout(async () => {
+      try {
+        const r = await fetch(API + "/card/stamp", {
+          method: "POST",
+          headers: { Authorization: token, "Content-Type": "application/json" },
+          body: JSON.stringify({ tag: tapCode }),
+        });
+        if (r.ok) location.reload();
+      } catch (_) {}
+    }, 300);
+  } else {
+    renderWalletEmpty();
   }
 
-  sizeConfetti();
-  layout();
-  loadDiscounts(); // populate the Discounts tab badge on load
+  loadDiscounts(); // populate the Discounts tab badge + café list on load
+
+  if (params.get("debugopen") === "discounts") {
+    setTimeout(() => {
+      openDrawer();
+      if (params.get("autocafe") && memberships[0]) {
+        setTimeout(() => { drawerCafeId = memberships[0].cafeId; renderDrawer(); }, 500);
+      }
+    }, 400);
+  } // TEMP verification hook
 }
 
 window.addEventListener("resize", () => { if (decks.length) { sizeConfetti(); layout(); } });

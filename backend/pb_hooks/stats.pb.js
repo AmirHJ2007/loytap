@@ -26,14 +26,17 @@ routerAdd("POST", "/owner/stats", (e) => {
   const iNow = new Date(NOW + IRAN_OFF);
   const todayStart = Date.UTC(iNow.getUTCFullYear(), iNow.getUTCMonth(), iNow.getUTCDate()) - IRAN_OFF;
 
-  const card = $app.findRecordsByFilter("cafe_card", "stamps_required >= 0", "", 1, 0, {})[0];
-  const req = card ? card.getInt("stamps_required") : 8;
-  const cafe = card ? card.getString("cafe_name") : "";
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  const req = card.getInt("stamps_required") || 8;
+  const cafe = card.getString("cafe_name");
 
   // ---- customers (loyalty + total stamps derived here) ----
+  // one row per (customer, THIS café) — memberships, not the global users table
   let customers = 0, returning = 0, repeat = 0, stamps = 0, cardsCompleted = 0;
   let newCustomers = 0, inProgress = 0, todayMembers = 0;
-  const custs = $app.findRecordsByFilter("users", "role = 'customer'", "", 20000, 0, {});
+  const custs = $app.findRecordsByFilter("memberships", "cafe = {:c}", "", 20000, 0, { c: card.id });
   for (const c of custs) {
     customers++;
     const cy = c.getInt("cycles");
@@ -41,7 +44,7 @@ routerAdd("POST", "/owner/stats", (e) => {
     if (cy >= 1) returning++;
     if (cy >= 2) repeat++;
     if (sc > 0) inProgress++;                       // mid-card right now
-    const createdMs = ms(c.getString("created"));
+    const createdMs = ms(c.getString("created"));    // when they joined THIS café
     if (createdMs >= cutoff14) newCustomers++;
     if (createdMs >= todayStart) todayMembers++;
     cardsCompleted += cy;
@@ -52,7 +55,7 @@ routerAdd("POST", "/owner/stats", (e) => {
   let todayStamps = 0;
   try {
     const tStr = new Date(todayStart).toISOString().replace("T", " ");
-    todayStamps = $app.findRecordsByFilter("stamp_events", "created >= {:t}", "", 20000, 0, { t: tStr }).length;
+    todayStamps = $app.findRecordsByFilter("stamp_events", "created >= {:t} && cafe = {:c}", "", 20000, 0, { t: tStr, c: card.id }).length;
   } catch (err) { todayStamps = 0; }
   const avgStamps = customers > 0 ? Math.round((stamps / customers) * 10) / 10 : 0;
 
@@ -62,7 +65,7 @@ routerAdd("POST", "/owner/stats", (e) => {
   let issued = 0, redeemed = 0, expired = 0, active = 0, expiringSoon = 0, todayRewards = 0;
   let issued30 = 0, redeemed30 = 0;
   const dealMap = {}; // 30-day, per deal
-  const discs = $app.findRecordsByFilter("discounts", "id != ''", "-created", 20000, 0, {});
+  const discs = $app.findRecordsByFilter("discounts", "cafe = {:c}", "-created", 20000, 0, { c: card.id });
   for (const d of discs) {
     issued++;
     const cMs = ms(d.getString("created"));
@@ -88,7 +91,7 @@ routerAdd("POST", "/owner/stats", (e) => {
   }
 
   // seed byDeal with every reward in the pool so unused ones show as 0
-  const opts = $app.findRecordsByFilter("reward_options", "id != ''", "", 500, 0, {});
+  const opts = $app.findRecordsByFilter("reward_options", "cafe = {:c}", "", 500, 0, { c: card.id });
   for (const o of opts) {
     const deal = o.getString("deal") || "Reward";
     if (!dealMap[deal]) dealMap[deal] = { deal: deal, issued: 0, redeemed: 0 };
@@ -114,7 +117,7 @@ routerAdd("POST", "/owner/stats", (e) => {
   // stamps + distinct members from the last 60 days of events (filtered = cheap)
   try {
     const startStr = new Date(NOW - NDAYS * 86400000).toISOString().replace("T", " ");
-    const evs = $app.findRecordsByFilter("stamp_events", "created >= {:t}", "", 200000, 0, { t: startStr });
+    const evs = $app.findRecordsByFilter("stamp_events", "created >= {:t} && cafe = {:c}", "", 200000, 0, { t: startStr, c: card.id });
     for (const ev of evs) {
       const row = dayMap[localKey(ms(ev.getString("created")))];
       if (!row) continue;

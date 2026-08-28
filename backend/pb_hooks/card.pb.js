@@ -1,18 +1,21 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// LoyTap card — one authenticated stamp. The SERVER generates the stamp's look
-// (off-centre offset, rotation, ink strength, colour) and stores it on the user,
-// so it comes back identically on sign-in. On completion it draws a weighted-random
-// reward, mints a discount, and resets the card.
+// Reloy card — one authenticated stamp, at one café. The SERVER generates the
+// stamp's look (off-centre offset, rotation, ink strength, colour) and stores
+// it on the customer's membership row for that café, so it comes back
+// identically on sign-in. On completion it draws a weighted-random reward
+// from that café's own prize pool, mints a discount, and resets the card.
 //
-//   POST /card/stamp  (auth) { tag }  -> { stamp, stamp_count, required, completed, discount? }
+//   POST /card/stamp  (auth) { tag }
+//     -> { stamp, stamp_count, required, completed, discount?,
+//          cafe: { id, name, stamps_required, theme } }
 //
-// A stamp is only granted for a real NFC tap: the request must carry the tag's
-// secret `code`, which must match an ACTIVE row in nfc_tags. The client `nfc=1`
-// flag is gone — the server never trusts the browser to say "this was a tap".
-// A per-user cooldown (cafe_card.stamp_cooldown_minutes) caps how often the same
-// customer can earn a stamp, so a copied static-tag URL is worth at most one stamp
-// per window.
+// A stamp is only granted for a real NFC tap: the request must carry the
+// tag's secret `code`, which must match an ACTIVE row in nfc_tags. The tag
+// itself says which café it belongs to — the client never picks the café.
+// A per-user, per-café cooldown (cafe_card.stamp_cooldown_minutes) caps how
+// often the same customer can earn a stamp at that café, so a copied
+// static-tag URL is worth at most one stamp per window.
 
 routerAdd("POST", "/card/stamp", (e) => {
   const u = e.auth;
@@ -27,14 +30,32 @@ routerAdd("POST", "/card/stamp", (e) => {
     return e.json(400, { error: "This card isn't recognised." });
   }
 
-  const card = $app.findRecordsByFilter("cafe_card", "stamps_required >= 0", "", 1, 0, {})[0];
-  const required = card ? card.getInt("stamps_required") : 8;
+  const cafeId = tag.getString("cafe");
+  let cafe = null;
+  try { cafe = $app.findRecordById("cafe_card", cafeId); } catch (err) { cafe = null; }
+  if (!cafe) return e.json(400, { error: "This card isn't recognised." });
+
+  const required = cafe.getInt("stamps_required") || 8;
   const inkColor = "#1c2b3a";
 
-  // per-user cooldown: reject if this customer stamped too recently
-  const cooldownMin = card ? card.getInt("stamp_cooldown_minutes") : 0;
+  // this customer's progress AT THIS CAFÉ — find or start one
+  let membership = null;
+  try {
+    membership = $app.findFirstRecordByFilter("memberships", "user = {:u} && cafe = {:c}", { u: u.id, c: cafe.id });
+  } catch (err) { membership = null; }
+  if (!membership) {
+    membership = new Record($app.findCollectionByNameOrId("memberships"));
+    membership.set("user", u.id);
+    membership.set("cafe", cafe.id);
+    membership.set("stamp_count", 0);
+    membership.set("cycles", 0);
+    membership.set("stamps", []);
+  }
+
+  // per-user-per-café cooldown: reject if this customer stamped too recently HERE
+  const cooldownMin = cafe.getInt("stamp_cooldown_minutes");
   if (cooldownMin > 0) {
-    const last = $app.findRecordsByFilter("stamp_events", "user = {:u}", "-created", 1, 0, { u: u.id })[0];
+    const last = $app.findRecordsByFilter("stamp_events", "user = {:u} && cafe = {:c}", "-created", 1, 0, { u: u.id, c: cafe.id })[0];
     if (last) {
       const lastMs = new Date(String(last.getString("created")).replace(" ", "T")).getTime();
       const elapsed = Date.now() - lastMs;
@@ -57,16 +78,17 @@ routerAdd("POST", "/card/stamp", (e) => {
 
   let stamps = [];
   try {
-    const raw = toString(u.get("stamps")); // JSON field comes back as raw bytes
+    const raw = toString(membership.get("stamps")); // JSON field comes back as raw bytes
     if (raw && raw !== "null") stamps = JSON.parse(raw);
   } catch (err) { stamps = []; }
   if (!Array.isArray(stamps)) stamps = [];
   stamps.push(stamp);
   let count = stamps.length;
 
-  // audit log (records the real tap source + which tag)
+  // audit log (records the real tap source, café, and which tag)
   const ev = new Record($app.findCollectionByNameOrId("stamp_events"));
   ev.set("user", u.id);
+  ev.set("cafe", cafe.id);
   ev.set("source", "nfc");
   ev.set("tag", tagCode);
   $app.save(ev);
@@ -78,10 +100,10 @@ routerAdd("POST", "/card/stamp", (e) => {
   let discount = null;
 
   if (count >= required) {
-    // draw one active reward at random — every reward has an equal chance.
-    // (To boost a reward's odds the owner simply adds it more than once, so it
-    // holds more than one ticket in this uniform draw.)
-    const opts = $app.findRecordsByFilter("reward_options", "active = true", "", 200, 0, {});
+    // draw one active reward from THIS café's pool at random — every reward
+    // has an equal chance. (To boost a reward's odds the owner simply adds it
+    // more than once, so it holds more than one ticket in this uniform draw.)
+    const opts = $app.findRecordsByFilter("reward_options", "active = true && cafe = {:c}", "", 200, 0, { c: cafe.id });
     const picked = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
 
     // due date = issue time + the drawn reward's own "expires after" (amount + unit).
@@ -92,12 +114,13 @@ routerAdd("POST", "/card/stamp", (e) => {
     if (amt > 0 && unit === "day") due.setDate(due.getDate() + amt);
     else if (amt > 0 && unit === "week") due.setDate(due.getDate() + amt * 7);
     else if (amt > 0 && unit === "month") due.setMonth(due.getMonth() + amt);
-    else due.setDate(due.getDate() + (card ? card.getInt("reward_expiry_days") : 30));
+    else due.setDate(due.getDate() + cafe.getInt("reward_expiry_days"));
     const dueMs = due.getTime();
     const code = "LOY" + $security.randomStringWithAlphabet(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
 
     const d = new Record($app.findCollectionByNameOrId("discounts"));
     d.set("user", u.id);
+    d.set("cafe", cafe.id);
     if (picked) d.set("reward_option", picked.id);
     d.set("code", code);
     d.set("deal", picked ? picked.getString("deal") : "Reward");
@@ -113,20 +136,29 @@ routerAdd("POST", "/card/stamp", (e) => {
       code,
       deal: d.getString("deal"),
       description: d.getString("description"),
-      shop: card ? card.getString("cafe_name") : "",
+      shop: cafe.getString("cafe_name"),
+      cafe_id: cafe.id,
       due: z(due.getDate()) + "." + z(due.getMonth() + 1) + "." + String(due.getFullYear()).slice(2),
     };
 
     // reset the card for a fresh cycle
     stamps = [];
     count = 0;
-    u.set("cycles", u.getInt("cycles") + 1);
+    membership.set("cycles", membership.getInt("cycles") + 1);
     completed = true;
   }
 
-  u.set("stamps", JSON.stringify(stamps));
-  u.set("stamp_count", count);
-  $app.save(u);
+  membership.set("stamps", stamps);
+  membership.set("stamp_count", count);
+  $app.save(membership);
 
-  return e.json(200, { stamp, stamp_count: count, required, completed, discount });
+  return e.json(200, {
+    stamp, stamp_count: count, required, completed, discount,
+    cafe: {
+      id: cafe.id,
+      name: cafe.getString("cafe_name"),
+      stamps_required: required,
+      theme: cafe.getString("theme"),
+    },
+  });
 }, $apis.requireAuth());

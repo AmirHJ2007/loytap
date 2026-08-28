@@ -100,8 +100,6 @@ routerAdd("POST", "/otp/verify", (e) => {
     user.set("email", phone + "@phone.loytap"); // auth collection requires an email; phone is unique
     user.set("name", name || "Guest");
     user.set("role", wantRole);
-    user.set("stamp_count", 0);
-    user.set("cycles", 0);
     user.set("verified", true);
     user.setPassword($security.randomString(30));
     $app.save(user);
@@ -118,8 +116,6 @@ routerAdd("POST", "/otp/verify", (e) => {
       name: user.getString("name"),
       phone: user.getString("phone"),
       role: user.getString("role"),
-      stamp_count: user.getInt("stamp_count"),
-      cycles: user.getInt("cycles"),
     },
   });
 });

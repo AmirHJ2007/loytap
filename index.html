@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=41" />
+  <link rel="stylesheet" href="styles.css?v=46" />
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -85,8 +85,10 @@
 
   <div class="scrim" id="scrim" hidden></div>
   <aside class="drawer" id="drawer" aria-hidden="true" aria-label="My discounts">
+    <div class="drawer__grip" aria-hidden="true"></div>
     <header class="drawer__head">
-      <h2 class="drawer__title">My Discounts</h2>
+      <button class="drawer__back" id="drawerBack" aria-label="Back" hidden>‹</button>
+      <h2 class="drawer__title" id="drawerTitle">My Cafés</h2>
       <button class="drawer__close" id="drawerClose" aria-label="Close">✕</button>
     </header>
     <div class="drawer__list" id="drawerList">
@@ -154,6 +156,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=41"></script>
+  <script src="app.js?v=45"></script>
 </body>
 </html>

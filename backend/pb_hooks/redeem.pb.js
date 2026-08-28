@@ -18,6 +18,13 @@ routerAdd("POST", "/redeem", (e) => {
     return e.json(403, { status: "invalid", error: "Staff access only" });
   }
 
+  // this staff/owner account's own café — a discount can only be redeemed by
+  // the café that issued it, never a different café's staff
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "staff_user = {:u} || owner_user = {:u}", { u: u.id }); }
+  catch (err) { card = null; }
+  if (!card) return e.json(403, { status: "invalid", error: "No café linked to this account" });
+
   // normalise: uppercase, strip any "LOYTAP:" / URL prefix the QR might carry
   let code = String(e.requestInfo().body.code || "").trim().toUpperCase();
   code = code.replace(/^LOYTAP[:/]*/, "");
@@ -26,10 +33,9 @@ routerAdd("POST", "/redeem", (e) => {
   let d = null;
   try { d = $app.findFirstRecordByFilter("discounts", "code = {:code}", { code }); }
   catch (err) { d = null; }
-  if (!d) return e.json(200, { status: "invalid" });
+  if (!d || d.getString("cafe") !== card.id) return e.json(200, { status: "invalid" });
 
-  const card = $app.findRecordsByFilter("cafe_card", "stamps_required >= 0", "", 1, 0, {})[0];
-  const shop = card ? card.getString("cafe_name") : "";
+  const shop = card.getString("cafe_name");
   const coupon = {
     deal: d.getString("deal"),
     description: d.getString("description"),

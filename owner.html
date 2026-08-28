@@ -255,22 +255,27 @@
 
     try { $("ownerName").textContent = localStorage.getItem("loytap_name") || "Owner"; } catch (e) {}
 
+    let cafeId = "";
+
     async function loadCafe() {
       try {
-        const r = await fetch(API + "/api/collections/cafe_card/records?perPage=1");
+        const r = await fetch(API + "/owner/cafe", { headers: { Authorization: token } });
         const d = await r.json();
-        if (d.items && d.items[0]) {
-          $("cafeName").textContent = d.items[0].cafe_name || "your café";
-          $("staffCode").textContent = d.items[0].staff_code || "—";
-          $("stampsReq").textContent = d.items[0].stamps_required || 8;
+        if (r.ok) {
+          cafeId = d.id || "";
+          $("cafeName").textContent = d.cafe_name || "your café";
+          $("staffCode").textContent = d.staff_code || "—";
+          $("stampsReq").textContent = d.stamps_required || 8;
+          try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
       } catch (e) {}
     }
 
     async function loadRewards() {
       const list = $("rewardList");
+      if (!cafeId) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
       try {
-        const r = await fetch(API + "/api/collections/reward_options/records?perPage=100&sort=created");
+        const r = await fetch(API + "/api/collections/reward_options/records?perPage=100&sort=created&filter=" + encodeURIComponent("(cafe='" + cafeId + "')"));
         const d = await r.json();
         const items = (d && d.items) || [];
         if (!items.length) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
@@ -325,6 +330,7 @@
           active: $("fActive").checked,
           expiry_amount: Math.max(1, Math.min(365, parseInt($("fExpAmt").value, 10) || 30)),
           expiry_unit: $("fExpUnit").value,
+          cafe: cafeId,
         };
         let failed = false;
         for (let i = 0; i < qty; i++) {
@@ -352,8 +358,7 @@
     $("copyCode").onclick = async () => { const b = $("copyCode"); try { await navigator.clipboard.writeText($("staffCode").textContent); b.textContent = "Copied!"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch (e) {} };
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
 
-    loadCafe();
-    loadRewards();
+    loadCafe().then(loadRewards);
   </script>
 </body>
 </html>

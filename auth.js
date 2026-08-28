@@ -193,6 +193,7 @@ async function ownerLogin() {
       localStorage.setItem("loytap_role", data.role || "admin");
       localStorage.setItem("loytap_owner", "1");
       localStorage.setItem("loytap_name", data.name || "");
+      localStorage.setItem("loytap_cafe", data.cafe_name || "");
     } catch (_) {}
     location.href = "owner.html";
   } catch (err) {
