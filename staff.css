@@ -189,7 +189,9 @@ body {
 .manual__divider { display: flex; align-items: center; gap: 12px; color: var(--ink-faint); }
 .manual__divider::before, .manual__divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .manual__divider span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; }
-.manual__row { display: flex; gap: 10px; }
+.manual__row { display: flex; gap: 10px; align-items: stretch; }
+/* compact Check button so the code input keeps most of the row */
+.manual__row .btn { flex: 0 0 auto; padding: 0 16px; font-size: 14px; border-radius: 12px; }
 .manual__input {
   flex: 1; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase;
   color: var(--ink); background: rgba(255,255,255,0.42); backdrop-filter: blur(6px);
