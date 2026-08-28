@@ -522,7 +522,7 @@
     }
 
     // ---- interactive daily stamp activity card ----
-    let ACT = null, actPeriod = 7, actSel = null;
+    let ACT = null, actPeriod = 7, actSel = null, actInfoOpen = false;
     const plural = (n) => (n === 1 ? "" : "s");
 
     function activityCardHTML(data) {
@@ -547,8 +547,11 @@
         return `<button class="act-bar${x.date === actSel ? " is-sel" : ""}" data-date="${x.date}" title="${esc(x.label)}"><span class="act-bar__fill" style="height:${h}%"></span><span class="act-bar__lab">${esc(lab)}</span></button>`;
       }).join("");
       return `
-        <h2 class="card__title">Daily stamp activity</h2>
+        <h2 class="card__title">Daily stamp activity <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
         <p class="card__sub">Tap a day to see its visits and rewards</p>
+        <div class="cb-info"${actInfoOpen ? "" : " hidden"}>
+          The chart is stamps collected each day. <b>Tap any bar</b> to load that day into the box above — its stamps, unique members and rewards, each with the <b>daily average over the last 30 days</b> underneath for comparison. The black box totals the whole selected period (7 or 30 days) and shows its change versus the previous stretch.
+        </div>
         <div class="act-toggle">
           <button data-p="7" class="${actPeriod === 7 ? "is-on" : ""}">7 days</button>
           <button data-p="30" class="${actPeriod === 30 ? "is-on" : ""}">30 days</button>
@@ -576,6 +579,8 @@
       card.innerHTML = activityCardHTML(actPeriod === 30 ? ACT.d30 : ACT.d7);
       card.querySelectorAll(".act-toggle button").forEach((b) => b.onclick = () => { actPeriod = parseInt(b.dataset.p, 10); actSel = null; renderActivity(); });
       card.querySelectorAll(".act-bar").forEach((b) => b.onclick = () => { actSel = b.dataset.date; renderActivity(); });
+      const ib = card.querySelector(".info-btn");
+      if (ib) ib.onclick = () => { actInfoOpen = !actInfoOpen; card.querySelector(".cb-info").hidden = !actInfoOpen; };
     }
 
     function setupActivity(activity) { ACT = activity; actPeriod = 7; actSel = null; renderActivity(); }
