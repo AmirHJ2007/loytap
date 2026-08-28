@@ -994,16 +994,18 @@ async function init() {
         }
       }, 700);
     }
-  } else if (tapCode) {
-    // first-ever tap, no card yet: record the stamp, then reload to build
-    // the wallet around the café that tap just created a membership for
+  } else if (tapCode || DEV_MODE) {
+    // first-ever tap, no card yet: record the stamp, then reload to build the
+    // wallet around the café that tap just created a membership for. In dev
+    // mode with no real tap, bootstrap the same way using the seeded dev tag —
+    // otherwise there's no card yet for the manual Stamp button to attach to.
     renderWalletEmpty();
     setTimeout(async () => {
       try {
         const r = await fetch(API + "/card/stamp", {
           method: "POST",
           headers: { Authorization: token, "Content-Type": "application/json" },
-          body: JSON.stringify({ tag: tapCode }),
+          body: JSON.stringify({ tag: tapCode || DEV_TAG }),
         });
         if (r.ok) location.reload();
       } catch (_) {}
