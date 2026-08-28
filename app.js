@@ -70,23 +70,9 @@ let activeIndex = 0;
 let busy = false;
 let pendingReset = null; // deck to reset to empty after the congrats "Continue"
 
-// Local testing only: show the manual Stamp button and drive the real tap flow
-// with a seeded dev tag, instead of requiring a physical NFC card. Always on for
-// localhost; on the deployed site it stays off for every visitor unless this
-// browser was explicitly opted in via a one-time "?dev=1" link (persisted in
-// localStorage), so regular customers never see a self-serve stamp button.
-const DEV_MODE = /^(127\.0\.0\.1|localhost)$/.test(location.hostname) || (() => {
-  try {
-    if (new URLSearchParams(location.search).get("dev") === "1") {
-      localStorage.setItem("loytap_dev", "1");
-      // drop just ?dev= — preserve a co-present ?t= NFC tap code for init() to read
-      const u = new URL(location.href);
-      u.searchParams.delete("dev");
-      history.replaceState(null, "", u.pathname + u.search + u.hash);
-    }
-    return localStorage.getItem("loytap_dev") === "1";
-  } catch (_) { return false; }
-})();
+// Local testing only: on localhost, show the manual Stamp button and drive the
+// real tap flow with a seeded dev tag. Never active on the deployed site.
+const DEV_MODE = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
 const DEV_TAG = "DEVTAG";
 
 // Lightweight transient message (used for cooldown / invalid-tap feedback).
@@ -994,18 +980,16 @@ async function init() {
         }
       }, 700);
     }
-  } else if (tapCode || DEV_MODE) {
-    // first-ever tap, no card yet: record the stamp, then reload to build the
-    // wallet around the café that tap just created a membership for. In dev
-    // mode with no real tap, bootstrap the same way using the seeded dev tag —
-    // otherwise there's no card yet for the manual Stamp button to attach to.
+  } else if (tapCode) {
+    // first-ever tap, no card yet: record the stamp, then reload to build
+    // the wallet around the café that tap just created a membership for
     renderWalletEmpty();
     setTimeout(async () => {
       try {
         const r = await fetch(API + "/card/stamp", {
           method: "POST",
           headers: { Authorization: token, "Content-Type": "application/json" },
-          body: JSON.stringify({ tag: tapCode || DEV_TAG }),
+          body: JSON.stringify({ tag: tapCode }),
         });
         if (r.ok) location.reload();
       } catch (_) {}
