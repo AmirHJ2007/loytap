@@ -114,15 +114,23 @@ routerAdd("POST", "/owner/stats", (e) => {
       stamps: 0, members: 0, rewards: 0, _m: {} };
     dayArr.push(row); dayMap[row.date] = row;
   }
-  // stamps + distinct members from the last 60 days of events (filtered = cheap)
+  // stamps + distinct members from the last 60 days of events (filtered = cheap).
+  // Alongside, track each customer's two earliest stamps in this window (first =
+  // join, second = "came back") — these feed the comeback-rate series below.
+  const firstEv = {}, secondEv = {}, stampsByUser = {};
   try {
     const startStr = new Date(NOW - NDAYS * 86400000).toISOString().replace("T", " ");
     const evs = $app.findRecordsByFilter("stamp_events", "created >= {:t} && cafe = {:c}", "", 200000, 0, { t: startStr, c: card.id });
     for (const ev of evs) {
-      const row = dayMap[localKey(ms(ev.getString("created")))];
-      if (!row) continue;
-      row.stamps++;
-      const uid = ev.getString("user"); if (uid) row._m[uid] = 1;
+      const t = ms(ev.getString("created"));
+      const uid = ev.getString("user");
+      const row = dayMap[localKey(t)];
+      if (row) { row.stamps++; if (uid) row._m[uid] = 1; }
+      if (uid) {
+        (stampsByUser[uid] || (stampsByUser[uid] = [])).push(t);
+        if (firstEv[uid] === undefined || t < firstEv[uid]) { secondEv[uid] = firstEv[uid]; firstEv[uid] = t; }
+        else if (secondEv[uid] === undefined || t < secondEv[uid]) { secondEv[uid] = t; }
+      }
     }
   } catch (err) {}
   for (const row of dayArr) row.members = Object.keys(row._m).length;
@@ -139,9 +147,77 @@ routerAdd("POST", "/owner/stats", (e) => {
     return { stamps: s, members: Object.keys(mem).length, rewards: rw, prevStamps: ps, days: days };
   };
 
+  // ---- comeback rate: 14-day series of new-member retention ----
+  // For each of the last 14 day-boundaries, take the 30-day window ending there:
+  //   newMembers = customers whose FIRST stamp at this café lands in the window
+  //   returners  = those whose 2nd stamp also lands in that same window
+  //   rate       = returners / newMembers × 100
+  // firstEv/secondEv (the two earliest stamps per customer, computed above) give
+  // the join + comeback times. Only members whose 60-day fetch contains their
+  // true first stamp can qualify, which holds for every window here (≤ 43 days back).
+  const CB_WIN = 30 * 86400000;
+  const endToday = todayStart + 86400000;                 // exclusive end of today (Iran local)
+  const cbEarliest = endToday - CB_WIN - 13 * 86400000;   // start of the oldest of the 14 windows
+  const cj = [];
+  for (const c of custs) {
+    const j = ms(c.getString("created"));                 // membership join = first stamp here
+    if (j >= cbEarliest) cj.push({ j: j, sec: secondEv[c.getString("user")] });
+  }
+  const cbSeries = [];
+  for (let dI = 0; dI < 14; dI++) {
+    const wEnd = endToday - (13 - dI) * 86400000;
+    const wStart = wEnd - CB_WIN;
+    let nm = 0, ret = 0;
+    for (const m of cj) {
+      if (m.j < wStart || m.j >= wEnd) continue;           // not a new member in this window
+      nm++;
+      if (m.sec !== undefined && m.sec >= wStart && m.sec < wEnd) ret++; // came back inside the window
+    }
+    const dayStart = wEnd - 86400000;
+    const dd = new Date(dayStart + IRAN_OFF);
+    cbSeries.push({
+      date: localKey(dayStart),
+      label: pad(dd.getUTCDate()) + " " + MON[dd.getUTCMonth()],
+      rate: pct(ret, nm), newMembers: nm, returners: ret,
+    });
+  }
+
+  // ---- visit rhythm: 14-day series of the typical gap between visits ----
+  // Per 30-day window, for every customer with >1 stamp we take the mean gap
+  // between their consecutive stamps ( = span / (stamps − 1) ), then report the
+  // MEDIAN of those per-customer means, in days. Lower = customers return sooner.
+  const VR_WIN = 30 * 86400000;
+  const vrPoint = (wStart, wEnd) => {
+    const means = [];
+    for (const uid in stampsByUser) {
+      const arr = stampsByUser[uid];
+      let mn = Infinity, mx = -Infinity, cnt = 0;
+      for (let k = 0; k < arr.length; k++) {
+        const t = arr[k];
+        if (t >= wStart && t < wEnd) { cnt++; if (t < mn) mn = t; if (t > mx) mx = t; }
+      }
+      if (cnt >= 2) means.push((mx - mn) / (cnt - 1) / 86400000); // mean consecutive gap, in days
+    }
+    if (!means.length) return { value: null, customers: 0 };
+    means.sort((a, b) => a - b);
+    const m = means.length, mid = m >> 1;
+    const med = (m % 2) ? means[mid] : (means[mid - 1] + means[mid]) / 2;
+    return { value: Math.round(med * 10) / 10, customers: m };
+  };
+  const vrSeries = [];
+  for (let dI = 0; dI < 14; dI++) {
+    const wEnd = endToday - (13 - dI) * 86400000;
+    const p = vrPoint(wEnd - VR_WIN, wEnd);
+    const dayStart = wEnd - 86400000;
+    const dd = new Date(dayStart + IRAN_OFF);
+    vrSeries.push({ date: localKey(dayStart), label: pad(dd.getUTCDate()) + " " + MON[dd.getUTCMonth()], value: p.value, customers: p.customers });
+  }
+
   return e.json(200, {
     cafe: cafe,
     today: { members: todayMembers, stamps: todayStamps, rewards: todayRewards },
+    comeback: { windowDays: 30, today: cbSeries[13].rate, series: cbSeries },
+    visitRhythm: { windowDays: 30, today: vrSeries[13].value, todayCustomers: vrSeries[13].customers, series: vrSeries },
     totals: { customers, newCustomers, returning, repeat, inProgress, avgStamps, stamps,
       cardsCompleted, issued, redeemed, expired, active, expiringSoon, issued30, redeemed30 },
     rates: { comeback: pct(returning, customers), redemption: pct(redeemed30, issued30) },

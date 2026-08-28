@@ -144,6 +144,22 @@
     .act-bar__lab { font-size: 9px; font-weight: 700; color: var(--faint); white-space: nowrap; }
     .act-bar.is-sel .act-bar__lab { color: var(--ink); }
 
+    /* comeback rate section */
+    .info-btn { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 5px; vertical-align: middle; border-radius: 50%; border: 1.5px solid rgba(20,20,20,0.28); background: transparent; color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 11px; font-style: italic; line-height: 1; cursor: pointer; padding: 0; transition: color 0.2s ease, border-color 0.2s ease; }
+    .info-btn:hover { color: var(--ink); border-color: rgba(20,20,20,0.5); }
+    .cb-info { background: rgba(20,20,20,0.05); border-radius: 12px; padding: 11px 13px; font-size: 12.5px; line-height: 1.55; color: var(--dim); margin: 2px 0 12px; }
+    .cb-info b { color: var(--ink); }
+    .cb-today { display: flex; align-items: center; gap: 14px; margin: 4px 0 12px; }
+    .cb-today__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: -1.2px; color: var(--ink); }
+    .cb-today__u { font-size: 18px; font-weight: 700; letter-spacing: 0; color: var(--dim); margin-left: 5px; }
+    .cb-today__k { font-size: 12px; font-weight: 700; color: var(--dim); }
+    .cb-today__k span { display: block; font-weight: 600; color: var(--faint); margin-top: 3px; }
+    .cb-chart { margin-top: 4px; }
+    .cb-chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .cb-hit { cursor: pointer; }
+    .cb-cap { text-align: center; font-size: 11.5px; color: var(--dim); font-weight: 600; margin: 8px 0 0; }
+    .cb-cap b { color: var(--ink); }
+
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after, .stain { animation: none; }
       .top, .head, .today-card, .kpis, .card { animation: none; opacity: 1; transform: none; }
@@ -233,11 +249,15 @@
 
         <div class="kpis">${kpis}</div>
 
+        <div class="card glass" id="cbCard"></div>
+
+        <div class="card glass" id="vrCard"></div>
+
         <div class="card glass">
           <h2 class="card__title">Loyalty</h2>
           <p class="card__sub">Are customers coming back to finish their card?</p>
           <div class="rings">
-            <div class="ring-card">${ring(r.comeback, "come back")}<span class="ring-card__t">Comeback rate</span><span class="ring-card__s">${t.returning} of ${t.customers} completed a card · ${t.repeat} repeat</span></div>
+            <div class="ring-card">${ring(r.comeback, "finished")}<span class="ring-card__t">Card completion</span><span class="ring-card__s">${t.returning} of ${t.customers} completed a card · ${t.repeat} repeat</span></div>
             <div class="ring-card">${ring(r.redemption, "redeemed")}<span class="ring-card__t">Redemption rate</span><span class="ring-card__s">${t.redeemed30} of ${t.issued30} claimed · last 30 days</span></div>
           </div>
         </div>
@@ -261,7 +281,132 @@
 
         <div class="card glass" id="actCard"></div>`;
 
+      if (d.comeback) setupComeback(d.comeback);
+      if (d.visitRhythm) setupVisitRhythm(d.visitRhythm);
       if (d.activity) setupActivity(d.activity);
+    }
+
+    // ---- comeback rate: today's number + a 14-day line chart ----
+    function cbLineChart(series) {
+      const W = 320, H = 132, padL = 6, padR = 6, padT = 10, padB = 20;
+      const n = series.length, iw = W - padL - padR, ih = H - padT - padB;
+      const X = (i) => padL + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
+      const Y = (v) => padT + ih - (Math.max(0, Math.min(100, v)) / 100) * ih;
+      const pts = series.map((s, i) => [X(i), Y(s.rate)]);
+      const path = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+      const area = path + " L" + X(n - 1).toFixed(1) + " " + (padT + ih).toFixed(1) + " L" + X(0).toFixed(1) + " " + (padT + ih).toFixed(1) + " Z";
+      const grid = [0, 50, 100].map((v) => {
+        const y = Y(v).toFixed(1);
+        return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(20,20,20,0.08)" stroke-width="1"/>`
+          + `<text x="${W - padR}" y="${(Y(v) - 3).toFixed(1)}" text-anchor="end" font-size="8.5" font-weight="700" fill="var(--faint)">${v}%</text>`;
+      }).join("");
+      const dots = pts.map((p, i) => {
+        const last = i === n - 1;
+        return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last ? 3.4 : 2}" fill="${last ? "#171717" : "rgba(20,20,20,0.55)"}"/>`
+          + `<circle class="cb-hit" data-i="${i}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="11" fill="transparent"><title>${esc(series[i].label)}: ${series[i].rate}%</title></circle>`;
+      }).join("");
+      const xi = [0, Math.floor((n - 1) / 2), n - 1];
+      const xlab = xi.map((i) =>
+        `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" font-size="8.5" font-weight="700" fill="var(--faint)">${esc(series[i].label)}</text>`
+      ).join("");
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Comeback rate, last 14 days">
+        ${grid}
+        <path d="${area}" fill="rgba(20,20,20,0.07)"/>
+        <path d="${path}" fill="none" stroke="#171717" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}${xlab}
+      </svg>`;
+    }
+
+    function setupComeback(cb) {
+      const card = $("cbCard");
+      const s = cb.series || [];
+      if (!s.length) { card.remove(); return; }
+      const last = s[s.length - 1];
+      card.innerHTML = `
+        <h2 class="card__title">Comeback rate <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
+        <p class="card__sub">New members who returned to stamp again · ${cb.windowDays}-day window</p>
+        <div class="cb-info" hidden>
+          Of everyone who earned their <b>first</b> stamp here during the ${cb.windowDays} days ending on a date, this is the share who came back and stamped <b>at least once more</b> within that same ${cb.windowDays}-day window. It’s a fresh-customer retention signal — higher means new visitors are becoming regulars instead of trying you once and leaving. The line shows how that rate moved over the last 14 days.
+        </div>
+        <div class="cb-today">
+          <div class="cb-today__v">${last.rate}%</div>
+          <div class="cb-today__k">today · last ${cb.windowDays} days<span>${last.returners} of ${last.newMembers} new members came back</span></div>
+        </div>
+        <div class="cb-chart">${cbLineChart(s)}</div>
+        <p class="cb-cap" id="cbCap"></p>`;
+      const info = card.querySelector(".cb-info");
+      card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
+      const cap = $("cbCap");
+      const setCap = (i) => { const x = s[i]; cap.innerHTML = `${cb.windowDays} days ending <b>${esc(x.label)}</b> · ${x.rate}% — ${x.returners}/${x.newMembers} new members returned`; };
+      setCap(s.length - 1);
+      card.querySelectorAll(".cb-hit").forEach((el) => el.onclick = () => setCap(+el.dataset.i));
+    }
+
+    // ---- visit rhythm: median gap between visits + a 14-day line chart ----
+    function vrLineChart(series) {
+      const vals = series.map((s) => s.value).filter((v) => v != null);
+      if (!vals.length) return `<p class="empty">Not enough repeat visits yet to measure a rhythm.</p>`;
+      const W = 320, H = 132, padL = 6, padR = 6, padT = 10, padB = 20;
+      const n = series.length, iw = W - padL - padR, ih = H - padT - padB;
+      let maxV = Math.max(...vals); if (maxV <= 0) maxV = 1;
+      const step = maxV <= 5 ? 1 : (maxV <= 10 ? 2 : (maxV <= 30 ? 5 : 10));
+      const yMax = Math.max(step, Math.ceil(maxV / step) * step);
+      const X = (i) => padL + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
+      const Y = (v) => padT + ih - (Math.max(0, Math.min(yMax, v)) / yMax) * ih;
+      let path = "", pen = false;
+      series.forEach((s, i) => { if (s.value == null) { pen = false; return; } path += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(s.value).toFixed(1) + " "; pen = true; });
+      const fmtY = (v) => (v % 1 ? v.toFixed(1) : v) + "d";
+      const grid = [0, yMax / 2, yMax].map((v) => {
+        const y = Y(v).toFixed(1);
+        return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(20,20,20,0.08)" stroke-width="1"/>`
+          + `<text x="${W - padR}" y="${(Y(v) - 3).toFixed(1)}" text-anchor="end" font-size="8.5" font-weight="700" fill="var(--faint)">${fmtY(v)}</text>`;
+      }).join("");
+      const dots = series.map((s, i) => {
+        if (s.value == null) return "";
+        const last = i === n - 1;
+        return `<circle cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="${last ? 3.4 : 2}" fill="${last ? "#171717" : "rgba(20,20,20,0.55)"}"/>`
+          + `<circle class="vr-hit" data-i="${i}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="11" fill="transparent"><title>${esc(s.label)}: ${s.value}d</title></circle>`;
+      }).join("");
+      const xi = [0, Math.floor((n - 1) / 2), n - 1];
+      const xlab = xi.map((i) =>
+        `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" font-size="8.5" font-weight="700" fill="var(--faint)">${esc(series[i].label)}</text>`
+      ).join("");
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visit rhythm, last 14 days">
+        ${grid}
+        <path d="${path.trim()}" fill="none" stroke="#171717" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}${xlab}
+      </svg>`;
+    }
+
+    function setupVisitRhythm(vr) {
+      const card = $("vrCard");
+      const s = vr.series || [];
+      if (!s.length) { card.remove(); return; }
+      const last = s[s.length - 1];
+      const unit = (v) => v === 1 ? "day" : "days";
+      card.innerHTML = `
+        <h2 class="card__title">Visit rhythm <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
+        <p class="card__sub">How often a returning customer comes back · ${vr.windowDays}-day window</p>
+        <div class="cb-info" hidden>
+          Among customers who stamped <b>more than once</b> in the ${vr.windowDays} days ending on a date, we take each person’s <b>average gap</b> between their own consecutive stamps, then report the <b>median</b> of those averages. So “4 days” means a typical returning customer comes back roughly every 4 days. <b>Lower is better</b> — people are visiting more often. The line shows how that pace moved over the last 14 days.
+        </div>
+        <div class="cb-today">
+          <div class="cb-today__v">${last.value == null ? "—" : last.value}${last.value == null ? "" : `<span class="cb-today__u">${unit(last.value)}</span>`}</div>
+          <div class="cb-today__k">today · last ${vr.windowDays} days<span>${last.customers} repeat customer${last.customers === 1 ? "" : "s"} measured</span></div>
+        </div>
+        <div class="cb-chart">${vrLineChart(s)}</div>
+        <p class="cb-cap" id="vrCap"></p>`;
+      const info = card.querySelector(".cb-info");
+      card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
+      const cap = $("vrCap");
+      const setCap = (i) => {
+        const x = s[i];
+        cap.innerHTML = x.value == null
+          ? `${vr.windowDays} days ending <b>${esc(x.label)}</b> · not enough repeat visits`
+          : `${vr.windowDays} days ending <b>${esc(x.label)}</b> · ${x.value} ${unit(x.value)} between visits — ${x.customers} repeat customer${x.customers === 1 ? "" : "s"}`;
+      };
+      setCap(s.length - 1);
+      card.querySelectorAll(".vr-hit").forEach((el) => el.onclick = () => setCap(+el.dataset.i));
     }
 
     // ---- interactive daily stamp activity card ----
