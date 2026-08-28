@@ -77,13 +77,25 @@
 
     /* tiles — frosted glass */
     .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
-    .tile { border-radius: 18px; padding: 15px 16px; }
-    .tile__k { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--faint); margin-bottom: 8px; }
-    .tile__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 22px; color: var(--ink); letter-spacing: 1px; }
-    .code-row { display: flex; align-items: center; gap: 8px; }
-    #staffCode { font-size: 18px; letter-spacing: 0.5px; white-space: nowrap; }
-    .copy { margin-left: auto; background: var(--ink); color: #fff; border: none; border-radius: 9px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 11px; padding: 6px 10px; cursor: pointer; }
-    .copy:active { transform: scale(0.95); }
+    .tile { position: relative; overflow: hidden; border-radius: 18px; padding: 15px 16px; min-height: 116px; display: flex; flex-direction: column; transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease; }
+    .tile:hover { transform: translateY(-3px); }
+    .tile__icon { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; margin-bottom: 10px; background: rgba(20,20,20,0.06); }
+    .tile__k { display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); margin-bottom: 5px; }
+
+    /* staff code — dark keycard, tap to copy */
+    .tile--code { cursor: pointer; color: #fff; background: linear-gradient(150deg, #2c2c2c 0%, #161616 60%, #0c0c0c 100%); box-shadow: 0 18px 34px -18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+    .tile--code::after { content: ""; position: absolute; top: -28px; right: -28px; width: 92px; height: 92px; border-radius: 50%; background: rgba(255,255,255,0.13); filter: blur(22px); }
+    .tile--code:hover { box-shadow: 0 24px 42px -18px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.13); }
+    .tile--code:active { transform: scale(0.98); }
+    .tile--code .tile__icon { background: rgba(255,255,255,0.12); }
+    .tile--code .tile__k { color: rgba(255,255,255,0.5); }
+    .tile__code { position: relative; z-index: 1; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 700; font-size: 21px; letter-spacing: 1.5px; color: #fff; }
+    .tile__hint { margin-top: auto; padding-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
+    .tile--code.copied .tile__hint { color: #7fdca4; }
+
+    /* stamps / reward — glass */
+    .tile__num { font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 40px; line-height: 1; color: var(--ink); margin-top: auto; }
+    .tile__unit { font-size: 11px; font-weight: 700; color: var(--faint); margin-top: 5px; }
 
     /* discounts box — frosted glass */
     .box { border-radius: 22px; padding: 20px 18px 22px; animation: cardIn 0.7s var(--ease-spring) 0.32s both; }
@@ -207,13 +219,17 @@
     </a>
 
     <div class="tiles">
-      <div class="tile glass">
+      <div class="tile tile--code" id="codeTile" role="button" tabindex="0" title="Tap to copy">
+        <span class="tile__icon">🔑</span>
         <span class="tile__k">Staff code</span>
-        <div class="code-row"><span class="tile__v" id="staffCode">—</span><button class="copy" id="copyCode" type="button">Copy</button></div>
+        <span class="tile__code" id="staffCode">—</span>
+        <span class="tile__hint" id="codeHint">Tap to copy</span>
       </div>
-      <div class="tile glass">
+      <div class="tile tile--stamps glass">
+        <span class="tile__icon">🎯</span>
         <span class="tile__k">Stamps / reward</span>
-        <span class="tile__v" id="stampsReq">—</span>
+        <span class="tile__num" id="stampsReq">—</span>
+        <span class="tile__unit">to earn a reward</span>
       </div>
     </div>
 
@@ -415,7 +431,17 @@
     };
     $("cancelBtn").onclick = () => { $("addForm").classList.remove("is-open"); $("addBtn").textContent = "+ Add"; };
     $("saveBtn").onclick = addReward;
-    $("copyCode").onclick = async () => { const b = $("copyCode"); try { await navigator.clipboard.writeText($("staffCode").textContent); b.textContent = "Copied!"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch (e) {} };
+    async function copyStaffCode() {
+      const code = $("staffCode").textContent.trim();
+      if (!code || code === "—") return;
+      try {
+        await navigator.clipboard.writeText(code);
+        $("codeTile").classList.add("copied"); $("codeHint").textContent = "Copied ✓";
+        setTimeout(() => { $("codeTile").classList.remove("copied"); $("codeHint").textContent = "Tap to copy"; }, 1500);
+      } catch (e) {}
+    }
+    $("codeTile").onclick = copyStaffCode;
+    $("codeTile").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copyStaffCode(); } });
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
 
     loadCafe().then(loadRewards);
