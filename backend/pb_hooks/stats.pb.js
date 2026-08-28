@@ -25,6 +25,7 @@ routerAdd("POST", "/owner/stats", (e) => {
   const IRAN_OFF = 3.5 * 3600000;
   const iNow = new Date(NOW + IRAN_OFF);
   const todayStart = Date.UTC(iNow.getUTCFullYear(), iNow.getUTCMonth(), iNow.getUTCDate()) - IRAN_OFF;
+  const endToday = todayStart + 86400000; // exclusive end of today (Iran local) — shared by the trailing-30-day metrics
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
@@ -117,6 +118,14 @@ routerAdd("POST", "/owner/stats", (e) => {
   // stamps + distinct members from the last 60 days of events (filtered = cheap).
   // Alongside, track each customer's two earliest stamps in this window (first =
   // join, second = "came back") — these feed the comeback-rate series below.
+  // crowded-times heatmap: stamps by Iran-local weekday × 3-hour slot, last 30 days.
+  // Slots: 7–10, 10–13, 13–16, 16–19, 19–23, 23–2 (00–02 counts toward the evening
+  // it started, i.e. the previous day). Hours 2–7 fall outside every listed slot.
+  const slotOf = (h) => (h >= 7 && h < 10) ? 0 : (h >= 10 && h < 13) ? 1 : (h >= 13 && h < 16) ? 2
+    : (h >= 16 && h < 19) ? 3 : (h >= 19 && h < 23) ? 4 : (h >= 23 || h < 2) ? 5 : -1;
+  const heat = []; for (let i = 0; i < 7; i++) heat.push([0, 0, 0, 0, 0, 0]); // [getUTCDay 0..6][slot]
+  const hmStart = endToday - 30 * 86400000;
+
   const firstEv = {}, secondEv = {}, stampsByUser = {};
   try {
     const startStr = new Date(NOW - NDAYS * 86400000).toISOString().replace("T", " ");
@@ -130,6 +139,15 @@ routerAdd("POST", "/owner/stats", (e) => {
         (stampsByUser[uid] || (stampsByUser[uid] = [])).push(t);
         if (firstEv[uid] === undefined || t < firstEv[uid]) { secondEv[uid] = firstEv[uid]; firstEv[uid] = t; }
         else if (secondEv[uid] === undefined || t < secondEv[uid]) { secondEv[uid] = t; }
+      }
+      if (t >= hmStart && t < endToday) {
+        const ld = new Date(t + IRAN_OFF);
+        const h = ld.getUTCHours(), slot = slotOf(h);
+        if (slot >= 0) {
+          let day = ld.getUTCDay();
+          if (slot === 5 && h < 2) day = (day + 6) % 7; // 00–02 belongs to the previous evening
+          heat[day][slot]++;
+        }
       }
     }
   } catch (err) {}
@@ -156,7 +174,6 @@ routerAdd("POST", "/owner/stats", (e) => {
   // the join + comeback times. Only members whose 60-day fetch contains their
   // true first stamp can qualify, which holds for every window here (≤ 43 days back).
   const CB_WIN = 30 * 86400000;
-  const endToday = todayStart + 86400000;                 // exclusive end of today (Iran local)
   const cbEarliest = endToday - CB_WIN - 13 * 86400000;   // start of the oldest of the 14 windows
   const cj = [];
   for (const c of custs) {
@@ -234,6 +251,21 @@ routerAdd("POST", "/owner/stats", (e) => {
   const arNow = activeRateAsOf(endToday);
   const arPrev = activeRateAsOf(endToday - AR_WIN);
 
+  // reshape the heatmap into Iran week order (Sat→Fri) + find busiest / quietest slot
+  const dayOrder = [6, 0, 1, 2, 3, 4, 5];
+  const dayLbl = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+  const slotLbl = ["7–10", "10–13", "13–16", "16–19", "19–23", "23–2"];
+  const grid = dayOrder.map((d) => heat[d].slice());
+  let mx = null, mn = null;
+  for (let r = 0; r < 7; r++) {
+    for (let s = 0; s < 6; s++) {
+      const v = grid[r][s];
+      if (mx === null || v > mx.count) mx = { day: dayLbl[r], slot: slotLbl[s], count: v };
+      if (v > 0 && (mn === null || v < mn.count)) mn = { day: dayLbl[r], slot: slotLbl[s], count: v }; // quietest OPEN slot
+    }
+  }
+  if (mx && mx.count === 0) mx = null; // no stamps at all in the window
+
   return e.json(200, {
     cafe: cafe,
     today: { members: todayMembers, stamps: todayStamps, rewards: todayRewards },
@@ -241,6 +273,7 @@ routerAdd("POST", "/owner/stats", (e) => {
     visitRhythm: { windowDays: 30, today: vrSeries[13].value, todayCustomers: vrSeries[13].customers, series: vrSeries },
     activeRate: { windowDays: 30, rate: arNow.rate, active: arNow.active, total: arNow.total,
       prevRate: arPrev.rate, delta: arNow.rate - arPrev.rate },
+    crowded: { windowDays: 30, days: dayLbl, slots: slotLbl, grid: grid, max: mx, min: mn },
     totals: { customers, newCustomers, returning, repeat, inProgress, avgStamps, stamps,
       cardsCompleted, issued, redeemed, expired, active, expiringSoon, issued30, redeemed30 },
     rates: { comeback: pct(returning, customers), redemption: pct(redeemed30, issued30) },
