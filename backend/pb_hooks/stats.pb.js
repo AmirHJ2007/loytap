@@ -213,11 +213,34 @@ routerAdd("POST", "/owner/stats", (e) => {
     vrSeries.push({ date: localKey(dayStart), label: pad(dd.getUTCDate()) + " " + MON[dd.getUTCMonth()], value: p.value, customers: p.customers });
   }
 
+  // ---- active rate: share of all-time members who stamped in the last 30 days ----
+  // activeRate(D) = members with a stamp in [D−30d, D) ÷ members who joined before D.
+  // Denominator = everyone who's ever stamped here (a membership only exists once
+  // its owner has stamped). We evaluate it today and 30 days ago for the trend arrow.
+  const AR_WIN = 30 * 86400000;
+  const activeRateAsOf = (wEnd) => {
+    const wStart = wEnd - AR_WIN;
+    let total = 0, active = 0;
+    for (const c of custs) {
+      if (ms(c.getString("created")) >= wEnd) continue;   // hadn't joined yet as of this date
+      total++;
+      const arr = stampsByUser[c.getString("user")];
+      if (arr) {
+        for (let k = 0; k < arr.length; k++) { const t = arr[k]; if (t >= wStart && t < wEnd) { active++; break; } }
+      }
+    }
+    return { total: total, active: active, rate: pct(active, total) };
+  };
+  const arNow = activeRateAsOf(endToday);
+  const arPrev = activeRateAsOf(endToday - AR_WIN);
+
   return e.json(200, {
     cafe: cafe,
     today: { members: todayMembers, stamps: todayStamps, rewards: todayRewards },
     comeback: { windowDays: 30, today: cbSeries[13].rate, series: cbSeries },
     visitRhythm: { windowDays: 30, today: vrSeries[13].value, todayCustomers: vrSeries[13].customers, series: vrSeries },
+    activeRate: { windowDays: 30, rate: arNow.rate, active: arNow.active, total: arNow.total,
+      prevRate: arPrev.rate, delta: arNow.rate - arPrev.rate },
     totals: { customers, newCustomers, returning, repeat, inProgress, avgStamps, stamps,
       cardsCompleted, issued, redeemed, expired, active, expiringSoon, issued30, redeemed30 },
     rates: { comeback: pct(returning, customers), redemption: pct(redeemed30, issued30) },

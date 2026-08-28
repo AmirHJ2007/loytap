@@ -160,6 +160,23 @@
     .cb-cap { text-align: center; font-size: 11.5px; color: var(--dim); font-weight: 600; margin: 8px 0 0; }
     .cb-cap b { color: var(--ink); }
 
+    /* active rate section */
+    .ar-top { display: flex; align-items: center; gap: 12px; margin: 4px 0 4px; }
+    .ar-v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: -1.2px; color: var(--ink); }
+    .ar-delta { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .ar-delta svg { width: 12px; height: 12px; }
+    .ar-delta.up { color: #137a43; background: rgba(31,157,91,0.15); }
+    .ar-delta.down { color: #c0503f; background: rgba(192,80,63,0.15); }
+    .ar-delta.flat { color: var(--faint); background: rgba(20,20,20,0.06); }
+    .ar-sub { font-size: 12px; color: var(--faint); font-weight: 700; margin: 0 0 14px; }
+    .ar-bar { position: relative; height: 34px; border-radius: 12px; background: rgba(20,20,20,0.09); overflow: hidden; }
+    .ar-bar__fill { position: absolute; inset: 0 auto 0 0; height: 100%; background: #171717; border-radius: 12px; min-width: 3px; }
+    .ar-legend { display: flex; justify-content: space-between; align-items: baseline; margin-top: 9px; font-size: 12px; font-weight: 700; color: var(--dim); }
+    .ar-legend b { font-family: "Quicksand", sans-serif; font-size: 15px; color: var(--ink); margin-right: 3px; }
+    .ar-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    .ar-legend .dot--on { background: #171717; }
+    .ar-legend .dot--all { background: rgba(20,20,20,0.18); }
+
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after, .stain { animation: none; }
       .top, .head, .today-card, .kpis, .card { animation: none; opacity: 1; transform: none; }
@@ -253,6 +270,8 @@
 
         <div class="card glass" id="vrCard"></div>
 
+        <div class="card glass" id="arCard"></div>
+
         <div class="card glass">
           <h2 class="card__title">Loyalty</h2>
           <p class="card__sub">Are customers coming back to finish their card?</p>
@@ -283,7 +302,40 @@
 
       if (d.comeback) setupComeback(d.comeback);
       if (d.visitRhythm) setupVisitRhythm(d.visitRhythm);
+      if (d.activeRate) setupActiveRate(d.activeRate);
       if (d.activity) setupActivity(d.activity);
+    }
+
+    // ---- active rate: active-vs-all members bar + month-over-month arrow ----
+    function setupActiveRate(ar) {
+      const card = $("arCard");
+      const up = ar.delta > 0, down = ar.delta < 0;
+      const cls = up ? "up" : (down ? "down" : "flat");
+      const arrow = up
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>`
+        : down
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12l7 7 7-7"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`;
+      const deltaTxt = (up ? "+" : down ? "−" : "") + Math.abs(ar.delta) + " pts";
+      const fill = ar.total ? Math.max(3, (ar.active / ar.total) * 100) : 0;
+      card.innerHTML = `
+        <h2 class="card__title">Active rate <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
+        <p class="card__sub">Members who stamped in the last ${ar.windowDays} days, out of everyone who’s ever joined</p>
+        <div class="cb-info" hidden>
+          Of every customer who has <b>ever</b> collected a stamp here, this is the share who stamped again within the last ${ar.windowDays} days — your live, non-dormant base. The bar shows active members against all-time members; the pill compares today’s rate with the <b>same rate calculated ${ar.windowDays} days ago</b> (green up = growing, red down = slipping).
+        </div>
+        <div class="ar-top">
+          <div class="ar-v">${ar.rate}%</div>
+          <span class="ar-delta ${cls}">${arrow}${cls === "flat" ? "no change" : deltaTxt}</span>
+        </div>
+        <p class="ar-sub">${cls === "flat" ? "same as" : (up ? "up from" : "down from")} ${ar.prevRate}% a month ago</p>
+        <div class="ar-bar"><div class="ar-bar__fill" style="width:${fill}%"></div></div>
+        <div class="ar-legend">
+          <span><span class="dot dot--on"></span><b>${ar.active}</b>active · last ${ar.windowDays}d</span>
+          <span><span class="dot dot--all"></span><b>${ar.total}</b>members all-time</span>
+        </div>`;
+      const info = card.querySelector(".cb-info");
+      card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
     }
 
     // ---- comeback rate: today's number + a 14-day line chart ----
