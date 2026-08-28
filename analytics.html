@@ -95,6 +95,7 @@
     .card__sub { margin: 0 0 14px; font-size: 12px; color: var(--dim); }
 
     .rings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .rings--one { grid-template-columns: 1fr; max-width: 260px; margin: 0 auto; }
     .ring-card { display: flex; flex-direction: column; align-items: center; text-align: center; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 16px; padding: 16px 12px; }
     .donut { width: 132px; height: 132px; }
     .donut__num { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 26px; fill: var(--ink); }
@@ -102,14 +103,17 @@
     .ring-card__t { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; margin: 8px 0 2px; }
     .ring-card__s { font-size: 12px; color: var(--dim); }
 
-    /* horizontal reward bars */
-    .bars { display: flex; flex-direction: column; gap: 12px; }
-    .bar-row__top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; gap: 8px; }
-    .bar-row__label { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .bar-row__val { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--dim); }
-    .bar-row__track { position: relative; height: 12px; border-radius: 8px; background: rgba(20,20,20,0.08); overflow: hidden; }
-    .bar-row__issued { position: absolute; inset: 0 auto 0 0; height: 100%; background: rgba(20,20,20,0.18); border-radius: 8px; }
-    .bar-row__redeemed { position: absolute; inset: 0 auto 0 0; height: 100%; background: #171717; border-radius: 8px; }
+    /* reward used rate — hero ring + per-reward percentage bars */
+    .ru-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+    .ru-hero .donut { width: 116px; height: 116px; flex: 0 0 auto; }
+    .ru-hero__txt { font-size: 13.5px; line-height: 1.5; color: var(--dim); }
+    .ru-hero__txt b { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 18px; color: var(--ink); display: block; margin-bottom: 3px; }
+    .ru-list { display: flex; flex-direction: column; gap: 13px; margin-top: 10px; }
+    .ru-row__top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; gap: 8px; }
+    .ru-row__label { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ru-row__val { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--dim); }
+    .ru-row__track { position: relative; height: 12px; border-radius: 8px; background: rgba(20,20,20,0.08); overflow: hidden; }
+    .ru-row__fill { position: absolute; inset: 0 auto 0 0; height: 100%; background: #171717; border-radius: 8px; min-width: 2px; }
 
     /* stat tiles (at-a-glance) */
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -255,14 +259,13 @@
         [t.redeemed, "Rewards redeemed"],
       ].map((k) => `<div class="kpi glass"><div class="kpi__v">${k[0]}</div><span class="kpi__k">${k[1]}</span></div>`).join("");
 
-      // reward bars
-      const maxIssued = Math.max(1, ...d.byDeal.map((x) => x.issued));
-      const bars = d.byDeal.length ? d.byDeal.map((x) => {
-        const issuedW = (x.issued / maxIssued) * 100;
-        const redeemedW = (x.redeemed / maxIssued) * 100;
-        return `<div class="bar-row">
-          <div class="bar-row__top"><span class="bar-row__label">${esc(x.deal)}</span><span class="bar-row__val">${x.redeemed} used · ${x.issued} won</span></div>
-          <div class="bar-row__track"><div class="bar-row__issued" style="width:${issuedW}%"></div><div class="bar-row__redeemed" style="width:${redeemedW}%"></div></div>
+      // reward used rate — per-reward redemption %, last 30 days
+      const usedRate = r.redemption;                 // pct(redeemed30, issued30)
+      const rewardBars = d.byDeal.length ? d.byDeal.map((x) => {
+        const p = x.issued > 0 ? Math.round(x.redeemed / x.issued * 100) : 0;
+        return `<div class="ru-row">
+          <div class="ru-row__top"><span class="ru-row__label">${esc(x.deal)}</span><span class="ru-row__val">${x.redeemed} of ${x.issued}${x.issued > 0 ? " · " + p + "%" : ""}</span></div>
+          <div class="ru-row__track"><div class="ru-row__fill" style="width:${x.issued > 0 ? Math.max(p, 2) : 0}%"></div></div>
         </div>`;
       }).join("") : `<p class="empty">No rewards defined yet.</p>`;
 
@@ -291,9 +294,8 @@
         <div class="card glass">
           <h2 class="card__title">Loyalty</h2>
           <p class="card__sub">Are customers coming back to finish their card?</p>
-          <div class="rings">
+          <div class="rings rings--one">
             <div class="ring-card">${ring(r.comeback, "finished")}<span class="ring-card__t">Card completion</span><span class="ring-card__s">${t.returning} of ${t.customers} completed a card · ${t.repeat} repeat</span></div>
-            <div class="ring-card">${ring(r.redemption, "redeemed")}<span class="ring-card__t">Redemption rate</span><span class="ring-card__s">${t.redeemed30} of ${t.issued30} claimed · last 30 days</span></div>
           </div>
         </div>
 
@@ -308,10 +310,17 @@
           </div>
         </div>
 
-        <div class="card glass">
-          <h2 class="card__title">Most-used rewards</h2>
-          <p class="card__sub">Which prizes your customers claim · last 30 days</p>
-          <div class="bars">${bars}</div>
+        <div class="card glass" id="ruCard">
+          <h2 class="card__title">Reward used rate <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
+          <p class="card__sub">How many earned rewards actually get redeemed · last 30 days</p>
+          <div class="cb-info" hidden>
+            The ring is <b>rewards used ÷ rewards earned</b> over the last 30 days. Each bar below is that same rate for one specific reward, so you can see which prizes people actually claim versus let expire. A reward with nothing earned in the window shows a dash.
+          </div>
+          <div class="ru-hero">
+            ${ring(usedRate, "used")}
+            <div class="ru-hero__txt"><b>${t.redeemed30} of ${t.issued30}</b>rewards earned in the last 30 days were used.</div>
+          </div>
+          <div class="ru-list">${rewardBars}</div>
         </div>
 
         <div class="card glass" id="actCard"></div>`;
@@ -321,6 +330,9 @@
       if (d.activeRate) setupActiveRate(d.activeRate);
       if (d.crowded) setupCrowded(d.crowded);
       if (d.activity) setupActivity(d.activity);
+
+      const ruBtn = document.querySelector("#ruCard .info-btn");
+      if (ruBtn) ruBtn.onclick = () => { const i = document.querySelector("#ruCard .cb-info"); i.hidden = !i.hidden; };
     }
 
     // ---- crowded times: day × time-slot stamp heatmap ----
