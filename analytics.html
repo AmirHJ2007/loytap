@@ -94,14 +94,9 @@
     .card__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; margin: 0 0 2px; }
     .card__sub { margin: 0 0 14px; font-size: 12px; color: var(--dim); }
 
-    .rings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .rings--one { grid-template-columns: 1fr; max-width: 260px; margin: 0 auto; }
-    .ring-card { display: flex; flex-direction: column; align-items: center; text-align: center; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 16px; padding: 16px 12px; }
     .donut { width: 132px; height: 132px; }
     .donut__num { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 26px; fill: var(--ink); }
     .donut__sub { font-size: 9px; font-weight: 700; letter-spacing: 1px; fill: var(--faint); text-transform: uppercase; }
-    .ring-card__t { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; margin: 8px 0 2px; }
-    .ring-card__s { font-size: 12px; color: var(--dim); }
 
     /* reward used rate — hero ring + per-reward percentage bars */
     .ru-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
@@ -114,14 +109,6 @@
     .ru-row__val { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--dim); }
     .ru-row__track { position: relative; height: 12px; border-radius: 8px; background: rgba(20,20,20,0.08); overflow: hidden; }
     .ru-row__fill { position: absolute; inset: 0 auto 0 0; height: 100%; background: #171717; border-radius: 8px; min-width: 2px; }
-
-    /* stat tiles (at-a-glance) */
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .stat { background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 15px; padding: 14px 15px; }
-    .stat--warn { border: 1.5px solid rgba(20,20,20,0.35); }
-    .stat__v { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 26px; line-height: 1; color: var(--ink); }
-    .stat__k { display: block; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: var(--dim); }
-    .stat__s { display: block; margin-top: 2px; font-size: 11px; color: var(--faint); }
 
     /* daily stamp activity */
     .act-toggle { display: inline-flex; background: rgba(20,20,20,0.07); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
@@ -306,25 +293,6 @@
         <div class="card glass" id="nlCard"></div>
 
         <div class="card glass" id="hmCard"></div>
-
-        <div class="card glass">
-          <h2 class="card__title">Loyalty</h2>
-          <p class="card__sub">Are customers coming back to finish their card?</p>
-          <div class="rings rings--one">
-            <div class="ring-card">${ring(r.comeback, "finished")}<span class="ring-card__t">Card completion</span><span class="ring-card__s">${t.returning} of ${t.customers} completed a card · ${t.repeat} repeat</span></div>
-          </div>
-        </div>
-
-        <div class="card glass">
-          <h2 class="card__title">At a glance</h2>
-          <p class="card__sub">What needs attention right now</p>
-          <div class="stat-grid">
-            <div class="stat stat--warn"><div class="stat__v">${t.expiringSoon}</div><span class="stat__k">Rewards expiring soon</span><span class="stat__s">active, due within 7 days</span></div>
-            <div class="stat"><div class="stat__v">${t.inProgress}</div><span class="stat__k">Cards in progress</span><span class="stat__s">customers collecting now</span></div>
-            <div class="stat"><div class="stat__v">${t.avgStamps}</div><span class="stat__k">Avg stamps / customer</span><span class="stat__s">overall engagement</span></div>
-            <div class="stat"><div class="stat__v">${t.expired}</div><span class="stat__k">Rewards expired unused</span><span class="stat__s">never claimed</span></div>
-          </div>
-        </div>
 
         <div class="card glass" id="ruCard">
           <h2 class="card__title">Reward used rate <button class="info-btn" type="button" aria-label="What does this mean?">i</button></h2>
