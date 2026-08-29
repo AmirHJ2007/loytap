@@ -35,7 +35,6 @@ routerAdd("POST", "/card/stamp", (e) => {
   try { cafe = $app.findRecordById("cafe_card", cafeId); } catch (err) { cafe = null; }
   if (!cafe) return e.json(400, { error: "This card isn't recognised." });
 
-  const required = cafe.getInt("stamps_required") || 8;
   const inkColor = "#1c2b3a";
 
   // this customer's progress AT THIS CAFÉ — find or start one
@@ -84,6 +83,17 @@ routerAdd("POST", "/card/stamp", (e) => {
   if (!Array.isArray(stamps)) stamps = [];
   stamps.push(stamp);
   let count = stamps.length;
+
+  // Lock the goal to the café's value at the moment a card STARTS. A later change
+  // to stamps_required must not move the goalposts for a card already in progress —
+  // only the customer's NEXT card picks up the new number.
+  let required;
+  if (count === 1) {
+    required = cafe.getInt("stamps_required") || 8;
+    membership.set("card_required", required);
+  } else {
+    required = membership.getInt("card_required") || cafe.getInt("stamps_required") || 8;
+  }
 
   // audit log (records the real tap source, café, and which tag)
   const ev = new Record($app.findCollectionByNameOrId("stamp_events"));
@@ -141,10 +151,11 @@ routerAdd("POST", "/card/stamp", (e) => {
       due: z(due.getDate()) + "." + z(due.getMonth() + 1) + "." + String(due.getFullYear()).slice(2),
     };
 
-    // reset the card for a fresh cycle
+    // reset the card for a fresh cycle; the next card adopts the café's CURRENT goal
     stamps = [];
     count = 0;
     membership.set("cycles", membership.getInt("cycles") + 1);
+    membership.set("card_required", cafe.getInt("stamps_required") || 8);
     completed = true;
   }
 

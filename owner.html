@@ -93,9 +93,18 @@
     .tile__hint { margin-top: auto; padding-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
     .tile--code.copied .tile__hint { color: #7fdca4; }
 
-    /* stamps / reward — glass */
+    /* stamps / reward — glass, editable stepper */
     .tile__num { font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 40px; line-height: 1; color: var(--ink); margin-top: auto; }
-    .tile__unit { font-size: 11px; font-weight: 700; color: var(--faint); margin-top: 5px; }
+    .tile__stepper { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+    .tile__stepper .tile__num { font-size: 32px; margin-top: 0; min-width: 30px; text-align: center; }
+    .step { width: 32px; height: 32px; flex: 0 0 auto; border-radius: 10px; border: 1.5px solid rgba(20,20,20,0.14); background: rgba(255,255,255,0.65); color: var(--ink); font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: background 0.15s ease, transform 0.1s ease; }
+    .step:hover { background: rgba(255,255,255,0.9); }
+    .step:active { transform: scale(0.9); }
+    .step:disabled { opacity: 0.35; cursor: default; }
+    .tile__unit { font-size: 11px; font-weight: 700; color: var(--faint); margin-top: 5px; transition: color 0.2s ease; }
+    .tile__unit.is-ok { color: #137a43; }
+    .tiles-note { margin: -4px 4px 0; font-size: 11.5px; font-weight: 600; color: var(--dim); line-height: 1.5; }
+    .tiles-note b { color: var(--ink); font-weight: 800; }
 
     /* discounts box — frosted glass */
     .box { border-radius: 22px; padding: 20px 18px 22px; animation: cardIn 0.7s var(--ease-spring) 0.32s both; }
@@ -240,10 +249,15 @@
       <div class="tile tile--stamps glass">
         <span class="tile__icon">🎯</span>
         <span class="tile__k">Stamps / reward</span>
-        <span class="tile__num" id="stampsReq">—</span>
-        <span class="tile__unit">to earn a reward</span>
+        <div class="tile__stepper">
+          <button class="step" id="stampsDec" type="button" aria-label="Fewer stamps">−</button>
+          <span class="tile__num" id="stampsReq">—</span>
+          <button class="step" id="stampsInc" type="button" aria-label="More stamps">+</button>
+        </div>
+        <span class="tile__unit" id="stampsHint">to earn a reward</span>
       </div>
     </div>
+    <p class="tiles-note">Changing the stamp count applies to each customer's <b>next</b> card — cards already in progress keep their current goal.</p>
 
     <section class="box glass minp">
       <h2 class="box__title">Minimum purchase for a stamp</h2>
@@ -346,7 +360,7 @@
           cafeId = d.id || "";
           $("cafeName").textContent = d.cafe_name || "your café";
           $("staffCode").textContent = d.staff_code || "—";
-          $("stampsReq").textContent = d.stamps_required || 8;
+          stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
@@ -470,6 +484,33 @@
     }
     $("codeTile").onclick = copyStaffCode;
     $("codeTile").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copyStaffCode(); } });
+
+    // editable stamps-per-reward stepper (debounced save; does not affect in-progress cards)
+    let stampsVal = 8, stampsTimer = null;
+    function renderStamps() {
+      $("stampsReq").textContent = stampsVal;
+      $("stampsDec").disabled = stampsVal <= 1;
+      $("stampsInc").disabled = stampsVal >= 20;
+    }
+    function saveStamps() {
+      clearTimeout(stampsTimer);
+      stampsTimer = setTimeout(async () => {
+        try {
+          const r = await fetch(API + "/owner/cafe/stamps-required", {
+            method: "POST", headers: { "Content-Type": "application/json", Authorization: token },
+            body: JSON.stringify({ stamps_required: stampsVal }),
+          });
+          const d = await r.json();
+          if (r.ok) {
+            stampsVal = d.stamps_required; renderStamps();
+            const h = $("stampsHint"); h.textContent = "Saved ✓"; h.classList.add("is-ok");
+            setTimeout(() => { h.textContent = "to earn a reward"; h.classList.remove("is-ok"); }, 1500);
+          }
+        } catch (e) {}
+      }, 500);
+    }
+    $("stampsDec").onclick = () => { if (stampsVal > 1) { stampsVal--; renderStamps(); saveStamps(); } };
+    $("stampsInc").onclick = () => { if (stampsVal < 20) { stampsVal++; renderStamps(); saveStamps(); } };
 
     $("minSave").onclick = async () => {
       let amt = parseInt($("fMinPurchase").value, 10); if (isNaN(amt) || amt < 0) amt = 0;

@@ -71,3 +71,23 @@ routerAdd("POST", "/owner/cafe/min-purchase", (e) => {
   $app.save(card);
   return e.json(200, { ok: true, min_purchase: amt });
 }, $apis.requireAuth());
+
+// Set how many stamps a card needs. Changing it does NOT touch cards already in
+// progress — card.pb.js locks each card's goal when it starts, so a change only
+// applies to each customer's next card.
+//   POST /owner/cafe/stamps-required  (admin auth) { stamps_required } -> { ok, stamps_required }
+routerAdd("POST", "/owner/cafe/stamps-required", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café configured for this owner" });
+
+  let n = parseInt((e.requestInfo().body || {}).stamps_required, 10);
+  if (isNaN(n) || n < 1) n = 1;
+  if (n > 20) n = 20;
+  card.set("stamps_required", n);
+  $app.save(card);
+  return e.json(200, { ok: true, stamps_required: n });
+}, $apis.requireAuth());

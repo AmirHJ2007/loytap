@@ -885,7 +885,9 @@ async function loadMemberships() {
         id: it.id,
         cafeId: it.cafe,
         cafeName: c.cafe_name || "Café",
-        stampsRequired: c.stamps_required || 8,
+        // the goal locked onto THIS card when it started; falls back to the café's
+        // current setting for brand-new cards that haven't been stamped yet
+        stampsRequired: it.card_required || c.stamps_required || 8,
         minPurchase: c.min_purchase || 0,
         theme: c.theme || "",
         stampCount: it.stamp_count || 0,
