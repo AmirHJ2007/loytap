@@ -74,7 +74,20 @@ body {
   padding: calc(22px + env(safe-area-inset-top, 0px)) 20px 28px;
   gap: 18px;
 }
-.greeting { margin-top: 6px; }
+.greeting { margin-top: 6px; transition: opacity 0.3s ease; }
+
+/* detail-view close button (top-left) + focus state */
+.wallet-close {
+  position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; z-index: 225;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--glass-border); color: #171717; font-size: 15px; font-weight: 700;
+  display: grid; place-items: center;
+  background: var(--glass-fill-strong); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 10px 24px -12px rgba(20,20,20,0.45), inset 0 1px 0 var(--glass-hi);
+  animation: fadeDown 0.35s var(--ease-spring) both;
+}
+.wallet-close[hidden] { display: none; }
+body.card-open .greeting { display: none; }
 
 /* Manual stamp button — hidden by default: stamps are only granted by a real NFC
    tap. It's revealed (.dev-on, added by app.js) only on localhost for testing. */
@@ -109,11 +122,11 @@ body {
   width: 100%;
   perspective: 1500px;
   transform-origin: 50% 0;
-  transition: transform 0.6s var(--ease-spring), height 0.5s var(--ease-spring), filter 0.5s ease;
+  transition: transform 0.6s var(--ease-spring), height 0.5s var(--ease-spring), opacity 0.4s ease, filter 0.5s ease;
   will-change: transform;
   cursor: pointer;
 }
-.wcard.is-active { cursor: default; }
+.wcard.is-open { cursor: default; }
 /* peeking cards collapse to a header strip (Apple-Wallet stack) */
 .wcard.is-peek { overflow: hidden; filter: brightness(0.97) saturate(0.97); }
 .wcard.is-peek::after {

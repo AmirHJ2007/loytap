@@ -66,7 +66,7 @@ const confetti = document.getElementById("confetti");
 const cctx = confetti.getContext("2d");
 
 let decks = [];
-let activeIndex = 0;
+let selectedIndex = null; // null = browse stack; a number = that card is expanded (detail view)
 let busy = false;
 let pendingReset = null; // deck to reset to empty after the congrats "Continue"
 let pendingNextRequired = 0; // stamps the next card needs (may differ if the café changed its goal)
@@ -159,8 +159,8 @@ function buildCard(cfg, index) {
     stamped: 0,
   };
 
-  // tap a peeking card to bring it to the front of the wallet
-  el.addEventListener("click", () => { if (deck.index !== activeIndex) setActive(deck.index); });
+  // in the browse stack, tapping a card opens it in detail view
+  el.addEventListener("click", () => { if (selectedIndex == null) selectCard(deck.index); });
 
   // No manual/self-serve stamping in production — stamps are only granted by a real
   // NFC tap (see the ?t= handler in init). On localhost only, reveal the button and
@@ -175,37 +175,71 @@ function buildCard(cfg, index) {
 // ===================================================================
 // Wallet stack layout
 // ===================================================================
-const STRIP = 82; // visible header height of a peeking card (shows its name + tagline)
-const STEP = 62;  // vertical step between peeking cards (they overlap a touch)
+const STRIP = 84; // visible header height of a stacked card (shows its name + tagline + N/8)
+const STEP = 64;  // vertical step between stacked cards (they overlap a touch)
 function layout() {
   if (!decks.length) return;
-  // reset heights so the active card can measure its full natural height
-  decks.forEach((d) => { d.el.style.height = ""; });
-  const active = decks[activeIndex] || decks[0];
-  const Hf = active.el.offsetHeight;
-  let peek = 0;
-  decks.forEach((d) => {
-    if (d.index === activeIndex) {
-      d.el.style.transform = "translateY(0) scale(1)";
-      d.el.style.zIndex = "100";
-      d.el.classList.add("is-active"); d.el.classList.remove("is-peek");
+  decks.forEach((d) => { d.el.style.height = ""; d.el.style.opacity = ""; d.el.style.pointerEvents = ""; });
+
+  if (selectedIndex != null && decks[selectedIndex]) {
+    // DETAIL VIEW — the chosen card fills the space, everything else fades away
+    const Hf = decks[selectedIndex].el.offsetHeight;
+    decks.forEach((d) => {
+      if (d.index === selectedIndex) {
+        d.el.style.transform = "translateY(0) scale(1)";
+        d.el.style.zIndex = "100";
+        d.el.classList.add("is-open"); d.el.classList.remove("is-peek");
+      } else {
+        d.el.style.transform = `translateY(${d.index < selectedIndex ? -60 : 60}px) scale(0.94)`;
+        d.el.style.opacity = "0"; d.el.style.pointerEvents = "none"; d.el.style.zIndex = "0";
+        d.el.classList.remove("is-peek", "is-open");
+      }
+    });
+    wallet.style.height = Hf + "px";
+    return;
+  }
+
+  // BROWSE STACK — cards top-to-bottom as header strips; the last one shown in full
+  const last = decks.length - 1;
+  let y = 0;
+  decks.forEach((d, i) => {
+    d.el.style.transform = `translateY(${y}px) scale(1)`;
+    d.el.style.zIndex = String(10 + i); // later cards sit on top of earlier strips
+    d.el.classList.remove("is-open");
+    if (i === last) {
+      d.el.classList.remove("is-peek");
     } else {
-      peek++;
-      const y = Hf + 12 + (peek - 1) * STEP;
-      d.el.style.transform = `translateY(${y}px) scale(${(1 - 0.02 * peek).toFixed(3)})`;
-      d.el.style.height = STRIP + "px";          // collapse to a header strip
-      d.el.style.zIndex = String(60 - peek);     // nearer peek sits on top
-      d.el.classList.add("is-peek"); d.el.classList.remove("is-active");
+      d.el.style.height = STRIP + "px";
+      d.el.classList.add("is-peek");
+      y += STEP;
     }
   });
-  const n = decks.length;
-  wallet.style.height = (n > 1 ? Hf + 12 + (n - 1) * STEP + STRIP : Hf) + "px";
+  const Hf = decks[last].el.offsetHeight;
+  wallet.style.height = ((decks.length - 1) * STEP + Hf) + "px";
 }
-async function setActive(i) {
-  if (busy || i === activeIndex) return;
-  activeIndex = i; layout();
+
+// expand one card to the detail view (others + toolbar hide, a ✕ appears)
+function enterDetail(i) {
+  selectedIndex = i;
+  document.body.classList.add("card-open");
+  if (tabbarEl) tabbarEl.classList.add("is-hidden");
+  const wc = document.getElementById("walletClose"); if (wc) wc.hidden = false;
+  layout();
+}
+async function selectCard(i) {
+  if (busy || selectedIndex === i || !decks[i]) return;
+  enterDetail(i);
   const d = decks[i];
   if (d) { try { await loadRewardPool(d.cfg.cafeId); } catch (_) {} updateTeaser(d); }
+}
+// collapse back to the browse stack
+function deselectCard() {
+  if (busy) return;
+  selectedIndex = null;
+  document.body.classList.remove("card-open");
+  if (tabbarEl) tabbarEl.classList.remove("is-hidden");
+  const wc = document.getElementById("walletClose"); if (wc) wc.hidden = true;
+  layout();
 }
 
 // build a card config from a stored membership, or from a /card/stamp café payload
@@ -274,9 +308,8 @@ async function handleTap(tagCode) {
     void deck.el.offsetWidth;
   }
 
-  activeIndex = idx;
-  layout(); // Apple-Wallet rise: the target card flies to the front
-  await wait(isNew ? (REDUCED ? 0 : 600) : (REDUCED ? 60 : 640));
+  enterDetail(idx); // the tapped café's card rises to the detail view (others + toolbar hide)
+  await wait(isNew ? (REDUCED ? 0 : 620) : (REDUCED ? 60 : 560));
   try { await loadRewardPool(c.id); } catch (_) {}
   animateStamp(decks[idx], res); // press the stamp that was already recorded (frees busy in onLifted)
 }
@@ -923,10 +956,14 @@ function rebuildCard(deck, n) {
 }
 congratsContinue.addEventListener("click", hideCongrats);
 
+const walletCloseBtn = document.getElementById("walletClose");
+if (walletCloseBtn) walletCloseBtn.addEventListener("click", deselectCard);
+
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!congrats.hidden) hideCongrats();
   else if (drawer.classList.contains("open")) closeDrawer();
+  else if (selectedIndex != null) deselectCard();
 });
 
 // ===================================================================
@@ -1006,7 +1043,7 @@ async function loadRewardPool(cafeId) {
 function renderAllCards() {
   wallet.innerHTML = "";
   decks = [];
-  activeIndex = 0;
+  selectedIndex = null;
   if (!memberships.length) { renderWalletEmpty(); return; }
   memberships.forEach((m, i) => {
     const deck = buildCard(cfgFromMembership(m), i);
