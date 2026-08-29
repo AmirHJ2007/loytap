@@ -854,6 +854,9 @@ function rebuildCard(deck, n) {
   wallet.innerHTML = "";
   decks = [buildCard(cfg, 0)];
   wallet.appendChild(decks[0].el);
+  // the Stamp button is shared across cards — clear the "Complete!" state so the fresh card is stampable
+  const btn = decks[0].stampBtn;
+  if (btn) { btn.disabled = false; const lbl = btn.querySelector(".btn__label"); if (lbl) lbl.textContent = "Stamp"; }
   sizeConfetti();
   layout();
 }
