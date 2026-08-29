@@ -71,9 +71,12 @@ body {
   position: relative; z-index: 1;
   min-height: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-  padding: calc(22px + env(safe-area-inset-top, 0px)) 20px 28px;
-  gap: 18px;
+  padding: calc(30px + env(safe-area-inset-top, 0px)) 20px 28px;
+  gap: 22px;
+  transition: padding-top 0.5s var(--ease-spring);
 }
+/* in detail view the card drops below the ✕ */
+body.card-open .stage { padding-top: calc(64px + env(safe-area-inset-top, 0px)); }
 .greeting { margin-top: 6px; transition: opacity 0.3s ease; }
 
 /* detail-view close button (top-left) + focus state */
@@ -122,8 +125,8 @@ body.card-open .greeting { display: none; }
   width: 100%;
   perspective: 1500px;
   transform-origin: 50% 0;
-  transition: transform 0.6s var(--ease-spring), height 0.5s var(--ease-spring), opacity 0.4s ease, filter 0.5s ease;
-  will-change: transform;
+  transition: transform 0.62s var(--ease-spring), height 0.62s var(--ease-spring), opacity 0.45s ease, filter 0.5s ease;
+  will-change: transform, height;
   cursor: pointer;
 }
 .wcard.is-open { cursor: default; }

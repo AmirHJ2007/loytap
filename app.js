@@ -177,22 +177,25 @@ function buildCard(cfg, index) {
 // ===================================================================
 const STRIP = 84; // visible header height of a stacked card (shows its name + tagline + N/8)
 const STEP = 64;  // vertical step between stacked cards (they overlap a touch)
+function cardHeight(d) { return d.el.scrollHeight; } // full (fixed-aspect) card height, even while clipped
+
 function layout() {
   if (!decks.length) return;
-  decks.forEach((d) => { d.el.style.height = ""; d.el.style.opacity = ""; d.el.style.pointerEvents = ""; });
+  decks.forEach((d) => { d.el.style.opacity = ""; d.el.style.pointerEvents = ""; });
 
   if (selectedIndex != null && decks[selectedIndex]) {
-    // DETAIL VIEW — the chosen card fills the space, everything else fades away
-    const Hf = decks[selectedIndex].el.offsetHeight;
+    // DETAIL VIEW — the chosen card grows to full; everything else slides + fades away
+    const Hf = cardHeight(decks[selectedIndex]);
     decks.forEach((d) => {
       if (d.index === selectedIndex) {
+        d.el.classList.add("is-open"); d.el.classList.remove("is-peek");
+        d.el.style.height = Hf + "px";
         d.el.style.transform = "translateY(0) scale(1)";
         d.el.style.zIndex = "100";
-        d.el.classList.add("is-open"); d.el.classList.remove("is-peek");
       } else {
-        d.el.style.transform = `translateY(${d.index < selectedIndex ? -60 : 60}px) scale(0.94)`;
-        d.el.style.opacity = "0"; d.el.style.pointerEvents = "none"; d.el.style.zIndex = "0";
         d.el.classList.remove("is-peek", "is-open");
+        d.el.style.transform = `translateY(${d.index < selectedIndex ? -90 : 130}px) scale(0.86)`;
+        d.el.style.opacity = "0"; d.el.style.pointerEvents = "none"; d.el.style.zIndex = "0";
       }
     });
     wallet.style.height = Hf + "px";
@@ -201,21 +204,22 @@ function layout() {
 
   // BROWSE STACK — cards top-to-bottom as header strips; the last one shown in full
   const last = decks.length - 1;
+  const Hlast = cardHeight(decks[last]);
   let y = 0;
   decks.forEach((d, i) => {
+    d.el.classList.remove("is-open");
     d.el.style.transform = `translateY(${y}px) scale(1)`;
     d.el.style.zIndex = String(10 + i); // later cards sit on top of earlier strips
-    d.el.classList.remove("is-open");
     if (i === last) {
       d.el.classList.remove("is-peek");
+      d.el.style.height = cardHeight(d) + "px";  // explicit px so expand/collapse can animate
     } else {
-      d.el.style.height = STRIP + "px";
       d.el.classList.add("is-peek");
+      d.el.style.height = STRIP + "px";
       y += STEP;
     }
   });
-  const Hf = decks[last].el.offsetHeight;
-  wallet.style.height = ((decks.length - 1) * STEP + Hf) + "px";
+  wallet.style.height = ((decks.length - 1) * STEP + Hlast) + "px";
 }
 
 // expand one card to the detail view (others + toolbar hide, a ✕ appears)
@@ -224,6 +228,11 @@ function enterDetail(i) {
   document.body.classList.add("card-open");
   if (tabbarEl) tabbarEl.classList.add("is-hidden");
   const wc = document.getElementById("walletClose"); if (wc) wc.hidden = false;
+  // clip the growing card during the reveal, then free it so its shadow shows
+  const el = decks[i].el;
+  el.style.overflow = "hidden";
+  clearTimeout(el._ovT);
+  el._ovT = setTimeout(() => { if (selectedIndex === i) el.style.overflow = "visible"; }, 620);
   layout();
 }
 async function selectCard(i) {
@@ -235,6 +244,8 @@ async function selectCard(i) {
 // collapse back to the browse stack
 function deselectCard() {
   if (busy) return;
+  // re-clip the collapsing card so its height animation reads as a fold-down
+  decks.forEach((d) => { d.el.style.overflow = ""; clearTimeout(d.el._ovT); });
   selectedIndex = null;
   document.body.classList.remove("card-open");
   if (tabbarEl) tabbarEl.classList.remove("is-hidden");
