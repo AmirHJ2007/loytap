@@ -160,12 +160,15 @@ function buildCard(cfg, index) {
     stamped: 0,
   };
 
+  // tap a peeking card to bring it to the front of the wallet
+  el.addEventListener("click", () => { if (deck.index !== activeIndex) setActive(deck.index); });
+
   // No manual/self-serve stamping in production — stamps are only granted by a real
   // NFC tap (see the ?t= handler in init). On localhost only, reveal the button and
   // wire it to a dev tag so the flow can be tested without a physical card.
   if (DEV_MODE) {
     document.querySelector(".stampbar")?.classList.add("dev-on");
-    deck.stampBtn.onclick = () => addStamp(deck, DEV_TAG);
+    deck.stampBtn.onclick = () => handleTap(DEV_TAG);
   }
   return deck;
 }
@@ -191,7 +194,28 @@ function layout() {
   });
   wallet.style.height = H + (decks.length > 1 ? (decks.length - 1) * PEEK_GAP + 46 : 0) + "px";
 }
-function setActive(i) { if (busy) return; activeIndex = i; layout(); }
+async function setActive(i) {
+  if (busy || i === activeIndex) return;
+  activeIndex = i; layout();
+  const d = decks[i];
+  if (d) { try { await loadRewardPool(d.cfg.cafeId); } catch (_) {} updateTeaser(d); }
+}
+
+// build a card config from a stored membership, or from a /card/stamp café payload
+function cfgFromMembership(m) {
+  return Object.assign({}, CARDS[0], {
+    cafeId: m.cafeId, name: m.cafeName, tagline: m.tagline || "", accent: m.accent || "#171717",
+    stamps: m.stampsRequired, cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
+    tag: `Collect ${m.stampsRequired} · earn a treat`, minPurchase: m.minPurchase || 0,
+  });
+}
+function cfgFromCafe(c) {
+  return Object.assign({}, CARDS[0], {
+    cafeId: c.id, name: c.name, tagline: c.tagline || "", accent: c.accent || "#171717",
+    stamps: c.stamps_required, cols: Math.max(1, Math.ceil(c.stamps_required / 2)),
+    tag: `Collect ${c.stamps_required} · earn a treat`, minPurchase: c.min_purchase || 0,
+  });
+}
 
 // ===================================================================
 // Stamping
@@ -200,11 +224,15 @@ function setActive(i) { if (busy) return; activeIndex = i; layout(); }
 // exact same stars come back on sign-in and stamps can't be faked.
 // A stamp is only ever granted by tapping the café's NFC card: `tagCode` is the
 // tag's secret from the tap URL. The server validates it and enforces the cooldown.
-async function addStamp(deck, tagCode) {
-  if (busy || deck.stamped >= deck.cfg.stamps) return;
-  if (!tagCode) return; // no self-serve stamping — a real tap is required
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// One tap does everything automatically: the server records the stamp (and
+// resolves WHICH café the tag belongs to), then we surface that café's card to
+// the front of the wallet — creating it with a slide-in if this is the first
+// visit — and press the stamp onto it.
+async function handleTap(tagCode) {
+  if (busy || !tagCode) return;
   busy = true;
-  deck.stampBtn.disabled = true;
   let res = null, r = null;
   try {
     r = await fetch(API + "/card/stamp", {
@@ -215,17 +243,41 @@ async function addStamp(deck, tagCode) {
     res = await r.json();
     if (!r.ok) throw new Error((res && res.error) || "stamp failed");
   } catch (err) {
-    busy = false; deck.stampBtn.disabled = false;
+    busy = false;
     if (res && res.error) toast(res.error);
     return;
   }
-  // tapped a DIFFERENT café than the one currently shown (e.g. a brand-new
-  // café's card) — the stamp was recorded server-side; reload to rebuild
-  // the wallet around that café instead of animating onto the wrong card.
-  if (res.cafe && deck.cfg.cafeId && res.cafe.id !== deck.cfg.cafeId) {
-    location.reload();
-    return;
+  const c = res.cafe || {};
+  if (!c.id) { busy = false; return; }
+
+  let idx = decks.findIndex((d) => d.cfg.cafeId === c.id);
+  const isNew = idx === -1;
+  if (isNew) {
+    // first ever visit to this café — a fresh card slides into the wallet
+    const empty = wallet.querySelector(".wallet-empty"); if (empty) empty.remove();
+    const deck = buildCard(cfgFromCafe(c), decks.length);
+    decks.push(deck);
+    wallet.appendChild(deck.el);
+    memberships.push({
+      id: "", cafeId: c.id, cafeName: c.name, tagline: c.tagline || "", accent: c.accent || "#171717",
+      stampsRequired: c.stamps_required, minPurchase: c.min_purchase || 0, stampCount: 0, cycles: 0, stamps: [],
+    });
+    idx = deck.index;
+    deck.el.style.transform = "translateY(130%) scale(0.92)"; // start off-screen for the entrance
+    void deck.el.offsetWidth;
   }
+
+  activeIndex = idx;
+  layout(); // Apple-Wallet rise: the target card flies to the front
+  await wait(isNew ? (REDUCED ? 0 : 600) : (REDUCED ? 60 : 640));
+  try { await loadRewardPool(c.id); } catch (_) {}
+  animateStamp(decks[idx], res); // press the stamp that was already recorded (frees busy in onLifted)
+}
+
+// Press an already-recorded stamp onto a deck (no network — res came from the tap).
+function animateStamp(deck, res) {
+  if (!deck || !res || !res.stamp) { busy = false; return; }
+  if (deck.stamped >= deck.slots.length) { busy = false; updateTeaser(deck); return; }
   const slot = deck.slots[deck.stamped];
   deck.stamped++;
   const v = res.stamp;
@@ -849,14 +901,15 @@ function hideCongrats() {
 
 // rebuild the single card fresh with a new stamp goal (café changed its number)
 function rebuildCard(deck, n) {
+  const i = deck.index;
   const cfg = Object.assign({}, deck.cfg, { stamps: n, cols: Math.max(1, Math.ceil(n / 2)) });
   const mm = memberships.find((x) => x.cafeId === cfg.cafeId);
   if (mm) { mm.stampsRequired = n; mm.stamps = []; mm.stampCount = 0; }
-  wallet.innerHTML = "";
-  decks = [buildCard(cfg, 0)];
-  wallet.appendChild(decks[0].el);
-  // the Stamp button is shared across cards — clear the "Complete!" state so the fresh card is stampable
-  const btn = decks[0].stampBtn;
+  // swap just this card in place — the rest of the wallet stack stays put
+  const fresh = buildCard(cfg, i);
+  deck.el.replaceWith(fresh.el);
+  decks[i] = fresh;
+  const btn = fresh.stampBtn;
   if (btn) { btn.disabled = false; const lbl = btn.querySelector(".btn__label"); if (lbl) lbl.textContent = "Stamp"; }
   sizeConfetti();
   layout();
@@ -941,26 +994,19 @@ async function loadRewardPool(cafeId) {
 }
 
 // build + paint the wallet's card for one membership (its café, its saved stamps)
-async function renderWallet(m) {
-  await loadRewardPool(m.cafeId);
-  const cfg = Object.assign({}, CARDS[0], {
-    cafeId: m.cafeId,
-    name: m.cafeName,
-    tagline: m.tagline || "",
-    accent: m.accent || "#171717",
-    stamps: m.stampsRequired,
-    cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
-    tag: `Collect ${m.stampsRequired} · earn a treat`,
-    minPurchase: m.minPurchase || 0,
-  });
+// Build the whole wallet — one card per café the customer has stamped at, stacked
+// Apple-Wallet style (front card open, the rest peeking below).
+function renderAllCards() {
   wallet.innerHTML = "";
-  decks = [buildCard(cfg, 0)];
-  wallet.appendChild(decks[0].el);
-  renderSaved(decks[0], m.stamps);
-  if (m.stamps.length >= m.stampsRequired) {
-    decks[0].stampBtn.disabled = true;
-    decks[0].stampBtn.querySelector(".btn__label").textContent = "Complete!";
-  }
+  decks = [];
+  activeIndex = 0;
+  if (!memberships.length) { renderWalletEmpty(); return; }
+  memberships.forEach((m, i) => {
+    const deck = buildCard(cfgFromMembership(m), i);
+    decks.push(deck);
+    wallet.appendChild(deck.el);
+    renderSaved(deck, m.stamps);
+  });
   sizeConfetti();
   layout();
 }
@@ -1021,32 +1067,11 @@ async function init() {
     try { history.replaceState(null, "", location.pathname); } catch (_) {}
   }
 
-  if (memberships.length) {
-    await renderWallet(memberships[0]);
-    if (tapCode) {
-      setTimeout(() => {
-        if (decks[0] && !busy && decks[0].stamped < decks[0].cfg.stamps) {
-          addStamp(decks[0], tapCode);
-        }
-      }, 700);
-    }
-  } else if (tapCode) {
-    // first-ever tap, no card yet: record the stamp, then reload to build
-    // the wallet around the café that tap just created a membership for
-    renderWalletEmpty();
-    setTimeout(async () => {
-      try {
-        const r = await fetch(API + "/card/stamp", {
-          method: "POST",
-          headers: { Authorization: token, "Content-Type": "application/json" },
-          body: JSON.stringify({ tag: tapCode }),
-        });
-        if (r.ok) location.reload();
-      } catch (_) {}
-    }, 300);
-  } else {
-    renderWalletEmpty();
-  }
+  renderAllCards();
+  // load the front card's reward pool so its teaser reads right
+  if (decks[0]) { try { await loadRewardPool(decks[0].cfg.cafeId); updateTeaser(decks[0]); } catch (_) {} }
+  // an NFC tap surfaces the right café's card (creating it on a first visit) and stamps it
+  if (tapCode) setTimeout(() => handleTap(tapCode), decks.length ? 650 : 200);
 
   loadDiscounts(); // populate the Discounts tab badge + café list on load
 

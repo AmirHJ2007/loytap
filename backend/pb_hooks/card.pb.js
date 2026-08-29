@@ -171,7 +171,10 @@ routerAdd("POST", "/card/stamp", (e) => {
     cafe: {
       id: cafe.id,
       name: cafe.getString("cafe_name"),
+      tagline: cafe.getString("tagline"),
+      accent: cafe.getString("accent") || "#171717",
       stamps_required: required,
+      min_purchase: cafe.getInt("min_purchase"),
       theme: cafe.getString("theme"),
     },
   });

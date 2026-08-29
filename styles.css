@@ -22,13 +22,13 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+html, body { min-height: 100%; margin: 0; }
 
 body {
   font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #171717;
   background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
-  overflow: hidden;
+  overflow-x: hidden; /* allow vertical scroll for a tall multi-card wallet; bg + nav are fixed */
   -webkit-font-smoothing: antialiased;
 }
 
