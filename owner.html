@@ -490,7 +490,7 @@
     function renderStamps() {
       $("stampsReq").textContent = stampsVal;
       $("stampsDec").disabled = stampsVal <= 1;
-      $("stampsInc").disabled = stampsVal >= 20;
+      $("stampsInc").disabled = stampsVal >= 12;
     }
     function saveStamps() {
       clearTimeout(stampsTimer);
@@ -510,7 +510,7 @@
       }, 500);
     }
     $("stampsDec").onclick = () => { if (stampsVal > 1) { stampsVal--; renderStamps(); saveStamps(); } };
-    $("stampsInc").onclick = () => { if (stampsVal < 20) { stampsVal++; renderStamps(); saveStamps(); } };
+    $("stampsInc").onclick = () => { if (stampsVal < 12) { stampsVal++; renderStamps(); saveStamps(); } };
 
     $("minSave").onclick = async () => {
       let amt = parseInt($("fMinPurchase").value, 10); if (isNaN(amt) || amt < 0) amt = 0;

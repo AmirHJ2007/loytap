@@ -86,7 +86,7 @@ routerAdd("POST", "/owner/cafe/stamps-required", (e) => {
 
   let n = parseInt((e.requestInfo().body || {}).stamps_required, 10);
   if (isNaN(n) || n < 1) n = 1;
-  if (n > 20) n = 20;
+  if (n > 12) n = 12;
   card.set("stamps_required", n);
   $app.save(card);
   return e.json(200, { ok: true, stamps_required: n });
