@@ -7,7 +7,7 @@
   <title>LoyTap · Loyalty Wallet</title>
   <script>try{if(localStorage.getItem('loytap_signed_in')!=='1'){var _t=new URLSearchParams(location.search).get('t');if(_t)localStorage.setItem('reloy_pending_tap',JSON.stringify({code:_t,at:Date.now()}));location.replace('auth.html');}}catch(e){}</script>
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=52" />
+  <link rel="stylesheet" href="styles.css?v=53" />
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -35,9 +35,6 @@
   </button>
 
   <main class="stage">
-    <header class="wallet-head">
-      <h1 class="wallet-title">Your Wallet</h1>
-    </header>
     <p class="greeting" id="greeting">Welcome back 👋</p>
     <div class="wallet" id="wallet"></div>
   </main>

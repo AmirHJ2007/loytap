@@ -176,8 +176,14 @@ function buildCard(cfg, index) {
 // ===================================================================
 // Wallet stack layout
 // ===================================================================
+const STRIP = 82; // visible header height of a peeking card (shows its name + tagline)
+const STEP = 62;  // vertical step between peeking cards (they overlap a touch)
 function layout() {
-  const H = decks[0].el.offsetHeight;
+  if (!decks.length) return;
+  // reset heights so the active card can measure its full natural height
+  decks.forEach((d) => { d.el.style.height = ""; });
+  const active = decks[activeIndex] || decks[0];
+  const Hf = active.el.offsetHeight;
   let peek = 0;
   decks.forEach((d) => {
     if (d.index === activeIndex) {
@@ -186,13 +192,15 @@ function layout() {
       d.el.classList.add("is-active"); d.el.classList.remove("is-peek");
     } else {
       peek++;
-      const y = H + (peek - 1) * PEEK_GAP;
+      const y = Hf + 12 + (peek - 1) * STEP;
       d.el.style.transform = `translateY(${y}px) scale(${(1 - 0.02 * peek).toFixed(3)})`;
-      d.el.style.zIndex = String(40 + peek);
+      d.el.style.height = STRIP + "px";          // collapse to a header strip
+      d.el.style.zIndex = String(60 - peek);     // nearer peek sits on top
       d.el.classList.add("is-peek"); d.el.classList.remove("is-active");
     }
   });
-  wallet.style.height = H + (decks.length > 1 ? (decks.length - 1) * PEEK_GAP + 46 : 0) + "px";
+  const n = decks.length;
+  wallet.style.height = (n > 1 ? Hf + 12 + (n - 1) * STEP + STRIP : Hf) + "px";
 }
 async function setActive(i) {
   if (busy || i === activeIndex) return;
