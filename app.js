@@ -136,13 +136,12 @@ function buildCard(cfg, index) {
         <span class="notch notch--l"></span><span class="notch notch--r"></span>
         <div class="oram-sheen" aria-hidden="true"></div>
         <header class="oram-head">
-          <h1 class="oram-name">${escapeHtml(cfg.name || "Café")}</h1>
-          ${cfg.tagline ? `<p class="oram-sub">${escapeHtml(cfg.tagline)}</p>` : ""}
+          <div class="oram-head__id">
+            <h1 class="oram-name">${escapeHtml(cfg.name || "Café")}</h1>
+            ${cfg.tagline ? `<p class="oram-sub">${escapeHtml(cfg.tagline)}</p>` : ""}
+          </div>
+          <div class="oram-mini"><span class="count">0</span><span class="oram-mini__sep">/</span><span>${cfg.stamps}</span></div>
         </header>
-        <div class="oram-progress">
-          <span class="count">0</span><span class="counter__sep">/</span><span>${cfg.stamps}</span>
-          <span class="oram-progress__label">stamps collected</span>
-        </div>
         <div class="grid" style="--cols:${cfg.cols}">${slotsHtml}</div>
         ${cfg.minPurchase ? `<p class="oram-min">Min. purchase for a stamp · ${formatToman(cfg.minPurchase)} toman</p>` : ""}
         <div class="reward-teaser" aria-live="polite" hidden></div>
