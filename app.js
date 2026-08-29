@@ -911,9 +911,10 @@ async function loadMemberships() {
         id: it.id,
         cafeId: it.cafe,
         cafeName: c.cafe_name || "Café",
-        // the goal locked onto THIS card when it started; falls back to the café's
-        // current setting for brand-new cards that haven't been stamped yet
-        stampsRequired: it.card_required || c.stamps_required || 8,
+        // an in-progress card keeps the goal locked onto it when it started; an
+        // empty card (no stamps yet) isn't started, so it follows the café's
+        // CURRENT number — a change takes effect right away on an empty card.
+        stampsRequired: (Number(it.stamp_count) > 0 ? (it.card_required || c.stamps_required) : c.stamps_required) || 8,
         minPurchase: c.min_purchase || 0,
         theme: c.theme || "",
         stampCount: it.stamp_count || 0,
