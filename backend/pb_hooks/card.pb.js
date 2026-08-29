@@ -165,6 +165,9 @@ routerAdd("POST", "/card/stamp", (e) => {
 
   return e.json(200, {
     stamp, stamp_count: count, required, completed, discount,
+    // the goal the NEXT card will use — after a completion this is the café's
+    // current (possibly changed) value, so the client can rebuild with it
+    next_required: membership.getInt("card_required") || required,
     cafe: {
       id: cafe.id,
       name: cafe.getString("cafe_name"),

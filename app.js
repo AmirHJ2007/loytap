@@ -69,6 +69,7 @@ let decks = [];
 let activeIndex = 0;
 let busy = false;
 let pendingReset = null; // deck to reset to empty after the congrats "Continue"
+let pendingNextRequired = 0; // stamps the next card needs (may differ if the café changed its goal)
 
 // Local testing only: on localhost, show the manual Stamp button and drive the
 // real tap flow with a seeded dev tag. Never active on the deployed site.
@@ -252,7 +253,7 @@ function onLifted(deck, res) {
   if (res.completed) {
     deck.stampBtn.disabled = true;
     deck.stampBtn.querySelector(".btn__label").textContent = "Complete!";
-    setTimeout(() => complete(deck, res.discount), REDUCED ? 120 : 350);
+    setTimeout(() => complete(deck, res.discount, res.next_required), REDUCED ? 120 : 350);
   } else {
     deck.stampBtn.disabled = false;
   }
@@ -289,11 +290,12 @@ function inkPuff(deck, slot, dx, dy) {
 // ===================================================================
 // Completion → confetti → congrats ticket
 // ===================================================================
-function complete(deck, discount) {
+function complete(deck, discount, nextRequired) {
   const rec = discountToRec(discount);
   addDiscountToPocket(rec);
   celebrate(deck);
   pendingReset = deck; // once they hit "Continue", the card starts over from the top
+  pendingNextRequired = nextRequired || 0; // the next card may need a different number of stamps
   setTimeout(() => showCongrats(rec), REDUCED ? 0 : 250);
 }
 
@@ -832,7 +834,28 @@ function hideCongrats() {
   congrats.classList.remove("show");
   congrats.setAttribute("aria-hidden", "true");
   setTimeout(() => { congrats.hidden = true; }, 320);
-  if (pendingReset) { resetCard(pendingReset); pendingReset = null; } // start fresh from the top
+  if (pendingReset) {
+    // if the café changed its goal, the NEW card comes with the new number of
+    // stamps; otherwise just wipe the current card clean
+    if (pendingNextRequired && pendingNextRequired !== pendingReset.cfg.stamps) {
+      rebuildCard(pendingReset, pendingNextRequired);
+    } else {
+      resetCard(pendingReset);
+    }
+    pendingReset = null; pendingNextRequired = 0;
+  }
+}
+
+// rebuild the single card fresh with a new stamp goal (café changed its number)
+function rebuildCard(deck, n) {
+  const cfg = Object.assign({}, deck.cfg, { stamps: n, cols: Math.max(1, Math.ceil(n / 2)) });
+  const mm = memberships.find((x) => x.cafeId === cfg.cafeId);
+  if (mm) { mm.stampsRequired = n; mm.stamps = []; mm.stampCount = 0; }
+  wallet.innerHTML = "";
+  decks = [buildCard(cfg, 0)];
+  wallet.appendChild(decks[0].el);
+  sizeConfetti();
+  layout();
 }
 congratsContinue.addEventListener("click", hideCongrats);
 
