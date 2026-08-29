@@ -33,7 +33,13 @@ routerAdd("POST", "/redeem", (e) => {
   let d = null;
   try { d = $app.findFirstRecordByFilter("discounts", "code = {:code}", { code }); }
   catch (err) { d = null; }
-  if (!d || d.getString("cafe") !== card.id) return e.json(200, { status: "invalid" });
+  if (!d) return e.json(200, { status: "invalid" });
+  // a real reward, but it belongs to a DIFFERENT café — never redeemable here
+  if (d.getString("cafe") !== card.id) {
+    let otherName = "another café";
+    try { const oc = $app.findRecordById("cafe_card", d.getString("cafe")); if (oc) otherName = oc.getString("cafe_name") || otherName; } catch (err) {}
+    return e.json(200, { status: "wrong_cafe", shop: otherName });
+  }
 
   const shop = card.getString("cafe_name");
   const coupon = {

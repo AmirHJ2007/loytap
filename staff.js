@@ -132,6 +132,11 @@ async function handleCode(raw) {
     showResult("warn", "Already used before", couponHtml(res), [scanAgain, close]);
   } else if (res.status === "expired") {
     showResult("warn", "This discount has expired", couponHtml(res), [scanAgain, close]);
+  } else if (res.status === "wrong_cafe") {
+    showResult("bad", "Not for your café",
+      `<p class="result__code">${escapeHtml(code) || "—"}</p>
+       <p class="result__desc" style="margin-top:10px">This reward belongs to <b>${escapeHtml(res.shop || "another café")}</b>, not yours — it can't be redeemed here.</p>`,
+      [scanAgain, close]);
   } else {
     showResult("bad", "Not a valid code",
       `<p class="result__code">${escapeHtml(code) || "—"}</p>
