@@ -49,5 +49,25 @@ routerAdd("GET", "/owner/cafe", (e) => {
     staff_code: card.getString("staff_code"),
     stamps_required: card.getInt("stamps_required"),
     reward_expiry_days: card.getInt("reward_expiry_days"),
+    min_purchase: card.getInt("min_purchase"),
   });
+}, $apis.requireAuth());
+
+// Set the optional minimum-purchase amount (toman) on the owner's own café.
+// 0 clears it. Informational only — staff enforce it, we just display it.
+//   POST /owner/cafe/min-purchase  (admin auth) { min_purchase } -> { ok, min_purchase }
+routerAdd("POST", "/owner/cafe/min-purchase", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café configured for this owner" });
+
+  let amt = parseInt((e.requestInfo().body || {}).min_purchase, 10);
+  if (isNaN(amt) || amt < 0) amt = 0;
+  if (amt > 100000000) amt = 100000000; // sane cap (100M toman)
+  card.set("min_purchase", amt);
+  $app.save(card);
+  return e.json(200, { ok: true, min_purchase: amt });
 }, $apis.requireAuth());

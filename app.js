@@ -142,6 +142,7 @@ function buildCard(cfg, index) {
           <span class="oram-progress__label">stamps collected</span>
         </div>
         <div class="grid" style="--cols:${cfg.cols}">${slotsHtml}</div>
+        ${cfg.minPurchase ? `<p class="oram-min">Min. purchase for a stamp · ${formatToman(cfg.minPurchase)} toman</p>` : ""}
         <div class="reward-teaser" aria-live="polite" hidden></div>
       </section>
     </div>`;
@@ -388,6 +389,11 @@ let drawerCafeId = null;
 function shortDiscount(p) {
   const m = String(p).match(/(\d+)\s*%/);
   return m ? `-${m[1]}%` : p;
+}
+// group thousands for toman amounts, e.g. 50000 -> "50,000"
+function formatToman(n) {
+  const v = Math.max(0, Math.round(Number(n) || 0));
+  return v.toLocaleString("en-US");
 }
 // stored phone is normalized like "9121234567" -> display "0912 123 4567"
 function formatPhone(raw) {
@@ -880,6 +886,7 @@ async function loadMemberships() {
         cafeId: it.cafe,
         cafeName: c.cafe_name || "Café",
         stampsRequired: c.stamps_required || 8,
+        minPurchase: c.min_purchase || 0,
         theme: c.theme || "",
         stampCount: it.stamp_count || 0,
         cycles: it.cycles || 0,
@@ -910,6 +917,7 @@ async function renderWallet(m) {
     stamps: m.stampsRequired,
     cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
     tag: `Collect ${m.stampsRequired} · earn a treat`,
+    minPurchase: m.minPurchase || 0,
   });
   wallet.innerHTML = "";
   decks = [buildCard(cfg, 0)];

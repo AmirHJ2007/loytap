@@ -193,6 +193,18 @@
     .signout-cta:hover { background: linear-gradient(155deg, rgba(253,241,238,0.68), rgba(247,221,214,0.56)); box-shadow: 0 14px 30px -14px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.55); }
     .signout-cta:active { transform: translateY(1px) scale(0.99); }
 
+    /* minimum purchase section */
+    .minp { animation: cardIn 0.7s var(--ease-spring) 0.29s both; }
+    .minp__row { display: flex; gap: 10px; align-items: stretch; margin-top: 2px; }
+    .minp__field { position: relative; flex: 1; display: flex; align-items: center; }
+    .minp__field input { width: 100%; font-family: "Nunito", sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 12px; padding: 12px 60px 12px 14px; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .minp__field input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,20,0.08); }
+    .minp__unit { position: absolute; right: 14px; font-size: 13px; font-weight: 700; color: var(--faint); pointer-events: none; }
+    .minp .btn-solid { flex: 0 0 auto; padding: 0 20px; }
+    .minp__note { margin: 12px 0 0; font-size: 12px; color: var(--dim); line-height: 1.55; background: rgba(214,178,42,0.12); border: 1px solid rgba(214,178,42,0.28); border-radius: 12px; padding: 11px 13px; }
+    .minp__note b { color: var(--ink); }
+    .minp__ok { margin: 8px 2px 0; font-size: 12px; font-weight: 700; color: #137a43; }
+
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after, .stain { animation: none; }
       .own-cafe, .own-badge, .own-hi, .analytics-cta, .tiles, .box, .signout-cta, .rw { animation: none; opacity: 1; transform: none; }
@@ -232,6 +244,21 @@
         <span class="tile__unit">to earn a reward</span>
       </div>
     </div>
+
+    <section class="box glass minp">
+      <h2 class="box__title">Minimum purchase for a stamp</h2>
+      <p class="box__sub">Optional — the amount a customer must spend to earn one stamp.</p>
+      <div class="minp__row">
+        <div class="minp__field">
+          <input type="number" id="fMinPurchase" min="0" step="1000" inputmode="numeric" placeholder="e.g. 50000" />
+          <span class="minp__unit">toman</span>
+        </div>
+        <button class="btn-solid" id="minSave" type="button">Save</button>
+      </div>
+      <p class="minp__note"><b>⚠️ Your staff's responsibility:</b> we only display this on your loyalty card. We don't have access to your accounting system, so your staff must give a stamp only when the customer buys at least this amount. Leave it empty for no minimum.</p>
+      <p class="add-err" id="minErr" hidden></p>
+      <p class="minp__ok" id="minOk" hidden>Saved ✓</p>
+    </section>
 
     <section class="box glass">
       <div class="box__head">
@@ -320,6 +347,7 @@
           $("cafeName").textContent = d.cafe_name || "your café";
           $("staffCode").textContent = d.staff_code || "—";
           $("stampsReq").textContent = d.stamps_required || 8;
+          $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
       } catch (e) {}
@@ -442,6 +470,21 @@
     }
     $("codeTile").onclick = copyStaffCode;
     $("codeTile").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); copyStaffCode(); } });
+
+    $("minSave").onclick = async () => {
+      let amt = parseInt($("fMinPurchase").value, 10); if (isNaN(amt) || amt < 0) amt = 0;
+      $("minErr").hidden = true; $("minOk").hidden = true; $("minSave").disabled = true;
+      try {
+        const r = await fetch(API + "/owner/cafe/min-purchase", {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: token },
+          body: JSON.stringify({ min_purchase: amt }),
+        });
+        const d = await r.json();
+        if (r.ok) { $("fMinPurchase").value = d.min_purchase ? d.min_purchase : ""; $("minOk").hidden = false; setTimeout(() => { $("minOk").hidden = true; }, 1800); }
+        else { $("minErr").textContent = d.error || "Couldn’t save — are you signed in as owner?"; $("minErr").hidden = false; }
+      } catch (e) { $("minErr").textContent = "Cannot reach the server."; $("minErr").hidden = false; }
+      finally { $("minSave").disabled = false; }
+    };
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
 
     loadCafe().then(loadRewards);

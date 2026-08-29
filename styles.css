@@ -209,6 +209,10 @@ body {
 .oram-progress > span:nth-of-type(3) { font-size: 22px; color: var(--ink-faint); font-weight: 700; }
 .oram-progress__label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); margin-left: 8px; align-self: center; }
 
+/* optional "minimum purchase for a stamp" note — only shown when the café sets one */
+.oram-min { margin: 12px 4px 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-dim); text-align: center;
+  background: rgba(20,20,20,0.05); border: 1px dashed rgba(20,20,20,0.16); border-radius: 10px; padding: 7px 10px; }
+
 /* ---------------- Reward teaser (inline box on the card, under the stamp grid) ---------------- */
 .reward-teaser {
   width: 100%; box-sizing: border-box;
