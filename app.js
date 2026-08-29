@@ -125,6 +125,7 @@ function buildCard(cfg, index) {
   el.className = "wcard";
   el.dataset.index = index;
   for (const [k, v] of Object.entries(cfg.theme)) el.style.setProperty(k, v);
+  el.style.setProperty("--accent", cfg.accent || "#171717");
 
   const slotsHtml = Array.from({ length: cfg.stamps }, (_, i) => `
     <div class="slot" style="--i:${i}"><span class="halo"></span><span class="slot__num">${i + 1}</span><span class="stamp">${STAR_SVG}</span></div>`).join("");
@@ -135,8 +136,8 @@ function buildCard(cfg, index) {
         <span class="notch notch--l"></span><span class="notch notch--r"></span>
         <div class="oram-sheen" aria-hidden="true"></div>
         <header class="oram-head">
-          <h1 class="oram-name">Oram</h1>
-          <p class="oram-sub">Cafe &amp; Restaurant</p>
+          <h1 class="oram-name">${escapeHtml(cfg.name || "Café")}</h1>
+          ${cfg.tagline ? `<p class="oram-sub">${escapeHtml(cfg.tagline)}</p>` : ""}
         </header>
         <div class="oram-progress">
           <span class="count">0</span><span class="counter__sep">/</span><span>${cfg.stamps}</span>
@@ -911,6 +912,8 @@ async function loadMemberships() {
         id: it.id,
         cafeId: it.cafe,
         cafeName: c.cafe_name || "Café",
+        tagline: c.tagline || "",
+        accent: c.accent || "#171717",
         // an in-progress card keeps the goal locked onto it when it started; an
         // empty card (no stamps yet) isn't started, so it follows the café's
         // CURRENT number — a change takes effect right away on an empty card.
@@ -943,6 +946,8 @@ async function renderWallet(m) {
   const cfg = Object.assign({}, CARDS[0], {
     cafeId: m.cafeId,
     name: m.cafeName,
+    tagline: m.tagline || "",
+    accent: m.accent || "#171717",
     stamps: m.stampsRequired,
     cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
     tag: `Collect ${m.stampsRequired} · earn a treat`,

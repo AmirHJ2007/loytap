@@ -192,7 +192,7 @@ body {
 .oram-head { display: flex; flex-direction: column; align-items: flex-start; text-align: left; margin-bottom: 14px; position: relative; z-index: 1; }
 .oram-name {
   font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
-  margin: 0; color: var(--ink); text-transform: uppercase;
+  margin: 0; color: var(--accent, var(--ink)); text-transform: uppercase;
   opacity: 0; transform-origin: 0% 50%;
   animation: nameIn 0.7s var(--ease-spring) 0.12s forwards;
 }
@@ -204,13 +204,13 @@ body {
 .oram-sub { margin: 3px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
 
 .oram-progress { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin: 0 0 16px; font-family: "Quicksand","Nunito",sans-serif; position: relative; z-index: 1; }
-.oram-progress .count { font-weight: 700; font-size: 28px; color: var(--ink); }
+.oram-progress .count { font-weight: 700; font-size: 28px; color: var(--accent, var(--ink)); }
 .oram-progress .counter__sep { opacity: 0.4; font-size: 22px; color: var(--ink-faint); }
 .oram-progress > span:nth-of-type(3) { font-size: 22px; color: var(--ink-faint); font-weight: 700; }
 .oram-progress__label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-faint); margin-left: 8px; align-self: center; }
 
 /* optional "minimum purchase for a stamp" note — only shown when the café sets one */
-.oram-min { margin: 12px 4px 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-dim); text-align: center;
+.oram-min { margin: -8px 4px 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-dim); text-align: center;
   background: rgba(20,20,20,0.05); border: 1px dashed rgba(20,20,20,0.16); border-radius: 10px; padding: 7px 10px; }
 
 /* ---------------- Reward teaser (inline box on the card, under the stamp grid) ---------------- */

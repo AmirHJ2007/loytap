@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache" />
   <title>LoyTap · Sign in</title>
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=16" />
+  <link rel="stylesheet" href="auth.css?v=17" />
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -87,7 +87,42 @@
           <p class="field__err" id="ownerErr" hidden>Wrong password.</p>
         </div>
         <button class="btn btn--primary" id="ownerLoginBtn" type="button">Log in</button>
-        <p class="fine">Owner accounts are set up by LoyTap — no self-registration.</p>
+        <button class="link-btn" id="createLink" type="button">New here? Create your café →</button>
+      </section>
+
+      <!-- STEP: create a café (self-serve owner registration) -->
+      <section class="step" id="stepCreate" hidden>
+        <button class="back" id="createBack" type="button">← Back</button>
+        <p class="step__title">Create your café</p>
+        <div class="field">
+          <label for="cCafe">Café name</label>
+          <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora Coffee" />
+        </div>
+        <div class="field">
+          <label for="cTagline">Tagline <span class="opt">(optional)</span></label>
+          <input id="cTagline" type="text" maxlength="40" placeholder="e.g. Coffee & more" />
+        </div>
+        <div class="field">
+          <label>Card accent colour</label>
+          <div class="swatches" id="cAccent"></div>
+        </div>
+        <div class="field">
+          <label for="cName">Your name</label>
+          <input id="cName" type="text" maxlength="40" placeholder="Owner name" />
+        </div>
+        <div class="field">
+          <label for="cPhone">Mobile number</label>
+          <div class="phone">
+            <span class="phone__cc">🇮🇷 +98</span>
+            <input id="cPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="cPass">Password <span class="opt">(min 6)</span></label>
+          <input id="cPass" type="password" autocomplete="new-password" placeholder="••••••••" />
+          <p class="field__err" id="createErr" hidden></p>
+        </div>
+        <button class="btn btn--primary" id="createBtn" type="button">Create café</button>
       </section>
 
       <!-- STEP 2: otp -->
@@ -119,6 +154,6 @@
     </div>
   </main>
 
-  <script src="auth.js?v=10"></script>
+  <script src="auth.js?v=11"></script>
 </body>
 </html>

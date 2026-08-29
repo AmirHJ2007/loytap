@@ -206,6 +206,58 @@ async function ownerLogin() {
 $("ownerLoginBtn").addEventListener("click", ownerLogin);
 $("ownerPass").addEventListener("keydown", (e) => { if (e.key === "Enter") ownerLogin(); });
 
+// ---- Café owner self-registration (create a café) ----
+const ACCENTS = ["#171717", "#1f7a4d", "#7a4a24", "#2f5aa8", "#9a2b52", "#b0862a", "#17726b", "#6b3a86"];
+let cAccentSel = ACCENTS[0];
+(function buildSwatches() {
+  const wrap = $("cAccent"); if (!wrap) return;
+  ACCENTS.forEach((hex, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "swatch" + (i === 0 ? " is-on" : "");
+    b.style.background = hex; b.setAttribute("aria-label", hex);
+    b.onclick = () => { cAccentSel = hex; wrap.querySelectorAll(".swatch").forEach((s) => s.classList.remove("is-on")); b.classList.add("is-on"); };
+    wrap.appendChild(b);
+  });
+})();
+
+$("createLink").addEventListener("click", () => { $("stepOwner").hidden = true; $("stepCreate").hidden = false; $("cCafe").focus(); });
+$("createBack").addEventListener("click", () => { $("stepCreate").hidden = true; $("stepOwner").hidden = false; });
+
+async function createCafe() {
+  const cafe_name = $("cCafe").value.trim();
+  const tagline = $("cTagline").value.trim();
+  const name = $("cName").value.trim();
+  const password = $("cPass").value;
+  const err = (msg) => { $("createErr").textContent = msg; $("createErr").hidden = false; };
+  $("createErr").hidden = true;
+  if (!cafe_name) { $("cCafe").focus(); return err("Enter your café's name."); }
+  if (!validPhone($("cPhone").value)) { $("cPhone").focus(); return err("Enter a valid mobile number."); }
+  if (password.length < 6) { $("cPass").focus(); return err("Password must be at least 6 characters."); }
+  const phone = normalizePhone($("cPhone").value);
+  $("createBtn").disabled = true;
+  try {
+    const res = await fetch(API + "/owner/register", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone, password, cafe_name, tagline, accent: cAccentSel }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { return err(data.error || "Could not create your café."); }
+    try {
+      localStorage.setItem("loytap_token", data.token || "");
+      localStorage.setItem("loytap_role", data.role || "admin");
+      localStorage.setItem("loytap_owner", "1");
+      localStorage.setItem("loytap_name", data.name || "");
+      localStorage.setItem("loytap_cafe", data.cafe_name || "");
+    } catch (_) {}
+    location.href = "owner.html";
+  } catch (e) {
+    err("Cannot reach the server.");
+  } finally {
+    $("createBtn").disabled = false;
+  }
+}
+$("createBtn").addEventListener("click", createCafe);
+
 // ---------------- otp step ----------------
 const otpInputs = [...$("otp").querySelectorAll("input")];
 otpInputs.forEach((inp, i) => {
