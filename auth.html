@@ -4,9 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache" />
-  <title>LoyTap · Sign in</title>
+  <title>Reloy · Sign in</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="reloy-icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=18" />
+  <link rel="stylesheet" href="auth.css?v=22" />
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -21,12 +25,12 @@
           <span class="toast__msg" id="toastMsg"></span>
         </div>
       </div>
-      <h1 class="auth__brand"><img src="reloy-logo.png?v=1" alt="Reloy" /></h1>
+      <h1 class="auth__brand"><img src="reloy-logo.png?v=2" alt="Reloy" /></h1>
 
       <!-- role -->
       <div class="seg" id="roleSeg" role="tablist" aria-label="Account type">
         <button class="seg__btn is-on" data-role="customer" type="button">Customer</button>
-        <button class="seg__btn" data-role="cafe" type="button">Café</button>
+        <button class="seg__btn" data-role="cafe" type="button">Business</button>
       </div>
 
       <!-- STEP 1: phone -->
@@ -41,7 +45,7 @@
           <input id="name" type="text" autocomplete="name" placeholder="e.g. Sara" />
         </div>
         <div class="field" id="fieldCafe" hidden>
-          <label for="cafeName">Café name</label>
+          <label for="cafeName">Business name</label>
           <input id="cafeName" type="text" autocomplete="organization" placeholder="e.g. Aurora Coffee" />
         </div>
 
@@ -58,22 +62,25 @@
         <p class="fine">By continuing you agree to our <a href="terms.html">Terms</a> &amp; <a href="terms.html">Privacy</a>.</p>
       </section>
 
-      <!-- STEP 1 (café): shared code, no phone/registration -->
+      <!-- STEP 1 (cafe): shared code, no phone/registration -->
       <section class="step" id="stepCafe" hidden>
         <div class="field">
-          <label for="cafeCode">Café code</label>
+          <label for="cafeCode">Business code</label>
           <input id="cafeCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="e.g. ORAM-4821" />
           <p class="field__err" id="cafeCodeErr" hidden>Wrong code — try again.</p>
         </div>
         <button class="btn btn--primary" id="cafeEnterBtn" type="button">Enter</button>
-        <p class="fine">Ask your manager for the café code — no account needed.</p>
-        <button class="link-btn" id="ownerLink" type="button">Café owner? Log in →</button>
+        <p class="fine">Ask your manager for the business code — no account needed.</p>
+        <button class="link-btn" id="ownerLink" type="button">Business owner?</button>
       </section>
 
       <!-- STEP 1 (owner): phone + password, no registration -->
       <section class="step" id="stepOwner" hidden>
         <button class="back" id="ownerBack" type="button">← Back</button>
-        <p class="step__title">Owner login</p>
+        <div class="tabs owner-tabs">
+          <button class="tabs__btn is-on" data-omode="signin" type="button">Sign in</button>
+          <button class="tabs__btn" data-omode="register" type="button">Register</button>
+        </div>
         <div class="field">
           <label for="ownerPhone">Mobile number</label>
           <div class="phone">
@@ -87,20 +94,26 @@
           <p class="field__err" id="ownerErr" hidden>Wrong password.</p>
         </div>
         <button class="btn btn--primary" id="ownerLoginBtn" type="button">Log in</button>
-        <button class="link-btn" id="createLink" type="button">New here? Create your café →</button>
       </section>
 
-      <!-- STEP: create a café (self-serve owner registration) -->
+      <!-- STEP: create a cafe (self-serve owner registration) -->
       <section class="step" id="stepCreate" hidden>
         <button class="back" id="createBack" type="button">← Back</button>
-        <p class="step__title">Create your café</p>
-        <div class="field">
-          <label for="cCafe">Café name</label>
-          <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora Coffee" />
+        <div class="tabs owner-tabs">
+          <button class="tabs__btn" data-omode="signin" type="button">Sign in</button>
+          <button class="tabs__btn is-on" data-omode="register" type="button">Register</button>
         </div>
         <div class="field">
-          <label for="cTagline">Tagline <span class="opt">(optional)</span></label>
-          <input id="cTagline" type="text" maxlength="40" placeholder="e.g. Coffee & more" />
+          <label for="cCafe">Business name</label>
+          <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora" />
+        </div>
+        <div class="field">
+          <label>Business type</label>
+          <div class="seg seg--3" id="cType" role="tablist" aria-label="Business type">
+            <button class="seg__btn is-on" data-type="Cafe" type="button">Cafe</button>
+            <button class="seg__btn" data-type="Restaurant" type="button">Restaurant</button>
+            <button class="seg__btn" data-type="Cafe &amp; Restaurant" type="button">Cafe &amp; Restaurant</button>
+          </div>
         </div>
         <div class="field">
           <label>Card accent colour</label>
@@ -118,11 +131,19 @@
           </div>
         </div>
         <div class="field">
+          <label for="cEmail">Email</label>
+          <input id="cEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+        </div>
+        <div class="field">
           <label for="cPass">Password <span class="opt">(min 6)</span></label>
           <input id="cPass" type="password" autocomplete="new-password" placeholder="••••••••" />
+        </div>
+        <div class="field">
+          <label for="cPassConfirm">Confirm password</label>
+          <input id="cPassConfirm" type="password" autocomplete="new-password" placeholder="••••••••" />
           <p class="field__err" id="createErr" hidden></p>
         </div>
-        <button class="btn btn--primary" id="createBtn" type="button">Create café</button>
+        <button class="btn btn--primary" id="createBtn" type="button">Create business</button>
       </section>
 
       <!-- STEP 2: otp -->
@@ -150,10 +171,15 @@
         <p class="step__title" id="doneTitle">You're in!</p>
         <p class="step__sub" id="doneSub"></p>
         <a class="btn btn--primary" id="continueBtn" href="index.html">Continue</a>
+        <div class="a2hs" id="a2hs" hidden>
+          <p class="a2hs__title">📲 Add Reloy to your home screen</p>
+          <p class="a2hs__body" id="a2hsBody"></p>
+          <button class="link-btn" id="a2hsInstallBtn" type="button" hidden>Install app</button>
+        </div>
       </section>
     </div>
   </main>
 
-  <script src="auth.js?v=11"></script>
+  <script src="auth.js?v=19"></script>
 </body>
 </html>

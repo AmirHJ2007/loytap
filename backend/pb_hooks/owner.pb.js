@@ -19,12 +19,14 @@ routerAdd("POST", "/owner/register", (e) => {
   const phone = norm(b.phone);
   const password = String(b.password || "");
   const name = String(b.name || "").trim();
+  const email = String(b.email || "").trim().toLowerCase();
   const cafeName = String(b.cafe_name || "").trim();
   const tagline = String(b.tagline || "").trim();
   let accent = String(b.accent || "#171717").trim();
   if (!/^#[0-9a-fA-F]{6}$/.test(accent)) accent = "#171717";
 
   if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Enter a valid mobile number." });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return e.json(400, { error: "Enter a valid email address." });
   if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters." });
   if (!cafeName) return e.json(400, { error: "Enter your café's name." });
 
@@ -32,10 +34,14 @@ routerAdd("POST", "/owner/register", (e) => {
   try { exists = $app.findFirstRecordByFilter("users", "phone = {:phone}", { phone }); } catch (err) { exists = null; }
   if (exists) return e.json(409, { error: "This number is already registered. Sign in instead.", exists: true });
 
+  let emailExists = null;
+  try { emailExists = $app.findFirstRecordByFilter("users", "email = {:email}", { email }); } catch (err) { emailExists = null; }
+  if (emailExists) return e.json(409, { error: "This email is already registered. Sign in instead.", exists: true });
+
   // owner (admin) account
   const owner = new Record($app.findCollectionByNameOrId("users"));
   owner.set("phone", phone);
-  owner.set("email", phone + "@phone.loytap");
+  owner.set("email", email);
   owner.set("name", name || "Owner");
   owner.set("role", "admin");
   owner.set("verified", true);
@@ -77,6 +83,17 @@ routerAdd("POST", "/owner/register", (e) => {
   card.set("staff_user", staff.id);
   card.set("owner_user", owner.id);
   $app.save(card);
+
+  // a starter 10% discount so the café has something to offer on day one
+  const reward = new Record($app.findCollectionByNameOrId("reward_options"));
+  reward.set("deal", "10% off");
+  reward.set("description", "Welcome discount — redeem after your first stamp card.");
+  reward.set("weight", 1);
+  reward.set("active", true);
+  reward.set("expiry_amount", 2);
+  reward.set("expiry_unit", "week");
+  reward.set("cafe", card.id);
+  $app.save(reward);
 
   // one NFC tag so the owner has a link to program immediately
   const tagCode = $security.randomStringWithAlphabet(20, "abcdefghijklmnopqrstuvwxyz0123456789");

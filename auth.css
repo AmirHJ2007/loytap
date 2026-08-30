@@ -24,7 +24,7 @@ body {
   color: var(--ink);
   background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden; /* allow vertical scroll for tall forms (e.g. create café); bg is fixed */
+  overflow-x: hidden; /* allow vertical scroll for tall forms (e.g. create cafe); bg is fixed */
 }
 
 /* ---------------- Aurora background (tonal, gives the glass something to refract) */
@@ -116,6 +116,8 @@ body {
   animation: fadeUp 0.6s var(--ease-spring) 0.16s both;
 }
 .seg__btn { font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 15px; padding: 12px; border: none; border-radius: 10px; background: transparent; color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+.seg--3 { grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0; }
+.seg--3 .seg__btn { font-size: 12px; padding: 10px 4px; }
 .seg__btn.is-on { background: #171717; color: #ffffff; box-shadow: 0 6px 16px -8px rgba(20,20,20,0.5); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -175,6 +177,11 @@ body {
   animation: doneIn 0.6s var(--ease-spring) both;
 }
 .done__icon svg { width: 34px; height: 34px; }
+
+.a2hs { margin-top: 16px; padding: 14px; border: 1.5px solid rgba(20,20,20,0.12); border-radius: 12px; background: rgba(255,255,255,0.35); text-align: center; }
+.a2hs__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; margin: 0 0 4px; }
+.a2hs__body { font-size: 12px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+.a2hs .link-btn { margin-top: 8px; font-size: 14px; }
 @keyframes doneIn { from { opacity: 0; transform: scale(0.4) rotate(-16deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 #stepDone { text-align: center; }
 
@@ -203,7 +210,7 @@ body {
 
 .field input.shake { animation: shakeX 0.45s ease; }
 
-.link-btn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--ink); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; }
+.link-btn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--ink); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; cursor: pointer; }
 .link-btn:hover { text-decoration: underline; }
 
 .opt { color: var(--ink-faint); font-weight: 600; }

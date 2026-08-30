@@ -1,5 +1,5 @@
 // ===================================================================
-// LoyTap — sign in / register. Phone + OTP for Customer and Café roles.
+// Reloy — sign in / register. Phone + OTP for Customer and Cafe roles.
 // Talks to the PocketBase backend: POST /otp/request + POST /otp/verify.
 // In dev the backend returns the code (devCode) so it auto-fills — no SMS.
 // ===================================================================
@@ -16,6 +16,34 @@ let signedUser = null;
 const $ = (id) => document.getElementById(id);
 const steps = { phone: $("stepPhone"), otp: $("stepOtp"), done: $("stepDone") };
 
+// ---- Add-to-home-screen hint (shown once, right after first registration) ----
+let deferredInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; });
+function showA2HS() {
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if (isStandalone) return;
+  const ua = navigator.userAgent || "";
+  const isIOS = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+  const isAndroid = /android/i.test(ua);
+  if (!isIOS && !isAndroid) return;
+  $("a2hs").hidden = false;
+  if (isIOS) {
+    $("a2hsBody").textContent = "Tap the Share icon, then “Add to Home Screen”.";
+  } else {
+    $("a2hsBody").textContent = deferredInstallPrompt
+      ? "Install Reloy for quick access next time."
+      : "Open the browser menu and tap “Add to Home screen”.";
+    $("a2hsInstallBtn").hidden = !deferredInstallPrompt;
+  }
+}
+$("a2hsInstallBtn").addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  $("a2hsInstallBtn").hidden = true;
+});
+
 // ---------------- role & mode toggles ----------------
 $("roleSeg").addEventListener("click", (e) => {
   const b = e.target.closest(".seg__btn"); if (!b) return;
@@ -24,7 +52,7 @@ $("roleSeg").addEventListener("click", (e) => {
   showRoleStep();
 });
 
-// Customer -> phone/OTP step; Café -> shared-code step
+// Customer -> phone/OTP step; Cafe -> shared-code step
 function showRoleStep() {
   const cafe = role === "cafe";
   $("stepOwner").hidden = true;
@@ -33,7 +61,7 @@ function showRoleStep() {
   if (!cafe) syncFields();
 }
 
-// Café staff sign in with the shared code (no phone/registration)
+// Cafe staff sign in with the shared code (no phone/registration)
 async function cafeLogin() {
   const input = $("cafeCode");
   const code = input.value.trim();
@@ -162,7 +190,7 @@ function showNotRegistered() {
   }, 1500);
 }
 
-// ---- Café owner login (phone + password, no registration) ----
+// ---- Cafe owner login (phone + password, no registration) ----
 $("ownerLink").addEventListener("click", () => { $("stepCafe").hidden = true; $("stepOwner").hidden = false; $("ownerPhone").focus(); });
 $("ownerBack").addEventListener("click", () => { $("stepOwner").hidden = true; $("stepCafe").hidden = false; });
 
@@ -206,7 +234,14 @@ async function ownerLogin() {
 $("ownerLoginBtn").addEventListener("click", ownerLogin);
 $("ownerPass").addEventListener("keydown", (e) => { if (e.key === "Enter") ownerLogin(); });
 
-// ---- Café owner self-registration (create a café) ----
+// ---- Cafe owner self-registration (create a cafe) ----
+let cTypeSel = "Cafe";
+$("cType").addEventListener("click", (e) => {
+  const b = e.target.closest(".seg__btn"); if (!b) return;
+  cTypeSel = b.dataset.type;
+  [...$("cType").children].forEach((c) => c.classList.toggle("is-on", c === b));
+});
+
 const ACCENTS = ["#171717", "#1f7a4d", "#7a4a24", "#2f5aa8", "#9a2b52", "#b0862a", "#17726b", "#6b3a86"];
 let cAccentSel = ACCENTS[0];
 (function buildSwatches() {
@@ -220,28 +255,41 @@ let cAccentSel = ACCENTS[0];
   });
 })();
 
-$("createLink").addEventListener("click", () => { $("stepOwner").hidden = true; $("stepCreate").hidden = false; $("cCafe").focus(); });
-$("createBack").addEventListener("click", () => { $("stepCreate").hidden = true; $("stepOwner").hidden = false; });
+$("createBack").addEventListener("click", () => { $("stepCreate").hidden = true; $("stepCafe").hidden = false; });
+
+// ---- Owner / register tabs (shared between stepOwner and stepCreate) ----
+document.querySelectorAll(".owner-tabs .tabs__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const toRegister = btn.dataset.omode === "register";
+    $("stepOwner").hidden = toRegister;
+    $("stepCreate").hidden = !toRegister;
+    $(toRegister ? "cCafe" : "ownerPhone").focus();
+  });
+});
 
 async function createCafe() {
   const cafe_name = $("cCafe").value.trim();
-  const tagline = $("cTagline").value.trim();
+  const tagline = cTypeSel;
   const name = $("cName").value.trim();
+  const email = $("cEmail").value.trim();
   const password = $("cPass").value;
+  const passwordConfirm = $("cPassConfirm").value;
   const err = (msg) => { $("createErr").textContent = msg; $("createErr").hidden = false; };
   $("createErr").hidden = true;
-  if (!cafe_name) { $("cCafe").focus(); return err("Enter your café's name."); }
+  if (!cafe_name) { $("cCafe").focus(); return err("Enter your business's name."); }
   if (!validPhone($("cPhone").value)) { $("cPhone").focus(); return err("Enter a valid mobile number."); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("cEmail").focus(); return err("Enter a valid email address."); }
   if (password.length < 6) { $("cPass").focus(); return err("Password must be at least 6 characters."); }
+  if (password !== passwordConfirm) { $("cPassConfirm").focus(); return err("Passwords do not match."); }
   const phone = normalizePhone($("cPhone").value);
   $("createBtn").disabled = true;
   try {
     const res = await fetch(API + "/owner/register", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, password, cafe_name, tagline, accent: cAccentSel }),
+      body: JSON.stringify({ name, phone, email, password, cafe_name, tagline, accent: cAccentSel }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { return err(data.error || "Could not create your café."); }
+    if (!res.ok) { return err(data.error || "Could not create your cafe."); }
     try {
       localStorage.setItem("loytap_token", data.token || "");
       localStorage.setItem("loytap_role", data.role || "admin");
@@ -249,7 +297,13 @@ async function createCafe() {
       localStorage.setItem("loytap_name", data.name || "");
       localStorage.setItem("loytap_cafe", data.cafe_name || "");
     } catch (_) {}
-    location.href = "owner.html";
+    $("stepCreate").hidden = true;
+    $("doneTitle").textContent = "Business registered!";
+    $("doneSub").textContent = "Our support team will be in touch soon to hand over your NFC tag — you'll need it before customers can start collecting stamps.";
+    $("continueBtn").textContent = "Open dashboard";
+    $("continueBtn").href = "owner.html";
+    $("stepDone").hidden = false;
+    showA2HS();
   } catch (e) {
     err("Cannot reach the server.");
   } finally {
@@ -339,7 +393,7 @@ function finish() {
   // signing in (existing account) skips the confirmation screen and goes straight in
   if (mode === "signin") { location.href = dest; return; }
   if (isCafe) {
-    $("doneTitle").textContent = "Café registered!";
+    $("doneTitle").textContent = "Business registered!";
     $("doneSub").textContent = "Opening your scanner…";
     $("continueBtn").textContent = "Open scanner";
     $("continueBtn").href = dest;
@@ -350,6 +404,7 @@ function finish() {
     $("continueBtn").href = dest;
   }
   go("done");
+  showA2HS();
 }
 
 // ---------------- helpers ----------------

@@ -1,5 +1,5 @@
 // ===================================================================
-// LoyTap — customer wallet. Vanilla JS, no backend, resets each visit.
+// Reloy — customer wallet. Vanilla JS, no backend, resets each visit.
 // Fill a card -> confetti -> full-screen "Congratulation!" barcode ticket.
 // Edit CARDS to add/change cards.
 // ===================================================================
@@ -176,8 +176,9 @@ function buildCard(cfg, index) {
 // Wallet stack layout
 // ===================================================================
 const STEP = 78;  // how much of each stacked card's header shows before the next overlaps it
-// Cards are ALWAYS full size; we only ever move them with transform (GPU-smooth,
-// no height/clip animation that would re-render the glass blur every frame).
+// Motion is driven purely by the CSS transition on .wcard (see styles.css). This is the
+// original, Safari-proven mechanism — we only ever set transform/opacity inline here and
+// let CSS interpolate. (Earlier WAAPI / perspective-on-.card experiments broke iOS Safari.)
 function layout() {
   if (!decks.length) return;
   const Hf = decks[0].el.offsetHeight; // all cards are the same fixed-aspect height
@@ -191,7 +192,10 @@ function layout() {
         d.el.style.opacity = "1"; d.el.style.pointerEvents = "auto"; d.el.style.zIndex = "100";
       } else {
         d.el.classList.remove("is-peek", "is-open");
-        d.el.style.transform = `translateY(${d.index < selectedIndex ? -0.5 * Hf : 1.05 * Hf}px) scale(0.9)`;
+        // No scale() here on purpose — a plain translate is the cheapest possible GPU
+        // op. Combining scale with this card's blurred box-shadow, inside the 3D
+        // perspective context, is what caused the animation to stutter on real devices.
+        d.el.style.transform = `translateY(${d.index < selectedIndex ? -0.5 * Hf : 1.05 * Hf}px)`;
         d.el.style.opacity = "0"; d.el.style.pointerEvents = "none"; d.el.style.zIndex = "0";
       }
     });

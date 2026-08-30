@@ -125,7 +125,10 @@ body.card-open .greeting { display: none; }
   width: 100%;
   perspective: 1500px;
   transform-origin: 50% 0;
-  transition: transform 0.6s var(--ease-spring), opacity 0.45s ease, filter 0.4s ease;
+  /* The original, Safari-proven mechanism: a plain CSS transition on transform/opacity.
+     Slowed down and given a smooth no-overshoot ease-out so the select glides instead of
+     snapping. (Do NOT swap this rule per state or move it to WAAPI — both broke iOS.) */
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease, filter 0.4s ease;
   will-change: transform;
   cursor: pointer;
 }
@@ -152,13 +155,20 @@ body.card-open .greeting { display: none; }
   border-radius: var(--radius);
   padding: 22px 22px;
   display: flex; flex-direction: column;
-  /* frosted glass */
-  background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
-  backdrop-filter: blur(20px) saturate(165%);
-  -webkit-backdrop-filter: blur(20px) saturate(165%);
+  /* Opaque card so stacked cards fully cover each other — no bleed-through. */
+  background:
+    linear-gradient(158deg, rgba(255,255,255,0.97), rgba(255,255,255,0.9)),
+    linear-gradient(158deg, var(--paper), var(--paper-2));
   border: 1px solid var(--glass-border);
+  /* Lighter blur than --glass-shadow (70px): this card sits inside a 3D transform
+     context (.wcard's perspective + .card's preserve-3d for the flip), and WebKit/
+     mobile GPUs commonly lose the cheap compositor fast-path for large blurred shadows
+     in that situation — forcing a full repaint every frame instead of one cheap
+     transform. That reads as stutter/jump during the wallet select animation,
+     worse on weaker GPUs and worse the longer the animation runs. A smaller blur
+     radius keeps the look but stays cheap to rasterize. */
   box-shadow:
-    var(--glass-shadow),
+    0 20px 38px -16px rgba(20, 20, 20, 0.45),
     inset 0 1px 0 var(--glass-hi),
     inset 0 0 0 1px rgba(255, 255, 255, 0.22);
   overflow: hidden;

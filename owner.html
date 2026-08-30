@@ -6,6 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache" />
   <title>Reloy · Owner</title>
   <script>try{if(localStorage.getItem('loytap_owner')!=='1')location.replace('auth.html');}catch(e){}</script>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="reloy-icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
   <style>
     :root {
@@ -214,13 +218,6 @@
     .minp__note b { color: var(--ink); }
     .minp__ok { margin: 8px 2px 0; font-size: 12px; font-weight: 700; color: #137a43; }
 
-    /* tap link (NFC / QR) */
-    .nfc { animation: cardIn 0.7s var(--ease-spring) 0.3s both; }
-    .nfc__row { display: flex; gap: 10px; align-items: stretch; margin-top: 4px; }
-    .nfc__url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--ink); background: rgba(20,20,20,0.05); border: 1px dashed rgba(20,20,20,0.2); border-radius: 11px; padding: 10px 13px; }
-    .nfc .btn-solid { flex: 0 0 auto; padding: 0 18px; }
-    .nfc__note { margin: 11px 0 0; font-size: 12px; color: var(--dim); line-height: 1.5; }
-
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after, .stain { animation: none; }
       .own-cafe, .own-badge, .own-hi, .analytics-cta, .tiles, .box, .signout-cta, .rw { animation: none; opacity: 1; transform: none; }
@@ -265,16 +262,6 @@
       </div>
     </div>
     <p class="tiles-note">Changing the stamp count applies to each customer's <b>next</b> card — cards already in progress keep their current goal.</p>
-
-    <section class="box glass nfc">
-      <h2 class="box__title">Your tap link</h2>
-      <p class="box__sub">Program this into an NFC tag (or make a QR of it) and put it at the till.</p>
-      <div class="nfc__row">
-        <span class="nfc__url" id="nfcUrl">—</span>
-        <button class="btn-solid" id="nfcCopy" type="button">Copy</button>
-      </div>
-      <p class="nfc__note">When a customer taps the tag, they open their card and get a stamp — after they've bought at least your minimum, which your staff confirm.</p>
-    </section>
 
     <section class="box glass minp">
       <h2 class="box__title">Minimum purchase for a stamp</h2>
@@ -379,7 +366,6 @@
           $("staffCode").textContent = d.staff_code || "—";
           stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
-          $("nfcUrl").textContent = d.nfc ? (location.origin + "/?t=" + d.nfc) : "No tag yet";
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
       } catch (e) {}
@@ -527,12 +513,6 @@
         } catch (e) {}
       }, 500);
     }
-    $("nfcCopy").onclick = async () => {
-      const b = $("nfcCopy"), url = $("nfcUrl").textContent;
-      if (!url || url === "No tag yet") return;
-      try { await navigator.clipboard.writeText(url); b.textContent = "Copied!"; setTimeout(() => (b.textContent = "Copy"), 1500); } catch (e) {}
-    };
-
     $("stampsDec").onclick = () => { if (stampsVal > 1) { stampsVal--; renderStamps(); saveStamps(); } };
     $("stampsInc").onclick = () => { if (stampsVal < 12) { stampsVal++; renderStamps(); saveStamps(); } };
 

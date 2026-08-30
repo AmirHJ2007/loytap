@@ -1,5 +1,5 @@
 // ===================================================================
-// LoyTap — café staff scanner.
+// Reloy — café staff scanner.
 // Scans a customer's discount QR (which carries only the opaque code),
 // sends it to the backend, and shows the server's verdict. A valid code
 // is redeemed on the server in the same step.
