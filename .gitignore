@@ -1,6 +1,9 @@
 # macOS
 .DS_Store
 
+# live PocketBase database — real user data, never commit this
+backend/pb_data/
+
 # scratch / debug renders
 debug.html
 debug.png
