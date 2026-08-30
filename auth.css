@@ -178,10 +178,6 @@ body {
 }
 .done__icon svg { width: 34px; height: 34px; }
 
-.a2hs { margin-top: 16px; padding: 14px; border: 1.5px solid rgba(20,20,20,0.12); border-radius: 12px; background: rgba(255,255,255,0.35); text-align: center; }
-.a2hs__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; margin: 0 0 4px; }
-.a2hs__body { font-size: 12px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
-.a2hs .link-btn { margin-top: 8px; font-size: 14px; }
 @keyframes doneIn { from { opacity: 0; transform: scale(0.4) rotate(-16deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
 #stepDone { text-align: center; }
 

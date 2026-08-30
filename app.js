@@ -118,6 +118,9 @@ function updateTeaser(deck) {
   box.innerHTML = `<span class="reward-teaser__gift">${gift}</span>
     <span class="reward-teaser__body"><span class="reward-teaser__main">${main}</span>${sub ? `<span class="reward-teaser__sub">${sub}</span>` : ""}</span>`;
   box.hidden = false;
+  // the teaser only renders (and takes up space) when this card is open —
+  // recompute the wallet's height now that its content just changed
+  if (selectedIndex === deck.index) layout();
 }
 
 function buildCard(cfg, index) {
@@ -144,9 +147,9 @@ function buildCard(cfg, index) {
         </header>
         <div class="grid" style="--cols:${cfg.cols}">${slotsHtml}</div>
         ${cfg.minPurchase ? `<p class="oram-min">Min. purchase for a stamp · ${formatToman(cfg.minPurchase)} toman</p>` : ""}
-        <div class="reward-teaser" aria-live="polite" hidden></div>
       </section>
-    </div>`;
+    </div>
+    <div class="reward-teaser" aria-live="polite" hidden></div>`;
 
   const q = (s) => el.querySelector(s);
   const deck = {
@@ -176,30 +179,37 @@ function buildCard(cfg, index) {
 // Wallet stack layout
 // ===================================================================
 const STEP = 78;  // how much of each stacked card's header shows before the next overlaps it
-// Motion is driven purely by the CSS transition on .wcard (see styles.css). This is the
-// original, Safari-proven mechanism — we only ever set transform/opacity inline here and
-// let CSS interpolate. (Earlier WAAPI / perspective-on-.card experiments broke iOS Safari.)
+// Motion is driven purely by the CSS transition on .wcard (see styles.css) — a plain
+// 2D translateY/opacity, no 3D perspective. We only ever set transform/opacity inline
+// here and let CSS interpolate.
 function layout() {
   if (!decks.length) return;
-  const Hf = decks[0].el.offsetHeight; // all cards are the same fixed-aspect height
+  // Measure the card itself, not the .wcard wrapper — the wrapper's height
+  // varies once the reward-teaser below it is shown for the open card only.
+  const Hf = decks[0].card.offsetHeight; // all cards are the same fixed-aspect height
 
   if (selectedIndex != null && decks[selectedIndex]) {
-    // DETAIL VIEW — the chosen card slides to the top; everything else slides + fades away
+    // DETAIL VIEW — the chosen card always slides to translateY(0) (the "most
+    // top" slot, behind which every other card in the stack normally sits).
+    // If it's already there (the topmost/backmost card), this is a no-op.
+    // Cards below it retreat downward; cards above it don't need to move at
+    // all — the selected card slides up and covers them, so they just fade
+    // out in place.
     decks.forEach((d) => {
       if (d.index === selectedIndex) {
         d.el.classList.add("is-open"); d.el.classList.remove("is-peek");
-        d.el.style.transform = "translateY(0) scale(1)";
+        d.el.style.transform = "translateY(0) scale(1.05)";
         d.el.style.opacity = "1"; d.el.style.pointerEvents = "auto"; d.el.style.zIndex = "100";
       } else {
         d.el.classList.remove("is-peek", "is-open");
-        // No scale() here on purpose — a plain translate is the cheapest possible GPU
-        // op. Combining scale with this card's blurred box-shadow, inside the 3D
-        // perspective context, is what caused the animation to stutter on real devices.
-        d.el.style.transform = `translateY(${d.index < selectedIndex ? -0.5 * Hf : 1.05 * Hf}px)`;
+        // No scale() here on purpose — a plain translate is the cheapest possible GPU op.
+        d.el.style.transform = `translateY(${d.index > selectedIndex ? 1.05 * Hf : d.index * STEP}px)`;
         d.el.style.opacity = "0"; d.el.style.pointerEvents = "none"; d.el.style.zIndex = "0";
       }
     });
-    wallet.style.height = Hf + "px";
+    const teaser = decks[selectedIndex].el.querySelector(".reward-teaser");
+    const teaserH = teaser && !teaser.hidden ? teaser.offsetHeight + 14 : 0; // +margin-top
+    wallet.style.height = (Hf + teaserH) + "px";
     return;
   }
 
@@ -546,21 +556,12 @@ function mapDiscount(item) {
   };
 }
 
-// Used/expired coupons linger in a dimmed "Past" section, then auto-hide from the
-// pocket after this grace window. The backend row is always kept for the café.
-const POCKET_GRACE_MS = 7 * 864e5;
+// Used/expired coupons drop out of the pocket entirely. The backend row is
+// always kept for the café.
 function pocketState(d) {
-  const now = Date.now();
   const expired = d.status === "expired" || (typeof d.days === "number" && d.days < 0);
-  if (d.status === "redeemed") {
-    const t = new Date(d.redeemedAt).getTime();
-    return { past: true, kind: "used", visible: isNaN(t) ? true : now < t + POCKET_GRACE_MS };
-  }
-  if (expired) {
-    const t = new Date(d.dueISO).getTime();
-    return { past: true, kind: "expired", visible: isNaN(t) ? true : now < t + POCKET_GRACE_MS };
-  }
-  return { past: false, kind: null, visible: true };
+  if (d.status === "redeemed" || expired) return { past: true };
+  return { past: false };
 }
 
 function addDiscountToPocket(rec) {
@@ -592,18 +593,6 @@ function activeCoupon(d) {
     closeDrawer();
     setTimeout(() => showCongrats(d), 180);
   });
-  return c;
-}
-
-function pastCoupon(d, kind) {
-  const c = document.createElement("div");
-  c.className = "coupon-card coupon-card--past";
-  const label = kind === "used" ? "Used ✓" : "Expired";
-  c.innerHTML = `
-    <p class="coupon-card__deal">${escapeHtml(d.deal)}</p>
-    <p class="coupon-card__desc">${escapeHtml(d.desc)}</p>
-    <span class="coupon-card__notch"></span>
-    <span class="coupon-card__stamp">${label}</span>`;
   return c;
 }
 
@@ -661,13 +650,7 @@ function renderCafeDiscounts(cafeId) {
   if (drawerTitle) drawerTitle.textContent = (m && m.cafeName) || "Discounts";
   if (drawerBack) drawerBack.hidden = false;
 
-  const active = [];
-  const past = [];
-  discounts.filter((d) => d.cafeId === cafeId).forEach((d) => {
-    const st = pocketState(d);
-    if (!st.past) active.push(d);
-    else if (st.visible) past.push({ d: d, kind: st.kind });
-  });
+  const active = discounts.filter((d) => d.cafeId === cafeId && !pocketState(d).past);
   // most urgent (soonest to expire) sits first in the grid
   active.sort((a, b) => (typeof a.days === "number" ? a.days : 1e9) - (typeof b.days === "number" ? b.days : 1e9));
 
@@ -679,7 +662,7 @@ function renderCafeDiscounts(cafeId) {
   drawerList.appendChild(page);
 
   drawerEmpty.innerHTML = "No discounts yet.<br/>Fill this card to earn one.";
-  drawerEmpty.style.display = active.length || past.length ? "none" : "block";
+  drawerEmpty.style.display = active.length ? "none" : "block";
 
   // active rewards as a grid of coupon cards
   if (active.length) {
@@ -687,18 +670,6 @@ function renderCafeDiscounts(cafeId) {
     grid.className = "coupon-grid";
     active.forEach((d) => grid.appendChild(activeCoupon(d)));
     page.appendChild(grid);
-  }
-
-  // past (used/expired) below, dimmed
-  if (past.length) {
-    const h = document.createElement("p");
-    h.className = "drawer__section";
-    h.textContent = "Past";
-    page.appendChild(h);
-    const pastGrid = document.createElement("div");
-    pastGrid.className = "coupon-grid coupon-grid--past";
-    past.forEach((p) => pastGrid.appendChild(pastCoupon(p.d, p.kind)));
-    page.appendChild(pastGrid);
   }
 }
 
@@ -793,6 +764,11 @@ pocketBtn.addEventListener("click", openDrawer);
 drawerClose.addEventListener("click", () => closeDrawer());
 if (drawerBack) drawerBack.addEventListener("click", () => { drawerCafeId = null; renderDrawer(); });
 scrim.addEventListener("click", () => { closeDrawer(); closeSettings(); });
+// tapping empty space inside the drawer/sheet (not a row, card, or button) also
+// goes back to the wallet — only fires when the click lands on the container
+// itself, never on a descendant that already handles its own click.
+drawer.addEventListener("click", (e) => { if (e.target === drawer || e.target === drawerList) closeDrawer(); });
+if (settingsSheet) settingsSheet.addEventListener("click", (e) => { if (e.target === settingsSheet) closeSettings(); });
 
 if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => { drawer.classList.contains("open") ? closeDrawer() : openDrawer(); });
 if (tabBtns.wallet) tabBtns.wallet.addEventListener("click", () => { closeDrawer(true); closeSettings(true); setTab("wallet"); });

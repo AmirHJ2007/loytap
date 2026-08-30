@@ -73,24 +73,20 @@ body {
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   padding: calc(30px + env(safe-area-inset-top, 0px)) 20px 28px;
   gap: 22px;
-  transition: padding-top 0.5s var(--ease-spring);
 }
-/* in detail view the card drops below the ✕ */
-body.card-open .stage { padding-top: calc(64px + env(safe-area-inset-top, 0px)); }
-.greeting { margin-top: 6px; transition: opacity 0.3s ease; }
+.greeting { margin-top: 6px; }
 
 /* detail-view close button (top-left) + focus state */
 .wallet-close {
-  position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; z-index: 225;
+  position: fixed; top: calc(26px + env(safe-area-inset-top, 0px)); left: 16px; z-index: 225;
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
-  border: 1px solid var(--glass-border); color: #171717; font-size: 15px; font-weight: 700;
+  border: 1px solid var(--glass-border); color: #171717; font-size: 24px; font-weight: 900;
   display: grid; place-items: center;
   background: var(--glass-fill-strong); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
   box-shadow: 0 10px 24px -12px rgba(20,20,20,0.45), inset 0 1px 0 var(--glass-hi);
   animation: fadeDown 0.35s var(--ease-spring) both;
 }
 .wallet-close[hidden] { display: none; }
-body.card-open .greeting { display: none; }
 
 /* Manual stamp button — hidden by default: stamps are only granted by a real NFC
    tap. It's revealed (.dev-on, added by app.js) only on localhost for testing. */
@@ -123,12 +119,10 @@ body.card-open .greeting { display: none; }
   position: absolute;
   top: 0; left: 0;
   width: 100%;
-  perspective: 1500px;
   transform-origin: 50% 0;
-  /* The original, Safari-proven mechanism: a plain CSS transition on transform/opacity.
-     Slowed down and given a smooth no-overshoot ease-out so the select glides instead of
-     snapping. (Do NOT swap this rule per state or move it to WAAPI — both broke iOS.) */
-  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease, filter 0.4s ease;
+  /* A plain 2D transform/opacity transition — no perspective, no 3D compositing
+     layer. Keep this simple; it's what actually stays smooth on Safari. */
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease, filter 0.4s ease;
   will-change: transform;
   cursor: pointer;
 }
@@ -136,43 +130,28 @@ body.card-open .greeting { display: none; }
 /* covered cards in the stack — a touch dimmer so the header on top reads clearly */
 .wcard.is-peek { filter: brightness(0.99) saturate(0.98); }
 
-/* ---------------- Card & 3D flip ---------------- */
+/* ---------------- Card ---------------- */
 .card {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1.18;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
-  /* smooth, symmetric flip so 90° lands at the midpoint (where the faces swap) */
-  transition: transform 0.9s cubic-bezier(0.62, 0.03, 0.35, 1);
-  will-change: transform;
+  aspect-ratio: 1 / 1;
 }
-.card.is-flipped { transform: rotateY(180deg); }
 
 .face {
   position: absolute; inset: 0;
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
   border-radius: var(--radius);
-  padding: 22px 22px;
+  padding: 18px 20px;
   display: flex; flex-direction: column;
   /* Opaque card so stacked cards fully cover each other — no bleed-through. */
   background:
     linear-gradient(158deg, rgba(255,255,255,0.97), rgba(255,255,255,0.9)),
     linear-gradient(158deg, var(--paper), var(--paper-2));
   border: 1px solid var(--glass-border);
-  /* Lighter blur than --glass-shadow (70px): this card sits inside a 3D transform
-     context (.wcard's perspective + .card's preserve-3d for the flip), and WebKit/
-     mobile GPUs commonly lose the cheap compositor fast-path for large blurred shadows
-     in that situation — forcing a full repaint every frame instead of one cheap
-     transform. That reads as stutter/jump during the wallet select animation,
-     worse on weaker GPUs and worse the longer the animation runs. A smaller blur
-     radius keeps the look but stays cheap to rasterize. */
   box-shadow:
     0 20px 38px -16px rgba(20, 20, 20, 0.45),
     inset 0 1px 0 var(--glass-hi),
     inset 0 0 0 1px rgba(255, 255, 255, 0.22);
   overflow: hidden;
-  transition: opacity 0s linear 0.45s;
 }
 /* diagonal light streak + soft top-corner glow for the glass sheen */
 .face::before {
@@ -186,10 +165,6 @@ body.card-open .greeting { display: none; }
   from { opacity: 0; transform: translateY(26px) scale(0.94); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.face--back { transform: rotateY(180deg); opacity: 0; align-items: center; justify-content: center; text-align: center; }
-.card.is-flipped .face--front { opacity: 0; }
-.card.is-flipped .face--back { opacity: 1; }
-
 .notch { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--cream); border-radius: 50%; transform: translateY(-50%); box-shadow: inset 0 0 0 2px rgba(0,0,0,0.07); z-index: 2; }
 .notch--l { left: -10px; }
 .notch--r { right: -10px; }
@@ -241,30 +216,36 @@ body.card-open .greeting { display: none; }
 .oram-min { margin: -8px 4px 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-dim); text-align: center;
   background: rgba(20,20,20,0.05); border: 1px dashed rgba(20,20,20,0.16); border-radius: 10px; padding: 7px 10px; }
 
-/* ---------------- Reward teaser (inline box on the card, under the stamp grid) ---------------- */
+/* ---------------- Reward teaser (shown below the card, only once it's open) ---------------- */
 .reward-teaser {
+  display: none;
   width: 100%; box-sizing: border-box;
-  display: flex; align-items: center; gap: 11px;
+  align-items: center; gap: 11px;
+  margin-top: 14px;
   padding: 12px 15px; border-radius: 15px;
-  background: linear-gradient(120deg, rgba(120,120,120,0.30), rgba(255,255,255,0.14));
-  backdrop-filter: blur(8px) saturate(140%);
-  -webkit-backdrop-filter: blur(8px) saturate(140%);
-  border: 1px solid rgba(255,255,255,0.4);
+  /* Plain (no backdrop-filter) — a live blur sampled every frame while this
+     card's ancestor is transforming during the select animation is one of the
+     most expensive things WebKit can do; a solid-ish gradient looks close
+     enough and stays cheap to composite. */
+  background: linear-gradient(120deg, rgba(31,122,77,0.85), rgba(255,255,255,0.85));
+  border: 1px solid rgba(255,255,255,0.5);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 20px -12px rgba(20,20,20,0.45);
   position: relative; z-index: 1; overflow: hidden;
-  animation: teaserIn 0.55s var(--ease-spring) 0.55s both;
+  animation: teaserIn 0.55s var(--ease-spring) 0.15s both;
 }
 .reward-teaser[hidden] { display: none; }
+/* only the open card's teaser is visible — the browse stack stays compact */
+.wcard.is-open .reward-teaser:not([hidden]) { display: flex; }
 .reward-teaser__gift { font-size: 22px; flex: 0 0 auto; line-height: 1; animation: giftBob 2.4s ease-in-out infinite; }
 .reward-teaser__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .reward-teaser__main { font-family: "Quicksand","Nunito",sans-serif; font-weight: 700; font-size: 13px; color: #171717; letter-spacing: -0.2px; }
 .reward-teaser__main b { font-weight: 800; color: #1c1c1c; }
-.reward-teaser__sub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #6f6f6f; }
+.reward-teaser__sub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #0f3d28; }
 @keyframes teaserIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes giftBob { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
 
 /* ---------------- Stamp grid ---------------- */
-.grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 18px; position: relative; z-index: 1; }
+.grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 12px; position: relative; z-index: 1; }
 .slot {
   position: relative; border-radius: 50%; display: grid; place-items: center;
   aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 84px;
@@ -446,8 +427,6 @@ body.card-open .greeting { display: none; }
 .discounts-page { animation: pageIn 0.42s var(--ease-spring) both; }
 @keyframes pageIn { 0% { opacity: 0; transform: translateX(26px); } 100% { opacity: 1; transform: none; } }
 
-.drawer__section { flex-shrink: 0; margin: 14px 4px 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9a9a9a; }
-
 .coupon-grid {
   flex-shrink: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;
@@ -529,23 +508,6 @@ body.card-open .greeting { display: none; }
 }
 .coupon-card__exp.is-urgent { color: #ff6f61; }
 .coupon-card__dot { width: 6px; height: 6px; border-radius: 50%; background: #ff5a4a; box-shadow: 0 0 7px rgba(255,90,74,0.9); animation: couponGlow 1.4s ease-in-out infinite; }
-
-/* Past (used / expired) coupons — faded light chips, clearly spent */
-.coupon-card--past {
-  cursor: default; color: #6b6b6b; animation: none; min-height: 104px;
-  background: linear-gradient(158deg, rgba(236,236,236,0.9), rgba(222,222,222,0.7));
-  box-shadow: 0 8px 18px -14px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.7);
-}
-.coupon-card--past:hover { transform: none; box-shadow: 0 8px 18px -14px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.7); }
-.coupon-card--past:active { transform: none; }
-.coupon-card--past .coupon-card__deal { background: none; -webkit-text-fill-color: initial; color: #8a8a8a; font-size: 22px; text-decoration: line-through; text-decoration-color: rgba(20,20,20,0.3); }
-.coupon-card--past .coupon-card__desc { color: #9a9a9a; }
-.coupon-card--past .coupon-card__notch::before { border-top-color: rgba(20,20,20,0.14); }
-.coupon-card__stamp {
-  position: relative; z-index: 1; align-self: flex-start;
-  font-family: "Quicksand", "Nunito", sans-serif; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
-  color: #565656; border: 1.5px solid rgba(90,90,90,0.4); border-radius: 8px; padding: 3px 8px; white-space: nowrap;
-}
 
 /* ---------------- Congratulation ticket ---------------- */
 .congrats {

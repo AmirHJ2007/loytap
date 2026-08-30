@@ -16,34 +16,6 @@ let signedUser = null;
 const $ = (id) => document.getElementById(id);
 const steps = { phone: $("stepPhone"), otp: $("stepOtp"), done: $("stepDone") };
 
-// ---- Add-to-home-screen hint (shown once, right after first registration) ----
-let deferredInstallPrompt = null;
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; });
-function showA2HS() {
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-  if (isStandalone) return;
-  const ua = navigator.userAgent || "";
-  const isIOS = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
-  const isAndroid = /android/i.test(ua);
-  if (!isIOS && !isAndroid) return;
-  $("a2hs").hidden = false;
-  if (isIOS) {
-    $("a2hsBody").textContent = "Tap the Share icon, then “Add to Home Screen”.";
-  } else {
-    $("a2hsBody").textContent = deferredInstallPrompt
-      ? "Install Reloy for quick access next time."
-      : "Open the browser menu and tap “Add to Home screen”.";
-    $("a2hsInstallBtn").hidden = !deferredInstallPrompt;
-  }
-}
-$("a2hsInstallBtn").addEventListener("click", async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  $("a2hsInstallBtn").hidden = true;
-});
-
 // ---------------- role & mode toggles ----------------
 $("roleSeg").addEventListener("click", (e) => {
   const b = e.target.closest(".seg__btn"); if (!b) return;
@@ -303,7 +275,6 @@ async function createCafe() {
     $("continueBtn").textContent = "Open dashboard";
     $("continueBtn").href = "owner.html";
     $("stepDone").hidden = false;
-    showA2HS();
   } catch (e) {
     err("Cannot reach the server.");
   } finally {
@@ -404,7 +375,6 @@ function finish() {
     $("continueBtn").href = dest;
   }
   go("done");
-  showA2HS();
 }
 
 // ---------------- helpers ----------------
