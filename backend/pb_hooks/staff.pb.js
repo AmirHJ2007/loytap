@@ -8,9 +8,13 @@ routerAdd("POST", "/staff/login", (e) => {
   const code = String(e.requestInfo().body.code || "").trim();
   if (!code) return e.json(400, { error: "Enter the café code" });
 
-  const cards = $app.findRecordsByFilter("cafe_card", "staff_code != ''", "", 500, 0, {});
-  const card = cards.find((c) => String(c.getString("staff_code") || "").toUpperCase() === code.toUpperCase());
-  if (!card) return e.json(401, { error: "Wrong code" });
+  const codes = $app.findRecordsByFilter("staff_codes", "code != ''", "", 500, 0, {});
+  const codeRec = codes.find((c) => String(c.getString("code") || "").toUpperCase() === code.toUpperCase());
+  if (!codeRec) return e.json(401, { error: "Wrong code" });
+
+  let card = null;
+  try { card = $app.findRecordById("cafe_card", codeRec.getString("cafe")); } catch (err) { card = null; }
+  if (!card) return e.json(500, { error: "Café missing" });
 
   let staff = null;
   try { staff = $app.findRecordById("users", card.getString("staff_user")); } catch (err) { staff = null; }

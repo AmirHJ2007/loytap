@@ -67,7 +67,7 @@ routerAdd("POST", "/owner/register", (e) => {
   for (let i = 0; i < 6; i++) {
     const cand = slug + "-" + $security.randomStringWithAlphabet(4, "0123456789");
     let clash = null;
-    try { clash = $app.findFirstRecordByFilter("cafe_card", "staff_code = {:c}", { c: cand }); } catch (err) { clash = null; }
+    try { clash = $app.findFirstRecordByFilter("staff_codes", "code = {:c}", { c: cand }); } catch (err) { clash = null; }
     if (!clash) { staffCode = cand; break; }
   }
   if (!staffCode) staffCode = slug + "-" + $security.randomStringWithAlphabet(6, "0123456789");
@@ -81,10 +81,16 @@ routerAdd("POST", "/owner/register", (e) => {
   card.set("reward_expiry_days", 30);
   card.set("stamp_cooldown_minutes", 0);
   card.set("min_purchase", 0);
-  card.set("staff_code", staffCode);
   card.set("staff_user", staff.id);
   card.set("owner_user", owner.id);
   $app.save(card);
+
+  // staff_code lives in its own locked-down collection — never exposed via
+  // cafe_card's (intentionally public, for the customer wallet) read rules.
+  const codeRec = new Record($app.findCollectionByNameOrId("staff_codes"));
+  codeRec.set("cafe", card.id);
+  codeRec.set("code", staffCode);
+  $app.save(codeRec);
 
   // a starter 10% discount so the café has something to offer on day one
   const reward = new Record($app.findCollectionByNameOrId("reward_options"));
@@ -158,12 +164,18 @@ routerAdd("GET", "/owner/cafe", (e) => {
     if (t) nfc = t.getString("code");
   } catch (err) {}
 
+  let staffCode = "";
+  try {
+    const sc = $app.findFirstRecordByFilter("staff_codes", "cafe = {:c}", { c: card.id });
+    if (sc) staffCode = sc.getString("code");
+  } catch (err) {}
+
   return e.json(200, {
     id: card.id,
     cafe_name: card.getString("cafe_name"),
     tagline: card.getString("tagline"),
     accent: card.getString("accent") || "#171717",
-    staff_code: card.getString("staff_code"),
+    staff_code: staffCode,
     stamps_required: card.getInt("stamps_required"),
     reward_expiry_days: card.getInt("reward_expiry_days"),
     min_purchase: card.getInt("min_purchase"),
