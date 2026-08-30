@@ -3,8 +3,14 @@
 // LoyTap phone OTP — dev mode returns the code in the response (no SMS).
 // Set KAVENEGAR_API_KEY (+ KAVENEGAR_TEMPLATE) in prod to send a real SMS instead.
 //
-//   POST /otp/request  { phone }                     -> { ok:true, devCode? }
-//   POST /otp/verify   { phone, code, name?, role? }  -> { token, user }
+//   POST /otp/request  { phone }              -> { ok:true, devCode? }
+//   POST /otp/verify   { phone, code, name? }  -> { token, user }
+//
+// This endpoint only ever signs in/creates *customer* accounts. Business
+// (admin) accounts are a separate identity and can only be created via the
+// dedicated, higher-friction /owner/register flow — never accept a
+// client-supplied role here, or anyone could mint themselves an admin
+// account just by verifying their own phone number.
 //
 // NOTE: PocketBase runs each handler in an isolated runtime, so helper functions
 // must be declared INSIDE the handler (no shared file-level scope).
@@ -72,7 +78,6 @@ routerAdd("POST", "/otp/verify", (e) => {
   const phone = norm(body.phone);
   const code = String(body.code || "").trim();
   const name = String(body.name || "").trim();
-  const wantRole = (body.role === "cafe" || body.role === "staff" || body.role === "admin") ? "admin" : "customer";
 
   if (!/^9\d{9}$/.test(phone) || !/^\d{6}$/.test(code)) {
     return e.json(400, { error: "Invalid phone or code" });
@@ -101,7 +106,7 @@ routerAdd("POST", "/otp/verify", (e) => {
     user.set("phone", phone);
     user.set("email", phone + "@phone.loytap"); // auth collection requires an email; phone is unique
     user.set("name", name || "Guest");
-    user.set("role", wantRole);
+    user.set("role", "customer");
     user.set("verified", true);
     user.setPassword($security.randomString(30));
     $app.save(user);
