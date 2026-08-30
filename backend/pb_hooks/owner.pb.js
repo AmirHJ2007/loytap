@@ -30,9 +30,11 @@ routerAdd("POST", "/owner/register", (e) => {
   if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters." });
   if (!cafeName) return e.json(400, { error: "Enter your café's name." });
 
+  // A phone may already have a customer account — that's a separate identity
+  // from a business account, so only block on an existing *business* account.
   let exists = null;
-  try { exists = $app.findFirstRecordByFilter("users", "phone = {:phone}", { phone }); } catch (err) { exists = null; }
-  if (exists) return e.json(409, { error: "This number is already registered. Sign in instead.", exists: true });
+  try { exists = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { exists = null; }
+  if (exists) return e.json(409, { error: "This number already has a business registered. Sign in instead.", exists: true });
 
   let emailExists = null;
   try { emailExists = $app.findFirstRecordByFilter("users", "email = {:email}", { email }); } catch (err) { emailExists = null; }
@@ -119,9 +121,11 @@ routerAdd("POST", "/owner/login", (e) => {
   const password = String(e.requestInfo().body.password || "");
   if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
 
+  // A phone can also have a separate customer account — fetch the business
+  // (admin) one specifically, not whichever row happens to match first.
   let u = null;
-  try { u = $app.findFirstRecordByFilter("users", "phone = {:phone}", { phone }); } catch (err) { u = null; }
-  if (!u || u.getString("role") !== "admin") {
+  try { u = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { u = null; }
+  if (!u) {
     return e.json(404, { error: "No owner account for this number", notRegistered: true });
   }
   if (!password) return e.json(400, { error: "Enter your password" });

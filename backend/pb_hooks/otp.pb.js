@@ -89,9 +89,11 @@ routerAdd("POST", "/otp/verify", (e) => {
   if (!otp) return e.json(400, { error: "Invalid or expired code" });
   $app.delete(otp);
 
+  // A phone can also have a separate business (admin) account — this endpoint
+  // only ever signs in/creates the customer one, never that other row.
   let user = null;
   try {
-    user = $app.findFirstRecordByFilter("users", "phone = {:phone}", { phone });
+    user = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'customer'", { phone });
   } catch (err) { user = null; }
 
   if (!user) {
