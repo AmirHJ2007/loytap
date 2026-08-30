@@ -16,6 +16,29 @@ let signedUser = null;
 const $ = (id) => document.getElementById(id);
 const steps = { phone: $("stepPhone"), otp: $("stepOtp"), done: $("stepDone") };
 
+applyI18n();
+document.getElementById("langSwitch").addEventListener("click", (e) => {
+  const b = e.target.closest(".lang-switch__btn"); if (!b) return;
+  setLang(b.dataset.lang);
+});
+
+// These fields are Latin-only (names/codes/email/password) regardless of UI
+// language — strip Persian/Arabic characters as they're typed, not just
+// visually align them LTR.
+const PERSIAN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿‌‏]/g;
+["name", "cafeName", "cCafe", "cName", "cafeCode", "cEmail", "cPass", "cPassConfirm", "ownerPass"].forEach((id) => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener("input", () => {
+    const filtered = el.value.replace(PERSIAN_RE, "");
+    if (filtered !== el.value) {
+      const pos = el.selectionStart - (el.value.length - filtered.length);
+      el.value = filtered;
+      el.setSelectionRange(pos, pos);
+    }
+  });
+});
+
 // ---------------- role & mode toggles ----------------
 $("roleSeg").addEventListener("click", (e) => {
   const b = e.target.closest(".seg__btn"); if (!b) return;
@@ -47,7 +70,7 @@ async function cafeLogin() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      $("cafeCodeErr").textContent = data.error || "Wrong code — try again.";
+      $("cafeCodeErr").textContent = data.error || t("AUTH_ERR_WRONG_CODE");
       $("cafeCodeErr").hidden = false;
       input.classList.remove("shake"); void input.offsetWidth; input.classList.add("shake");
       return;
@@ -60,7 +83,7 @@ async function cafeLogin() {
     } catch (_) {}
     location.href = "staff.html";
   } catch (err) {
-    $("cafeCodeErr").textContent = "Cannot reach the server.";
+    $("cafeCodeErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
     $("cafeCodeErr").hidden = false;
   } finally {
     $("cafeEnterBtn").disabled = false;
@@ -81,7 +104,7 @@ function syncFields() {
   const registering = mode === "register";
   $("fieldName").hidden = !registering;
   $("fieldCafe").hidden = !(registering && role === "cafe");
-  $("sendBtn").textContent = registering ? "Create account" : "Send code";
+  $("sendBtn").textContent = registering ? t("AUTH_BTN_CREATE_ACCOUNT") : t("AUTH_BTN_SEND");
 }
 
 // ---------------- phone step ----------------
@@ -119,7 +142,7 @@ async function requestCode() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (data.notRegistered) { showNotRegistered(); return; }
-      $("phoneErr").textContent = data.error || "Could not send the code."; $("phoneErr").hidden = false; return;
+      $("phoneErr").textContent = data.error || t("AUTH_ERR_SEND_FAILED"); $("phoneErr").hidden = false; return;
     }
     $("otpPhone").textContent = prettyPhone($("phone").value);
     go("otp");
@@ -127,7 +150,7 @@ async function requestCode() {
     if (data.devCode) fillOtp(data.devCode); // dev mode: no SMS, prefill the code
     otpInputs[0].focus();
   } catch (err) {
-    $("phoneErr").textContent = "Cannot reach the server. Is the backend running?";
+    $("phoneErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE_BACKEND");
     $("phoneErr").hidden = false;
   } finally {
     $("sendBtn").disabled = false;
@@ -153,7 +176,7 @@ function flashToast(title, msg, shakeEl) {
 }
 
 function showNotRegistered() {
-  flashToast("Not registered yet", "No account for this number — let's sign you up.", document.querySelector("#stepPhone .phone"));
+  flashToast(t("AUTH_TOAST_NOT_REGISTERED_TITLE"), t("AUTH_TOAST_NOT_REGISTERED_MSG"), document.querySelector("#stepPhone .phone"));
   setTimeout(() => {
     mode = "register";
     [...$("modeTabs").children].forEach((c) => c.classList.toggle("is-on", c.dataset.mode === "register"));
@@ -168,7 +191,7 @@ $("ownerBack").addEventListener("click", () => { $("stepOwner").hidden = true; $
 
 async function ownerLogin() {
   if (!validPhone($("ownerPhone").value)) {
-    flashToast("Invalid number", "Enter a valid mobile number.", document.querySelector("#stepOwner .phone"));
+    flashToast(t("AUTH_TOAST_INVALID_NUMBER_TITLE"), t("AUTH_TOAST_INVALID_NUMBER_MSG"), document.querySelector("#stepOwner .phone"));
     return;
   }
   const phone = normalizePhone($("ownerPhone").value);
@@ -182,8 +205,8 @@ async function ownerLogin() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      if (data.notRegistered) { flashToast("Not an owner", "No owner account for this number.", document.querySelector("#stepOwner .phone")); return; }
-      $("ownerErr").textContent = data.error || "Could not log in.";
+      if (data.notRegistered) { flashToast(t("AUTH_TOAST_NOT_OWNER_TITLE"), t("AUTH_TOAST_NOT_OWNER_MSG"), document.querySelector("#stepOwner .phone")); return; }
+      $("ownerErr").textContent = data.error || t("AUTH_ERR_LOGIN_FAILED");
       $("ownerErr").hidden = false;
       const p = $("ownerPass"); p.classList.remove("shake"); void p.offsetWidth; p.classList.add("shake");
       return;
@@ -197,7 +220,7 @@ async function ownerLogin() {
     } catch (_) {}
     location.href = "owner.html";
   } catch (err) {
-    $("ownerErr").textContent = "Cannot reach the server.";
+    $("ownerErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
     $("ownerErr").hidden = false;
   } finally {
     $("ownerLoginBtn").disabled = false;
@@ -248,11 +271,11 @@ async function createCafe() {
   const passwordConfirm = $("cPassConfirm").value;
   const err = (msg) => { $("createErr").textContent = msg; $("createErr").hidden = false; };
   $("createErr").hidden = true;
-  if (!cafe_name) { $("cCafe").focus(); return err("Enter your business's name."); }
-  if (!validPhone($("cPhone").value)) { $("cPhone").focus(); return err("Enter a valid mobile number."); }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("cEmail").focus(); return err("Enter a valid email address."); }
-  if (password.length < 6) { $("cPass").focus(); return err("Password must be at least 6 characters."); }
-  if (password !== passwordConfirm) { $("cPassConfirm").focus(); return err("Passwords do not match."); }
+  if (!cafe_name) { $("cCafe").focus(); return err(t("AUTH_ERR_BUSINESS_NAME_REQUIRED")); }
+  if (!validPhone($("cPhone").value)) { $("cPhone").focus(); return err(t("AUTH_ERR_PHONE_INVALID")); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("cEmail").focus(); return err(t("AUTH_ERR_EMAIL_INVALID")); }
+  if (password.length < 6) { $("cPass").focus(); return err(t("AUTH_ERR_PASSWORD_SHORT")); }
+  if (password !== passwordConfirm) { $("cPassConfirm").focus(); return err(t("AUTH_ERR_PASSWORD_MISMATCH")); }
   const phone = normalizePhone($("cPhone").value);
   $("createBtn").disabled = true;
   try {
@@ -261,7 +284,7 @@ async function createCafe() {
       body: JSON.stringify({ name, phone, email, password, cafe_name, tagline, accent: cAccentSel }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { return err(data.error || "Could not create your cafe."); }
+    if (!res.ok) { return err(data.error || t("AUTH_ERR_CREATE_FAILED")); }
     try {
       localStorage.setItem("loytap_token", data.token || "");
       localStorage.setItem("loytap_role", data.role || "admin");
@@ -270,13 +293,13 @@ async function createCafe() {
       localStorage.setItem("loytap_cafe", data.cafe_name || "");
     } catch (_) {}
     $("stepCreate").hidden = true;
-    $("doneTitle").textContent = "Business registered!";
-    $("doneSub").textContent = "Our support team will be in touch soon to hand over your NFC tag — you'll need it before customers can start collecting stamps.";
-    $("continueBtn").textContent = "Open dashboard";
+    $("doneTitle").textContent = t("AUTH_BUSINESS_REGISTERED_TITLE");
+    $("doneSub").textContent = t("AUTH_BUSINESS_REGISTERED_SUB");
+    $("continueBtn").textContent = t("AUTH_BTN_OPEN_DASHBOARD");
     $("continueBtn").href = "owner.html";
     $("stepDone").hidden = false;
   } catch (e) {
-    err("Cannot reach the server.");
+    err(t("AUTH_ERR_SERVER_UNREACHABLE"));
   } finally {
     $("createBtn").disabled = false;
   }
@@ -316,7 +339,7 @@ $("verifyBtn").addEventListener("click", async () => {
       body: JSON.stringify({ phone, code, name: $("name").value.trim(), role }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { $("otpErr").textContent = data.error || "Invalid or expired code."; $("otpErr").hidden = false; return; }
+    if (!res.ok) { $("otpErr").textContent = data.error || t("AUTH_ERR_CODE_INVALID"); $("otpErr").hidden = false; return; }
     stopResend();
     signedUser = data.user || null;
     try {
@@ -330,7 +353,7 @@ $("verifyBtn").addEventListener("click", async () => {
     } catch (_) {}
     finish();
   } catch (err) {
-    $("otpErr").textContent = "Cannot reach the server.";
+    $("otpErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
     $("otpErr").hidden = false;
   } finally {
     $("verifyBtn").disabled = false;
@@ -338,19 +361,19 @@ $("verifyBtn").addEventListener("click", async () => {
 });
 
 function startResend() {
-  let t = 60;
-  $("resendT").textContent = t;
+  let secs = 60;
+  const render = (s) => t("AUTH_RESEND_COUNTDOWN", { s }).replace(String(s), "<b>" + s + "</b>");
   $("resend").classList.remove("ready");
-  $("resend").innerHTML = 'Resend code in <b id="resendT">' + t + "</b>s";
+  $("resend").innerHTML = render(secs);
   resendTimer = setInterval(() => {
-    t -= 1;
-    if (t <= 0) {
+    secs -= 1;
+    if (secs <= 0) {
       stopResend();
       $("resend").classList.add("ready");
-      $("resend").textContent = "Resend code";
+      $("resend").textContent = t("AUTH_RESEND_READY");
       $("resend").onclick = () => { requestCode(); };
     } else {
-      $("resend").innerHTML = 'Resend code in <b>' + t + "</b>s";
+      $("resend").innerHTML = render(secs);
     }
   }, 1000);
 }
@@ -364,14 +387,14 @@ function finish() {
   // signing in (existing account) skips the confirmation screen and goes straight in
   if (mode === "signin") { location.href = dest; return; }
   if (isCafe) {
-    $("doneTitle").textContent = "Business registered!";
-    $("doneSub").textContent = "Opening your scanner…";
-    $("continueBtn").textContent = "Open scanner";
+    $("doneTitle").textContent = t("AUTH_BUSINESS_REGISTERED_TITLE");
+    $("doneSub").textContent = t("AUTH_OPENING_SCANNER");
+    $("continueBtn").textContent = t("AUTH_BTN_OPEN_SCANNER");
     $("continueBtn").href = dest;
   } else {
-    $("doneTitle").textContent = `Welcome, ${name || "there"}!`;
-    $("doneSub").textContent = "Opening your wallet…";
-    $("continueBtn").textContent = "Open my wallet";
+    $("doneTitle").textContent = t("AUTH_WELCOME", { name: name || t("AUTH_THERE") });
+    $("doneSub").textContent = t("AUTH_OPENING_WALLET");
+    $("continueBtn").textContent = t("AUTH_BTN_OPEN_WALLET");
     $("continueBtn").href = dest;
   }
   go("done");

@@ -13,7 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=72" />
+  <link rel="stylesheet" href="styles.css?v=79" />
+  <script src="i18n.js"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -32,7 +33,7 @@
     <span class="grain"></span>
   </div>
 
-  <button class="signout-btn" id="signoutBtn" aria-label="Sign out" title="Sign out">
+  <button class="signout-btn" id="signoutBtn" aria-label="Sign out" title="Sign out" data-i18n-aria="WALLET_SIGNOUT" data-i18n-title="WALLET_SIGNOUT">
     <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
       <path d="M16 17l5-5-5-5"/>
@@ -40,16 +41,16 @@
     </svg>
   </button>
 
-  <button class="wallet-close" id="walletClose" type="button" aria-label="Back to wallet" hidden>✕</button>
+  <button class="wallet-close" id="walletClose" type="button" aria-label="Back to wallet" hidden data-i18n-aria="WALLET_ARIA_BACK_TO_WALLET">✕</button>
 
   <main class="stage">
-    <p class="greeting" id="greeting">Welcome back 👋</p>
+    <p class="greeting" id="greeting"></p>
     <div class="wallet" id="wallet"></div>
   </main>
 
   <!-- Stamp button, pinned to the bottom of the screen -->
   <div class="stampbar">
-    <button class="btn btn--primary stampbar__btn" id="stampFab" type="button"><span class="btn__label">Stamp</span></button>
+    <button class="btn btn--primary stampbar__btn" id="stampFab" type="button"><span class="btn__label" data-i18n="WALLET_STAMP_BTN">Stamp</span></button>
   </div>
 
   <!-- The shared rubber stamp tool that flies in and presses down -->
@@ -78,7 +79,7 @@
   </div>
 
   <!-- Discounts pocket -->
-  <button class="pocket-btn" id="pocketBtn" aria-label="My discounts" title="My discounts">
+  <button class="pocket-btn" id="pocketBtn" aria-label="My discounts" title="My discounts" data-i18n-aria="WALLET_ARIA_MY_DISCOUNTS" data-i18n-title="WALLET_ARIA_MY_DISCOUNTS">
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M3 8.5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 1.5 1.5 0 0 0 0 3v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a1.5 1.5 0 0 0 0-3Z"/>
       <path d="M14 6.5v11" stroke-dasharray="1.5 2"/>
@@ -90,12 +91,12 @@
   <aside class="drawer" id="drawer" aria-hidden="true" aria-label="My discounts">
     <div class="drawer__grip" aria-hidden="true"></div>
     <header class="drawer__head">
-      <button class="drawer__back" id="drawerBack" aria-label="Back" hidden>‹</button>
-      <h2 class="drawer__title" id="drawerTitle">My Cafés</h2>
-      <button class="drawer__close" id="drawerClose" aria-label="Close">✕</button>
+      <button class="drawer__back" id="drawerBack" aria-label="Back" hidden data-i18n-aria="WALLET_ARIA_BACK">‹</button>
+      <h2 class="drawer__title" id="drawerTitle" data-i18n="WALLET_MY_CAFES">My Cafés</h2>
+      <button class="drawer__close" id="drawerClose" aria-label="Close" data-i18n-aria="WALLET_ARIA_CLOSE">✕</button>
     </header>
     <div class="drawer__list" id="drawerList">
-      <p class="drawer__empty" id="drawerEmpty">No discounts yet.<br/>Fill a card to earn one.</p>
+      <p class="drawer__empty" id="drawerEmpty" data-i18n-html="WALLET_EMPTY_DISCOUNTS">No discounts yet.<br/>Fill a card to earn one.</p>
     </div>
   </aside>
 
@@ -103,62 +104,71 @@
   <div class="congrats" id="congrats" hidden aria-hidden="true">
     <div class="ticket">
       <div class="ticket__pop">🎉</div>
-      <h2 class="ticket__title">Congratulation!</h2>
-      <p class="ticket__sub" id="congratsSub">Show this screen to the staff to claim your reward</p>
+      <h2 class="ticket__title" data-i18n="WALLET_CONGRATS_TITLE">Congratulation!</h2>
+      <p class="ticket__sub" id="congratsSub" data-i18n="WALLET_CONGRATS_SUB_DEFAULT">Show this screen to the staff to claim your reward</p>
       <div class="ticket__divider"></div>
       <div class="ticket__stats">
-        <div><span class="ticket__k">Discount</span><span class="ticket__v" id="ticketDiscount">—</span></div>
-        <div><span class="ticket__k">Due date</span><span class="ticket__v" id="ticketDue">—</span></div>
-        <div><span class="ticket__k">One time</span><span class="ticket__v" id="ticketOnce">Yes</span></div>
+        <div><span class="ticket__k" data-i18n="WALLET_TICKET_DISCOUNT">Discount</span><span class="ticket__v" id="ticketDiscount">—</span></div>
+        <div><span class="ticket__k" data-i18n="WALLET_TICKET_DUE">Due date</span><span class="ticket__v" id="ticketDue">—</span></div>
+        <div><span class="ticket__k" data-i18n="WALLET_TICKET_ONETIME">One time</span><span class="ticket__v" id="ticketOnce" data-i18n="WALLET_TICKET_YES">Yes</span></div>
       </div>
       <div class="ticket__divider"></div>
       <div class="ticket__qr" id="ticketQr"></div>
-      <p class="ticket__hint" id="ticketHint">Show this QR to the staff</p>
+      <p class="ticket__hint" id="ticketHint" data-i18n="WALLET_TICKET_HINT_DEFAULT">Show this QR to the staff</p>
       <p class="ticket__code" id="ticketCode">—</p>
-      <div class="ticket__used" id="ticketUsed" hidden><span class="ticket__usedmark">Used</span></div>
+      <div class="ticket__used" id="ticketUsed" hidden><span class="ticket__usedmark" data-i18n="WALLET_TICKET_USED">Used</span></div>
     </div>
-    <button class="congrats__continue" id="congratsContinue" type="button">Continue</button>
+    <button class="congrats__continue" id="congratsContinue" type="button" data-i18n="WALLET_CONTINUE">Continue</button>
   </div>
 
   <!-- Settings bottom sheet -->
   <aside class="sheet" id="settings" aria-hidden="true" aria-label="Settings">
     <div class="sheet__grip" aria-hidden="true"></div>
-    <h2 class="sheet__title">Settings</h2>
+    <h2 class="sheet__title" data-i18n="WALLET_SETTINGS_TITLE">Settings</h2>
     <div class="sheet__rows">
-      <div class="srow"><span class="srow__k">Name</span><span class="srow__v" id="setName">—</span></div>
-      <div class="srow"><span class="srow__k">Phone</span><span class="srow__v" id="setPhone">—</span></div>
-      <div class="srow"><span class="srow__k">Version</span><span class="srow__v">Reloy 1.0</span></div>
+      <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_NAME">Name</span><span class="srow__v" id="setName">—</span></div>
+      <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_PHONE">Phone</span><span class="srow__v" id="setPhone">—</span></div>
+      <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_VERSION">Version</span><span class="srow__v">Reloy 1.0</span></div>
+      <div class="srow">
+        <span class="srow__k" data-i18n="LANG_EN">Language</span>
+        <span class="srow__v">
+          <span class="lang-switch" id="langSwitch">
+            <button class="lang-switch__btn" data-lang="en" type="button" data-i18n="LANG_EN">English</button>
+            <button class="lang-switch__btn" data-lang="fa" type="button" data-i18n="LANG_FA">فارسی</button>
+          </span>
+        </span>
+      </div>
     </div>
-    <button class="sheet__signout" id="setSignout" type="button">Sign out</button>
+    <button class="sheet__signout" id="setSignout" type="button" data-i18n="WALLET_SIGNOUT">Sign out</button>
   </aside>
 
   <!-- Glassy bottom navigation -->
   <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
     <span class="tabbar__ind" aria-hidden="true"></span>
-    <button class="tab" id="tabDiscounts" type="button" aria-label="Discounts">
+    <button class="tab" id="tabDiscounts" type="button" aria-label="Discounts" data-i18n-aria="WALLET_TAB_DISCOUNTS">
       <span class="tab__ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-8-8V3.6a1 1 0 0 1 1-1H12l8.6 8.6a2 2 0 0 1 0 2.2z"/><circle cx="7.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg>
         <span class="tab__badge" id="tabBadge" hidden>0</span>
       </span>
-      <span class="tab__label">Discounts</span>
+      <span class="tab__label" data-i18n="WALLET_TAB_DISCOUNTS">Discounts</span>
     </button>
-    <button class="tab is-active" id="tabWallet" type="button" aria-label="Wallet">
+    <button class="tab is-active" id="tabWallet" type="button" aria-label="Wallet" data-i18n-aria="WALLET_TAB_WALLET">
       <span class="tab__ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/><path d="M21 8.5h-5a2.5 2.5 0 0 0 0 5h5a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/></svg>
       </span>
-      <span class="tab__label">Wallet</span>
+      <span class="tab__label" data-i18n="WALLET_TAB_WALLET">Wallet</span>
     </button>
-    <button class="tab" id="tabSettings" type="button" aria-label="Settings">
+    <button class="tab" id="tabSettings" type="button" aria-label="Settings" data-i18n-aria="WALLET_SETTINGS_TITLE">
       <span class="tab__ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.1" fill="none"/><circle cx="15" cy="12" r="2.1" fill="none"/><circle cx="8" cy="17" r="2.1" fill="none"/></svg>
       </span>
-      <span class="tab__label">Settings</span>
+      <span class="tab__label" data-i18n="WALLET_SETTINGS_TITLE">Settings</span>
     </button>
   </nav>
 
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=59"></script>
+  <script src="app.js?v=63"></script>
 </body>
 </html>

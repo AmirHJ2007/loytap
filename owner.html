@@ -13,6 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
+  <script src="i18n.js"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -21,11 +22,17 @@
       --glass-fill: rgba(255,255,255,0.34); --glass-fill-strong: rgba(255,255,255,0.55);
       --glass-border: rgba(255,255,255,0.7); --glass-hi: rgba(255,255,255,0.9);
       --glass-shadow: 0 34px 70px -28px rgba(20,20,20,0.5);
+      --font-heading: "Quicksand", sans-serif;
+      --font-body: "Nunito", system-ui, sans-serif;
+    }
+    html[dir="rtl"] {
+      --font-heading: "Vazirmatn", "Quicksand", sans-serif;
+      --font-body: "Vazirmatn", "Nunito", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
     body {
-      font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
+      font-family: var(--font-body); color: var(--ink);
       background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
       min-height: 100dvh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
@@ -47,12 +54,12 @@
 
     /* ---------------- Header: café name pinned to the top ---------------- */
     .own-head { position: absolute; top: 26px; left: 0; right: 0; text-align: center; z-index: 2; padding: 0 60px; }
-    .own-cafe { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 22px; margin: 0; letter-spacing: -0.3px; line-height: 1.25; color: var(--ink); text-shadow: 0 1px 10px rgba(255,255,255,0.4); animation: fadeDown 0.7s var(--ease-spring) both; }
+    .own-cafe { font-family: var(--font-heading); font-weight: 700; font-size: 22px; margin: 0; letter-spacing: -0.3px; line-height: 1.25; color: var(--ink); text-shadow: 0 1px 10px rgba(255,255,255,0.4); animation: fadeDown 0.7s var(--ease-spring) both; }
     @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     .own-topline { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 4px; }
-    .own-badge { font-family: "Quicksand", sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--dim); background: rgba(255,255,255,0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; padding: 6px 16px; animation: fadeUp 0.6s var(--ease-spring) 0.1s both; }
+    .own-badge { font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--dim); background: rgba(255,255,255,0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; padding: 6px 16px; animation: fadeUp 0.6s var(--ease-spring) 0.1s both; }
     .own-hi { margin: 0; font-size: 14px; color: var(--dim); animation: fadeUp 0.6s var(--ease-spring) 0.16s both; }
     .own-hi b { color: var(--ink); }
 
@@ -76,10 +83,13 @@
     .analytics-cta:active { transform: scale(0.99); }
     .analytics-cta__icon { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 13px; display: grid; place-items: center; font-size: 22px; background: rgba(255,255,255,0.12); }
     .analytics-cta__body { flex: 1; min-width: 0; }
-    .analytics-cta__body b { display: block; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; }
+    .analytics-cta__body b { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 16px; }
     .analytics-cta__body span { font-size: 12.5px; color: rgba(255,255,255,0.65); }
     .analytics-cta__arrow { font-size: 26px; font-weight: 700; color: rgba(255,255,255,0.5); line-height: 1; }
     @keyframes cardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    /* analytics link stays laid out like the English version — icon/arrow keep their side, only the text reads RTL */
+    .analytics-cta { direction: ltr; }
+    html[dir="rtl"] .analytics-cta__body { direction: rtl; text-align: right; }
 
     /* tiles — frosted glass */
     .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
@@ -95,15 +105,15 @@
     .tile--code:active { transform: scale(0.98); }
     .tile--code .tile__icon { background: rgba(255,255,255,0.12); }
     .tile--code .tile__k { color: rgba(255,255,255,0.5); }
-    .tile__code { position: relative; z-index: 1; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 700; font-size: 21px; letter-spacing: 1.5px; color: #fff; }
+    .tile__code { position: relative; z-index: 1; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 700; font-size: 21px; letter-spacing: 1.5px; color: #fff; direction: ltr; unicode-bidi: isolate; }
     .tile__hint { margin-top: auto; padding-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
     .tile--code.copied .tile__hint { color: #7fdca4; }
 
     /* stamps / reward — glass, editable stepper */
-    .tile__num { font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 40px; line-height: 1; color: var(--ink); margin-top: auto; }
-    .tile__stepper { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+    .tile__num { font-family: var(--font-heading); font-weight: 800; font-size: 40px; line-height: 1; color: var(--ink); margin-top: auto; }
+    .tile__stepper { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; direction: ltr; }
     .tile__stepper .tile__num { font-size: 32px; margin-top: 0; min-width: 30px; text-align: center; }
-    .step { width: 32px; height: 32px; flex: 0 0 auto; border-radius: 10px; border: 1.5px solid rgba(20,20,20,0.14); background: rgba(255,255,255,0.65); color: var(--ink); font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: background 0.15s ease, transform 0.1s ease; }
+    .step { width: 32px; height: 32px; flex: 0 0 auto; border-radius: 10px; border: 1.5px solid rgba(20,20,20,0.14); background: rgba(255,255,255,0.65); color: var(--ink); font-family: var(--font-heading); font-weight: 800; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: background 0.15s ease, transform 0.1s ease; }
     .step:hover { background: rgba(255,255,255,0.9); }
     .step:active { transform: scale(0.9); }
     .step:disabled { opacity: 0.35; cursor: default; }
@@ -115,13 +125,14 @@
     /* discounts box — frosted glass */
     .box { border-radius: 22px; padding: 20px 18px 22px; animation: cardIn 0.7s var(--ease-spring) 0.32s both; }
     .box__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-    .box__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 19px; margin: 0; }
+    .box__title { font-family: var(--font-heading); font-weight: 700; font-size: 19px; margin: 0; }
     .box__sub { margin: 3px 0 0; font-size: 12px; color: var(--dim); }
-    .add-btn { flex: 0 0 auto; background: var(--ink); color: #fff; border: none; border-radius: 12px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 14px; padding: 10px 15px; cursor: pointer; transition: background 0.2s ease; }
+    .add-btn { flex: 0 0 auto; background: var(--ink); color: #fff; border: none; border-radius: 12px; font-family: var(--font-heading); font-weight: 700; font-size: 14px; padding: 10px 15px; cursor: pointer; transition: background 0.2s ease; }
     .add-btn:hover { background: #000; }
     .add-btn:active { transform: scale(0.97); }
 
-    .rw-list { display: flex; flex-direction: column; gap: 10px; }
+    .rw-list { display: flex; flex-direction: column; gap: 10px; direction: ltr; }
+    html[dir="rtl"] .rw__main { direction: rtl; text-align: right; }
     .rw {
       position: relative; display: flex; align-items: center; gap: 12px; overflow: hidden;
       background: linear-gradient(150deg, rgba(255,255,255,0.62), rgba(255,255,255,0.4));
@@ -138,13 +149,13 @@
     .rw__badge {
       flex: 0 0 auto; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; line-height: 1;
       background: linear-gradient(150deg, #2b2b2b, #121212); color: #fff;
-      font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 15px; letter-spacing: -0.5px;
+      font-family: var(--font-heading); font-weight: 800; font-size: 15px; letter-spacing: -0.5px;
       box-shadow: 0 8px 16px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
     }
     .rw__badge--emoji { font-size: 23px; }
     .rw__main { min-width: 0; flex: 1; }
     .rw__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .rw__deal { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); }
+    .rw__deal { font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--ink); }
     .rw__off { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #8a6d00; background: rgba(214,178,42,0.2); border-radius: 20px; padding: 3px 9px; }
     .rw__desc { margin: 2px 0 0; font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .rw__exp { display: inline-flex; align-items: center; gap: 5px; margin: 6px 0 0; font-size: 10.5px; font-weight: 700; color: var(--dim); background: rgba(20,20,20,0.05); border-radius: 20px; padding: 3px 9px; }
@@ -152,7 +163,7 @@
     .rw__del:hover { background: rgba(192,80,63,0.2); transform: scale(1.07); }
     .rw__confirm { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; animation: pop 0.2s ease; }
     .rw__ask { font-size: 12px; font-weight: 700; color: var(--bad); }
-    .rw__yes, .rw__no { border: none; border-radius: 9px; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 12px; padding: 6px 11px; cursor: pointer; }
+    .rw__yes, .rw__no { border: none; border-radius: 9px; font-family: var(--font-heading); font-weight: 700; font-size: 12px; padding: 6px 11px; cursor: pointer; }
     .rw__yes { background: var(--bad); color: #fff; }
     .rw__no { background: rgba(0,0,0,0.08); color: var(--dim); }
     .rw-empty { text-align: center; color: var(--faint); font-size: 13px; padding: 22px 14px; }
@@ -167,27 +178,27 @@
       background: linear-gradient(150deg, #2b2b2b 0%, #161616 60%, #0c0c0c 100%); color: #fff;
       box-shadow: 0 14px 26px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08); }
     .pv-card::after { content: ""; position: absolute; top: -24px; right: -24px; width: 82px; height: 82px; border-radius: 50%; background: rgba(255,255,255,0.14); filter: blur(20px); }
-    .pv-kicker { font-family: "Quicksand", sans-serif; font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.4px; color: rgba(255,255,255,0.5); }
-    .pv-deal { position: relative; z-index: 1; margin: 5px 0 0; font-family: "Quicksand", sans-serif; font-weight: 800; font-size: 23px; letter-spacing: -0.5px;
+    .pv-kicker { font-family: var(--font-heading); font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.4px; color: rgba(255,255,255,0.5); }
+    .pv-deal { position: relative; z-index: 1; margin: 5px 0 0; font-family: var(--font-heading); font-weight: 800; font-size: 23px; letter-spacing: -0.5px;
       background: linear-gradient(180deg, #fff, #cfcfcf); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .pv-desc { position: relative; z-index: 1; margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,0.62); min-height: 14px; }
     .pv-exp { display: inline-block; margin-top: 9px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.6); border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px; }
 
-    .add-form input[type=text], .add-form input:not([type]) { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-bottom: 10px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
-    .add-form input[type=number] { width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .add-form input[type=text], .add-form input:not([type]) { width: 100%; font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-bottom: 10px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .add-form input[type=number] { width: 100%; font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
     .fl--exp { flex: 1; }
     .add-form input:focus, .fl select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,20,0.08); }
     .add-hint { margin: 0 0 12px; font-size: 12px; color: var(--dim); line-height: 1.5; }
     .add-form__row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
     .fl { font-size: 12px; font-weight: 700; color: var(--dim); display: flex; flex-direction: column; gap: 5px; }
-    .fl select { font-family: "Nunito", sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; width: 100%; }
+    .fl select { font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; margin-top: 6px; width: 100%; }
     .fl select:focus { border-color: var(--ink); }
     .fl--full { width: 100%; margin-bottom: 12px; }
     .fl--check { flex-direction: row; align-items: center; gap: 7px; }
     .fl--check input { width: 18px; height: 18px; }
     .add-form__actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .btn-ghost { background: rgba(255,255,255,0.4); border: 1.5px solid rgba(255,255,255,0.5); color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; border-radius: 11px; padding: 9px 16px; cursor: pointer; }
-    .btn-solid { background: var(--ink); color: #fff; border: none; font-family: "Quicksand", sans-serif; font-weight: 700; border-radius: 11px; padding: 9px 18px; cursor: pointer; }
+    .btn-ghost { background: rgba(255,255,255,0.4); border: 1.5px solid rgba(255,255,255,0.5); color: var(--dim); font-family: var(--font-heading); font-weight: 700; border-radius: 11px; padding: 9px 16px; cursor: pointer; }
+    .btn-solid { background: var(--ink); color: #fff; border: none; font-family: var(--font-heading); font-weight: 700; border-radius: 11px; padding: 9px 18px; cursor: pointer; }
     .btn-solid:hover { background: #000; }
     .add-err { color: var(--bad); font-size: 12px; font-weight: 600; margin: 8px 0 0; }
     .note { margin: 4px 4px 0; font-size: 12px; color: var(--faint); line-height: 1.5; text-align: center; }
@@ -196,7 +207,7 @@
     .signout-cta {
       display: flex; align-items: center; justify-content: center; gap: 9px;
       width: 100%; padding: 15px 20px; border-radius: 16px;
-      font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 15px;
+      font-family: var(--font-heading); font-weight: 700; font-size: 15px;
       color: #c0503f; cursor: pointer; margin-top: 4px;
       background: linear-gradient(155deg, rgba(253,241,238,0.5), rgba(247,221,214,0.4));
       backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
@@ -210,9 +221,9 @@
 
     /* minimum purchase section */
     .minp { animation: cardIn 0.7s var(--ease-spring) 0.29s both; }
-    .minp__row { display: flex; gap: 10px; align-items: stretch; margin-top: 2px; }
+    .minp__row { display: flex; gap: 10px; align-items: stretch; margin-top: 2px; direction: ltr; }
     .minp__field { position: relative; flex: 1; display: flex; align-items: center; }
-    .minp__field input { width: 100%; font-family: "Nunito", sans-serif; font-weight: 700; font-size: 16px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 12px; padding: 12px 60px 12px 14px; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .minp__field input { width: 100%; font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 12px; padding: 12px 60px 12px 14px; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
     .minp__field input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,20,0.08); }
     .minp__unit { position: absolute; right: 14px; font-size: 13px; font-weight: 700; color: var(--faint); pointer-events: none; }
     .minp .btn-solid { flex: 0 0 auto; padding: 0 20px; }
@@ -235,88 +246,88 @@
       <h1 class="own-cafe" id="cafeName">your café</h1>
     </header>
     <div class="own-topline">
-      <span class="own-badge">Owner Dashboard</span>
-      <p class="own-hi">Hello, <b id="ownerName">Owner</b> 👋</p>
+      <span class="own-badge" data-i18n="OWNER_BADGE">Owner Dashboard</span>
+      <p class="own-hi" id="ownHi">Hello, <b id="ownerName">Owner</b> 👋</p>
     </div>
 
     <a class="analytics-cta" href="analytics.html">
       <span class="analytics-cta__icon">📊</span>
-      <span class="analytics-cta__body"><b>View analytics</b><span>Loyalty, redemptions &amp; trends</span></span>
+      <span class="analytics-cta__body"><b data-i18n="OWNER_ANALYTICS_TITLE">View analytics</b><span data-i18n="OWNER_ANALYTICS_SUB">Loyalty, redemptions &amp; trends</span></span>
       <span class="analytics-cta__arrow">›</span>
     </a>
 
     <div class="tiles">
-      <div class="tile tile--code" id="codeTile" role="button" tabindex="0" title="Tap to copy">
+      <div class="tile tile--code" id="codeTile" role="button" tabindex="0" title="Tap to copy" data-i18n-title="OWNER_TAP_TO_COPY">
         <span class="tile__icon">🔑</span>
-        <span class="tile__k">Staff code</span>
+        <span class="tile__k" data-i18n="OWNER_STAFF_CODE_LABEL">Staff code</span>
         <span class="tile__code" id="staffCode">—</span>
-        <span class="tile__hint" id="codeHint">Tap to copy</span>
+        <span class="tile__hint" id="codeHint" data-i18n="OWNER_TAP_TO_COPY">Tap to copy</span>
       </div>
       <div class="tile tile--stamps glass">
         <span class="tile__icon">🎯</span>
-        <span class="tile__k">Stamps / reward</span>
+        <span class="tile__k" data-i18n="OWNER_STAMPS_LABEL">Stamps / reward</span>
         <div class="tile__stepper">
-          <button class="step" id="stampsDec" type="button" aria-label="Fewer stamps">−</button>
+          <button class="step" id="stampsDec" type="button" aria-label="Fewer stamps" data-i18n-aria="OWNER_ARIA_FEWER">−</button>
           <span class="tile__num" id="stampsReq">—</span>
-          <button class="step" id="stampsInc" type="button" aria-label="More stamps">+</button>
+          <button class="step" id="stampsInc" type="button" aria-label="More stamps" data-i18n-aria="OWNER_ARIA_MORE">+</button>
         </div>
-        <span class="tile__unit" id="stampsHint">to earn a reward</span>
+        <span class="tile__unit" id="stampsHint" data-i18n="OWNER_STAMPS_HINT">to earn a reward</span>
       </div>
     </div>
-    <p class="tiles-note">Changing the stamp count applies to each customer's <b>next</b> card — cards already in progress keep their current goal.</p>
+    <p class="tiles-note" data-i18n-html="OWNER_TILES_NOTE_HTML">Changing the stamp count applies to each customer's <b>next</b> card — cards already in progress keep their current goal.</p>
 
     <section class="box glass minp">
-      <h2 class="box__title">Minimum purchase for a stamp</h2>
-      <p class="box__sub">Optional — the amount a customer must spend to earn one stamp.</p>
+      <h2 class="box__title" data-i18n="OWNER_MINP_TITLE">Minimum purchase for a stamp</h2>
+      <p class="box__sub" data-i18n="OWNER_MINP_SUB">Optional — the amount a customer must spend to earn one stamp.</p>
       <div class="minp__row">
         <div class="minp__field">
           <input type="number" id="fMinPurchase" min="0" step="1000" inputmode="numeric" placeholder="e.g. 50000" />
-          <span class="minp__unit">toman</span>
+          <span class="minp__unit" data-i18n="OWNER_TOMAN">toman</span>
         </div>
-        <button class="btn-solid" id="minSave" type="button">Save</button>
+        <button class="btn-solid" id="minSave" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
       </div>
-      <p class="minp__note"><b>⚠️ Your staff's responsibility:</b> we only display this on your loyalty card. We don't have access to your accounting system, so your staff must give a stamp only when the customer buys at least this amount. Leave it empty for no minimum.</p>
+      <p class="minp__note" data-i18n-html="OWNER_MINP_NOTE_HTML"><b>⚠️ Your staff's responsibility:</b> we only display this on your loyalty card. We don't have access to your accounting system, so your staff must give a stamp only when the customer buys at least this amount. Leave it empty for no minimum.</p>
       <p class="add-err" id="minErr" hidden></p>
-      <p class="minp__ok" id="minOk" hidden>Saved ✓</p>
+      <p class="minp__ok" id="minOk" hidden data-i18n="OWNER_SAVED">Saved ✓</p>
     </section>
 
     <section class="box glass">
       <div class="box__head">
         <div>
-          <h2 class="box__title">Discounts you offer</h2>
-          <p class="box__sub">Filling a card wins one of these at random — all equally likely</p>
+          <h2 class="box__title" data-i18n="OWNER_DISCOUNTS_TITLE">Discounts you offer</h2>
+          <p class="box__sub" data-i18n="OWNER_DISCOUNTS_SUB">Filling a card wins one of these at random — all equally likely</p>
         </div>
-        <button class="add-btn" id="addBtn" type="button">+ Add</button>
+        <button class="add-btn" id="addBtn" type="button" data-i18n="OWNER_BTN_ADD">+ Add</button>
       </div>
 
       <div class="add-form" id="addForm">
         <div class="pv-card" aria-hidden="true">
-          <span class="pv-kicker">Reward preview</span>
-          <p class="pv-deal" id="pvDeal">Your deal</p>
+          <span class="pv-kicker" data-i18n="OWNER_PV_KICKER">Reward preview</span>
+          <p class="pv-deal" id="pvDeal" data-i18n="OWNER_PV_DEAL_DEFAULT">Your deal</p>
           <p class="pv-desc" id="pvDesc"></p>
           <span class="pv-exp" id="pvExp">Expires 2 weeks after it's won</span>
         </div>
-        <input type="text" id="fDeal" placeholder="Deal — e.g. 20% OFF or Free coffee" />
-        <input type="text" id="fDesc" placeholder="Short description (optional)" />
+        <input type="text" id="fDeal" placeholder="Deal — e.g. 20% OFF or Free coffee" data-i18n-placeholder="OWNER_PH_DEAL" />
+        <input type="text" id="fDesc" placeholder="Short description (optional)" data-i18n-placeholder="OWNER_PH_DESC" />
         <div class="add-form__row">
-          <label class="fl fl--exp">Expires after
+          <label class="fl fl--exp"><span data-i18n="OWNER_LABEL_EXPIRES_AFTER">Expires after</span>
             <input type="number" id="fExpAmt" min="1" max="365" value="2" />
           </label>
-          <label class="fl fl--exp">Unit
+          <label class="fl fl--exp"><span data-i18n="OWNER_LABEL_UNIT">Unit</span>
             <select id="fExpUnit">
-              <option value="day">days</option>
-              <option value="week" selected>weeks</option>
-              <option value="month">months</option>
+              <option value="day" data-i18n="OWNER_OPT_DAYS">days</option>
+              <option value="week" selected data-i18n="OWNER_OPT_WEEKS">weeks</option>
+              <option value="month" data-i18n="OWNER_OPT_MONTHS">months</option>
             </select>
           </label>
         </div>
-        <p class="add-hint">Every reward has an equal chance of being won. Want this one to come up more often? Add more than one copy.</p>
+        <p class="add-hint" data-i18n="OWNER_ADD_HINT">Every reward has an equal chance of being won. Want this one to come up more often? Add more than one copy.</p>
         <div class="add-form__row">
-          <label class="fl">How many to add?
+          <label class="fl"><span data-i18n="OWNER_LABEL_QTY">How many to add?</span>
             <select id="fQty">
-              <option value="1" selected>1 copy</option>
-              <option value="2">2 copies — 2× more likely</option>
-              <option value="3">3 copies — 3× more likely</option>
+              <option value="1" selected data-i18n="OWNER_QTY_1">1 copy</option>
+              <option value="2" data-i18n="OWNER_QTY_2">2 copies — 2× more likely</option>
+              <option value="3" data-i18n="OWNER_QTY_3">3 copies — 3× more likely</option>
               <option value="4">4 copies</option>
               <option value="5">5 copies</option>
               <option value="6">6 copies</option>
@@ -326,11 +337,11 @@
               <option value="10">10 copies</option>
             </select>
           </label>
-          <label class="fl fl--check"><input type="checkbox" id="fActive" checked /> Show this reward</label>
+          <label class="fl fl--check"><input type="checkbox" id="fActive" checked /> <span data-i18n="OWNER_LABEL_SHOW_REWARD">Show this reward</span></label>
         </div>
         <div class="add-form__actions">
-          <button class="btn-ghost" id="cancelBtn" type="button">Cancel</button>
-          <button class="btn-solid" id="saveBtn" type="button">Save</button>
+          <button class="btn-ghost" id="cancelBtn" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+          <button class="btn-solid" id="saveBtn" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
         </div>
         <p class="add-err" id="addErr" hidden></p>
       </div>
@@ -338,23 +349,36 @@
       <div class="rw-list" id="rewardList"></div>
     </section>
 
-    <p class="note">Every reward here is equally likely. To make one more common, add it more than once — each copy is another ticket in the draw.</p>
+    <p class="note" data-i18n="OWNER_FOOTER_NOTE">Every reward here is equally likely. To make one more common, add it more than once — each copy is another ticket in the draw.</p>
 
     <button class="signout-cta" id="signout" type="button">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
       </svg>
-      <span>Sign out</span>
+      <span data-i18n="WALLET_SIGNOUT">Sign out</span>
     </button>
   </main>
 
   <script>
+    applyI18n();
     const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
     const token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-    try { $("ownerName").textContent = localStorage.getItem("loytap_name") || "Owner"; } catch (e) {}
+    function unitWord(unit, amt) {
+      const key = { day: amt > 1 ? "OWNER_UNIT_DAYS" : "OWNER_UNIT_DAY",
+        week: amt > 1 ? "OWNER_UNIT_WEEKS" : "OWNER_UNIT_WEEK",
+        month: amt > 1 ? "OWNER_UNIT_MONTHS" : "OWNER_UNIT_MONTH" }[unit];
+      return key ? t(key) : unit;
+    }
+    document.querySelectorAll('#fQty option[value]').forEach((opt) => {
+      const n = parseInt(opt.value, 10);
+      if (n >= 4) opt.textContent = t("OWNER_QTY_COPIES", { n });
+    });
+
+    try { $("ownerName").textContent = localStorage.getItem("loytap_name") || t("OWNER_NAME_FALLBACK"); } catch (e) {}
+    $("ownHi").innerHTML = t("OWNER_HI_HTML", { name: esc($("ownerName").textContent) });
 
     let cafeId = "";
 
@@ -364,7 +388,7 @@
         const d = await r.json();
         if (r.ok) {
           cafeId = d.id || "";
-          $("cafeName").textContent = d.cafe_name || "your café";
+          $("cafeName").textContent = d.cafe_name || t("OWNER_CAFE_FALLBACK");
           $("staffCode").textContent = d.staff_code || "—";
           stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
@@ -375,18 +399,18 @@
 
     async function loadRewards() {
       const list = $("rewardList");
-      if (!cafeId) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
+      if (!cafeId) { list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_EMPTY")}</p>`; return; }
       try {
         const r = await fetch(API + "/api/collections/reward_options/records?perPage=100&sort=created&filter=" + encodeURIComponent("(cafe='" + cafeId + "')"));
         const d = await r.json();
         const items = (d && d.items) || [];
-        if (!items.length) { list.innerHTML = '<p class="rw-empty">No discounts yet — add your first one.</p>'; return; }
+        if (!items.length) { list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_EMPTY")}</p>`; return; }
         list.innerHTML = items.map((x, i) => {
-          const deal = x.deal || "Reward";
-          const tag = x.active ? "" : `<span class="rw__off">hidden</span>`;
+          const deal = x.deal || t("WALLET_REWARD_FALLBACK");
+          const tag = x.active ? "" : `<span class="rw__off">${t("OWNER_TAG_HIDDEN")}</span>`;
           const amt = Number(x.expiry_amount) || 0;
           const unit = x.expiry_unit || "";
-          const exp = amt && unit ? `<span class="rw__exp">⏳ ${amt} ${unit}${amt > 1 ? "s" : ""}</span>` : "";
+          const exp = amt && unit ? `<span class="rw__exp">⏳ ${amt} ${unitWord(unit, amt)}</span>` : "";
           const pctM = deal.match(/(\d+)\s*%/);
           const badge = pctM ? `<span class="rw__badge">${pctM[1]}%</span>` : `<span class="rw__badge rw__badge--emoji">🎁</span>`;
           return `<div class="rw${x.active ? "" : " rw--off"}" style="--i:${i}">
@@ -396,12 +420,12 @@
               ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
               ${exp}
             </div>
-            <button class="rw__del" data-id="${x.id}" title="Delete">✕</button>
+            <button class="rw__del" data-id="${x.id}" title="${t("OWNER_BTN_DELETE_TITLE")}">✕</button>
           </div>`;
         }).join("");
         list.querySelectorAll(".rw__del").forEach((b) => b.addEventListener("click", () => askDelete(b)));
       } catch (e) {
-        list.innerHTML = '<p class="rw-empty">Couldn’t load discounts.</p>';
+        list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_LOAD_ERROR")}</p>`;
       }
     }
 
@@ -409,7 +433,7 @@
       const id = btn.dataset.id;
       const wrap = document.createElement("div");
       wrap.className = "rw__confirm";
-      wrap.innerHTML = `<span class="rw__ask">Delete?</span><button class="rw__yes" type="button">Yes</button><button class="rw__no" type="button">No</button>`;
+      wrap.innerHTML = `<span class="rw__ask">${t("OWNER_CONFIRM_DELETE")}</span><button class="rw__yes" type="button">${t("OWNER_YES")}</button><button class="rw__no" type="button">${t("OWNER_NO")}</button>`;
       btn.replaceWith(wrap);
       wrap.querySelector(".rw__yes").onclick = () => delReward(id);
       wrap.querySelector(".rw__no").onclick = () => loadRewards();
@@ -446,26 +470,26 @@
           });
           if (!r.ok) { failed = true; break; }
         }
-        if (failed) { $("addErr").textContent = "Couldn’t save — are you signed in as owner?"; $("addErr").hidden = false; loadRewards(); return; }
+        if (failed) { $("addErr").textContent = t("OWNER_ERR_SAVE_FAILED"); $("addErr").hidden = false; loadRewards(); return; }
         $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1"; $("fActive").checked = true;
         $("fExpAmt").value = "2"; $("fExpUnit").value = "week";
-        $("addForm").classList.remove("is-open"); $("addBtn").textContent = "+ Add"; updatePreview();
+        $("addForm").classList.remove("is-open"); $("addBtn").textContent = t("OWNER_BTN_ADD"); updatePreview();
         loadRewards();
       } catch (e) {
-        $("addErr").textContent = "Cannot reach the server."; $("addErr").hidden = false;
+        $("addErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("addErr").hidden = false;
       } finally {
         $("saveBtn").disabled = false;
       }
     }
 
     function updatePreview() {
-      const deal = $("fDeal").value.trim() || "Your deal";
+      const deal = $("fDeal").value.trim() || t("OWNER_PV_DEAL_DEFAULT");
       const desc = $("fDesc").value.trim();
       const amt = Math.max(1, parseInt($("fExpAmt").value, 10) || 1);
       const unit = $("fExpUnit").value;
       $("pvDeal").textContent = deal;
       $("pvDesc").textContent = desc;
-      $("pvExp").textContent = `Expires ${amt} ${unit}${amt > 1 ? "s" : ""} after it's won`;
+      $("pvExp").textContent = t("OWNER_PV_EXPIRES", { amt, unit: unitWord(unit, amt) });
     }
     ["fDeal", "fDesc", "fExpAmt", "fExpUnit"].forEach((id) => {
       const el = $(id); if (!el) return;
@@ -474,18 +498,18 @@
 
     $("addBtn").onclick = () => {
       const open = $("addForm").classList.toggle("is-open");
-      $("addBtn").textContent = open ? "Close" : "+ Add";
+      $("addBtn").textContent = open ? t("STAFF_BTN_CLOSE") : t("OWNER_BTN_ADD");
       if (open) { updatePreview(); $("fDeal").focus(); }
     };
-    $("cancelBtn").onclick = () => { $("addForm").classList.remove("is-open"); $("addBtn").textContent = "+ Add"; };
+    $("cancelBtn").onclick = () => { $("addForm").classList.remove("is-open"); $("addBtn").textContent = t("OWNER_BTN_ADD"); };
     $("saveBtn").onclick = addReward;
     async function copyStaffCode() {
       const code = $("staffCode").textContent.trim();
       if (!code || code === "—") return;
       try {
         await navigator.clipboard.writeText(code);
-        $("codeTile").classList.add("copied"); $("codeHint").textContent = "Copied ✓";
-        setTimeout(() => { $("codeTile").classList.remove("copied"); $("codeHint").textContent = "Tap to copy"; }, 1500);
+        $("codeTile").classList.add("copied"); $("codeHint").textContent = t("OWNER_COPIED");
+        setTimeout(() => { $("codeTile").classList.remove("copied"); $("codeHint").textContent = t("OWNER_TAP_TO_COPY"); }, 1500);
       } catch (e) {}
     }
     $("codeTile").onclick = copyStaffCode;
@@ -509,8 +533,8 @@
           const d = await r.json();
           if (r.ok) {
             stampsVal = d.stamps_required; renderStamps();
-            const h = $("stampsHint"); h.textContent = "Saved ✓"; h.classList.add("is-ok");
-            setTimeout(() => { h.textContent = "to earn a reward"; h.classList.remove("is-ok"); }, 1500);
+            const h = $("stampsHint"); h.textContent = t("OWNER_SAVED"); h.classList.add("is-ok");
+            setTimeout(() => { h.textContent = t("OWNER_STAMPS_HINT"); h.classList.remove("is-ok"); }, 1500);
           }
         } catch (e) {}
       }, 500);
@@ -528,8 +552,8 @@
         });
         const d = await r.json();
         if (r.ok) { $("fMinPurchase").value = d.min_purchase ? d.min_purchase : ""; $("minOk").hidden = false; setTimeout(() => { $("minOk").hidden = true; }, 1800); }
-        else { $("minErr").textContent = d.error || "Couldn’t save — are you signed in as owner?"; $("minErr").hidden = false; }
-      } catch (e) { $("minErr").textContent = "Cannot reach the server."; $("minErr").hidden = false; }
+        else { $("minErr").textContent = d.error || t("OWNER_ERR_SAVE_FAILED"); $("minErr").hidden = false; }
+      } catch (e) { $("minErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("minErr").hidden = false; }
       finally { $("minSave").disabled = false; }
     };
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };

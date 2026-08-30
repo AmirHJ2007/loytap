@@ -12,3 +12,10 @@
 @font-face { font-family: "Nunito"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/nunito-600.woff2") format("woff2"); }
 @font-face { font-family: "Nunito"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/nunito-700.woff2") format("woff2"); }
 @font-face { font-family: "Nunito"; font-style: normal; font-weight: 800; font-display: swap; src: url("fonts/nunito-800.woff2") format("woff2"); }
+
+/* Persian UI (self-hosted for the same reason as above) */
+@font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/vazirmatn-400.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/vazirmatn-500.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/vazirmatn-600.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/vazirmatn-700.woff2") format("woff2"); }
+@font-face { font-family: "Vazirmatn"; font-style: normal; font-weight: 800; font-display: swap; src: url("fonts/vazirmatn-800.woff2") format("woff2"); }

@@ -10,6 +10,19 @@
 const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
 const token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
 
+applyI18n();
+
+const PERSIAN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿‌‏]/g;
+document.getElementById("manualInput").addEventListener("input", (e) => {
+  const el = e.target;
+  const filtered = el.value.replace(PERSIAN_RE, "");
+  if (filtered !== el.value) {
+    const pos = el.selectionStart - (el.value.length - filtered.length);
+    el.value = filtered;
+    el.setSelectionRange(pos, pos);
+  }
+});
+
 const ICONS = {
   ok:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
   warn: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>`,
@@ -41,11 +54,11 @@ const ctx = canvas.getContext("2d", { willReadFrequently: true });
 async function startScan() {
   if (scanning) { stopScan(); return; }
   if (!window.isSecureContext) {
-    el.note.textContent = "Camera needs HTTPS. Use “enter code” below, or open the site over https.";
+    el.note.textContent = t("STAFF_ERR_HTTPS");
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    el.note.textContent = "This browser can’t use the camera. Use “enter code” below.";
+    el.note.textContent = t("STAFF_ERR_NO_CAMERA_API");
     return;
   }
   try {
@@ -54,23 +67,23 @@ async function startScan() {
     await el.video.play();
     scanning = true;
     el.scanner.classList.add("is-live");
-    el.scanBtn.textContent = "Stop scanning";
-    el.note.textContent = "Point at the customer’s discount QR";
+    el.scanBtn.textContent = t("STAFF_BTN_STOP");
+    el.note.textContent = t("STAFF_NOTE_SCANNING");
     rafId = requestAnimationFrame(loop);
   } catch (err) {
     el.note.textContent = err && err.name === "NotAllowedError"
-      ? "Camera permission denied. Allow it, or use “enter code” below."
-      : "Couldn’t start the camera. Use “enter code” below.";
+      ? t("STAFF_ERR_CAMERA_DENIED")
+      : t("STAFF_ERR_CAMERA_START_FAILED");
   }
 }
 
 function stopScan() {
   scanning = false;
   if (rafId) cancelAnimationFrame(rafId);
-  if (stream) stream.getTracks().forEach((t) => t.stop());
+  if (stream) stream.getTracks().forEach((track) => track.stop());
   stream = null;
   el.scanner.classList.remove("is-live");
-  el.scanBtn.textContent = "Start scanning";
+  el.scanBtn.textContent = t("STAFF_BTN_START");
   el.note.textContent = "";
 }
 
@@ -99,8 +112,8 @@ async function handleCode(raw) {
   const code = String(raw).trim().toUpperCase().replace(/^LOYTAP[:/]*/, "");
   if (!code) return;
 
-  showResult("warn", "Checking…", `<p class="result__code">${escapeHtml(code)}</p>`,
-    [button("btn--ghost", "Cancel", closeResult)]);
+  showResult("warn", t("STAFF_STATUS_CHECKING"), `<p class="result__code">${escapeHtml(code)}</p>`,
+    [button("btn--ghost", t("STAFF_BTN_CANCEL"), closeResult)]);
 
   let res;
   try {
@@ -111,42 +124,42 @@ async function handleCode(raw) {
     });
     res = await r.json().catch(() => ({}));
     if (r.status === 401 || r.status === 403) {
-      showResult("bad", "Not signed in", `<p class="result__desc">Sign in again as café staff to redeem.</p>`,
-        [button("btn--ghost", "Close", closeResult)]);
+      showResult("bad", t("STAFF_STATUS_NOT_SIGNED_IN"), `<p class="result__desc">${t("STAFF_DESC_SIGN_IN_AGAIN")}</p>`,
+        [button("btn--ghost", t("STAFF_BTN_CLOSE"), closeResult)]);
       return;
     }
   } catch (err) {
-    showResult("bad", "Can’t reach the server", `<p class="result__desc">Check the connection and try again.</p>`,
-      [button("btn--primary", "Try again", () => { closeResult(); handleCode(code); }), button("btn--ghost", "Close", closeResult)]);
+    showResult("bad", t("STAFF_STATUS_UNREACHABLE"), `<p class="result__desc">${t("STAFF_DESC_CHECK_CONNECTION")}</p>`,
+      [button("btn--primary", t("STAFF_BTN_TRY_AGAIN"), () => { closeResult(); handleCode(code); }), button("btn--ghost", t("STAFF_BTN_CLOSE"), closeResult)]);
     return;
   }
 
-  const scanAgain = button("btn--primary", "Scan another", () => { closeResult(); startScan(); });
-  const close = button("btn--ghost", "Close", closeResult);
+  const scanAgain = button("btn--primary", t("STAFF_BTN_SCAN_ANOTHER"), () => { closeResult(); startScan(); });
+  const close = button("btn--ghost", t("STAFF_BTN_CLOSE"), closeResult);
 
   if (res.status === "ok") {
-    showResult("ok", "Redeemed ✓",
-      couponHtml(res) + `<p class="result__desc" style="margin-top:10px">Applied — give the customer their discount.</p>`,
+    showResult("ok", t("STAFF_STATUS_REDEEMED"),
+      couponHtml(res) + `<p class="result__desc" style="margin-top:10px">${t("STAFF_DESC_APPLIED")}</p>`,
       [scanAgain, close]);
   } else if (res.status === "already") {
-    showResult("warn", "Already used before", couponHtml(res), [scanAgain, close]);
+    showResult("warn", t("STAFF_STATUS_ALREADY"), couponHtml(res), [scanAgain, close]);
   } else if (res.status === "expired") {
-    showResult("warn", "This discount has expired", couponHtml(res), [scanAgain, close]);
+    showResult("warn", t("STAFF_STATUS_EXPIRED"), couponHtml(res), [scanAgain, close]);
   } else if (res.status === "wrong_cafe") {
-    showResult("bad", "Not for your café",
+    showResult("bad", t("STAFF_STATUS_WRONG_CAFE"),
       `<p class="result__code">${escapeHtml(code) || "—"}</p>
-       <p class="result__desc" style="margin-top:10px">This reward belongs to <b>${escapeHtml(res.shop || "another café")}</b>, not yours — it can't be redeemed here.</p>`,
+       <p class="result__desc" style="margin-top:10px">${t("STAFF_DESC_WRONG_CAFE", { shop: escapeHtml(res.shop || t("STAFF_FALLBACK_ANOTHER_CAFE")) })}</p>`,
       [scanAgain, close]);
   } else {
-    showResult("bad", "Not a valid code",
+    showResult("bad", t("STAFF_STATUS_INVALID"),
       `<p class="result__code">${escapeHtml(code) || "—"}</p>
-       <p class="result__desc" style="margin-top:10px">No discount matches this QR.</p>`,
+       <p class="result__desc" style="margin-top:10px">${t("STAFF_DESC_NO_MATCH")}</p>`,
       [scanAgain, close]);
   }
 }
 
 function couponHtml(res) {
-  return `<p class="result__deal">${escapeHtml(res.deal || "Reward")}</p>
+  return `<p class="result__deal">${escapeHtml(res.deal || t("WALLET_REWARD_FALLBACK"))}</p>
     <p class="result__shop">${escapeHtml(res.shop || "")}</p>
     ${res.description ? `<p class="result__desc">${escapeHtml(res.description)}</p>` : ""}
     <span class="result__code">${escapeHtml(res.code || "")}</span>`;

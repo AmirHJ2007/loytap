@@ -4,6 +4,12 @@
 // Edit CARDS to add/change cards.
 // ===================================================================
 
+applyI18n();
+document.getElementById("langSwitch")?.addEventListener("click", (e) => {
+  const b = e.target.closest(".lang-switch__btn"); if (!b) return;
+  setLang(b.dataset.lang);
+});
+
 const CARDS = [
   {
     id: "oram", name: "Oram Cafe & Restaurant", tag: "Collect 8 · earn a treat",
@@ -99,9 +105,9 @@ function toast(msg) {
 // and count down the stamps remaining on the card itself.
 let rewardPool = [];
 function poolLine() {
-  if (!rewardPool.length) return "a surprise reward awaits";
-  const names = rewardPool.slice(0, 2).map(escapeHtml).join(" · ");
-  return "win " + names + (rewardPool.length > 2 ? " & more" : "");
+  if (!rewardPool.length) return t("WALLET_POOL_NONE");
+  const names = rewardPool.slice(0, 2).map(escapeHtml).join(t("WALLET_LIST_SEP"));
+  return t("WALLET_POOL_LINE", { names, more: rewardPool.length > 2 ? t("WALLET_POOL_AND_MORE") : "" });
 }
 function updateTeaser(deck) {
   const box = deck && deck.el.querySelector(".reward-teaser");
@@ -109,11 +115,11 @@ function updateTeaser(deck) {
   const remaining = deck.cfg.stamps - deck.stamped;
   let gift, main, sub;
   if (remaining <= 0) {
-    gift = "🎉"; main = "Reward ready — <b>tap Stamp!</b>"; sub = "";
+    gift = "🎉"; main = t("WALLET_TEASER_READY_MAIN"); sub = "";
   } else if (remaining === 1) {
-    gift = "🎁"; main = "<b>1 stamp</b> away — so close!"; sub = poolLine();
+    gift = "🎁"; main = t("WALLET_TEASER_ONE_MAIN"); sub = poolLine();
   } else {
-    gift = "🎁"; main = "Only <b>" + remaining + " stamps</b> away from a reward"; sub = poolLine();
+    gift = "🎁"; main = t("WALLET_TEASER_MANY_MAIN", { n: remaining }); sub = poolLine();
   }
   box.innerHTML = `<span class="reward-teaser__gift">${gift}</span>
     <span class="reward-teaser__body"><span class="reward-teaser__main">${main}</span>${sub ? `<span class="reward-teaser__sub">${sub}</span>` : ""}</span>`;
@@ -140,13 +146,13 @@ function buildCard(cfg, index) {
         <div class="oram-sheen" aria-hidden="true"></div>
         <header class="oram-head">
           <div class="oram-head__id">
-            <h1 class="oram-name">${escapeHtml(cfg.name || "Café")}</h1>
+            <h1 class="oram-name">${escapeHtml(cfg.name || t("WALLET_CAFE_FALLBACK"))}</h1>
             ${cfg.tagline ? `<p class="oram-sub">${escapeHtml(cfg.tagline)}</p>` : ""}
           </div>
           <div class="oram-mini"><span class="count">0</span><span class="oram-mini__sep">/</span><span>${cfg.stamps}</span></div>
         </header>
         <div class="grid" style="--cols:${cfg.cols}">${slotsHtml}</div>
-        ${cfg.minPurchase ? `<p class="oram-min">Min. purchase for a stamp · ${formatToman(cfg.minPurchase)} toman</p>` : ""}
+        ${cfg.minPurchase ? `<p class="oram-min">${t("WALLET_MIN_PURCHASE", { amt: formatToman(cfg.minPurchase) })}</p>` : ""}
       </section>
     </div>
     <div class="reward-teaser" aria-live="polite" hidden></div>`;
@@ -352,7 +358,7 @@ function onLifted(deck, res) {
   busy = false;
   if (res.completed) {
     deck.stampBtn.disabled = true;
-    deck.stampBtn.querySelector(".btn__label").textContent = "Complete!";
+    deck.stampBtn.querySelector(".btn__label").textContent = t("WALLET_COMPLETE");
     setTimeout(() => complete(deck, res.discount, res.next_required), REDUCED ? 120 : 350);
   } else {
     deck.stampBtn.disabled = false;
@@ -410,7 +416,7 @@ function resetCard(deck) {
   deck.stamped = 0;
   deck.countEl.textContent = "0";
   deck.stampBtn.disabled = false;
-  deck.stampBtn.querySelector(".btn__label").textContent = "Stamp";
+  deck.stampBtn.querySelector(".btn__label").textContent = t("WALLET_STAMP_BTN");
   particles = [];
   cctx.clearRect(0, 0, confetti.width, confetti.height);
   deck.slots.forEach((s) => {
@@ -490,7 +496,7 @@ let drawerCafeId = null;
 
 function shortDiscount(p) {
   const m = String(p).match(/(\d+)\s*%/);
-  return m ? `-${m[1]}%` : p;
+  return m ? `${m[1]}%` : p;
 }
 // group thousands for toman amounts, e.g. 50000 -> "50,000"
 function formatToman(n) {
@@ -528,7 +534,7 @@ function discountToRec(d) {
     id: (d && d.id) || "",
     cafeId: (d && d.cafe_id) || "",
     shop: (d && d.shop) || "",
-    deal: (d && d.deal) || "Reward",
+    deal: (d && d.deal) || t("WALLET_REWARD_FALLBACK"),
     desc: (d && d.description) || "",
     code: (d && d.code) || "",
     short: shortDiscount((d && d.deal) || ""),
@@ -544,7 +550,7 @@ function mapDiscount(item) {
     id: item.id,
     cafeId: item.cafe,
     shop: c.cafe_name || "",
-    deal: item.deal || "Reward",
+    deal: item.deal || t("WALLET_REWARD_FALLBACK"),
     desc: item.description || "",
     code: item.code || "",
     short: shortDiscount(item.deal || ""),
@@ -579,12 +585,12 @@ function activeCoupon(d) {
   c.className = "coupon-card" + (urgent ? " is-urgent" : "");
   c.setAttribute("role", "button");
   let expText = d.due || "—";
-  if (urgent) expText = d.days <= 0 ? "Expires today" : d.days + " day" + (d.days > 1 ? "s" : "") + " left";
+  if (urgent) expText = d.days <= 0 ? t("WALLET_EXPIRES_TODAY") : t(d.days > 1 ? "WALLET_DAYS_LEFT" : "WALLET_DAY_LEFT", { n: d.days });
   const glow = urgent ? "rgba(255,90,74,0.55)" : "rgba(255,255,255,0.16)";
   c.innerHTML = `
     <span class="coupon-card__glow" style="background:${glow}"></span>
     <span class="coupon-card__shine" aria-hidden="true"></span>
-    <span class="coupon-card__kicker">Reward</span>
+    <span class="coupon-card__kicker">${t("WALLET_REWARD_FALLBACK")}</span>
     <p class="coupon-card__deal">${escapeHtml(d.deal)}</p>
     <p class="coupon-card__desc">${escapeHtml(d.desc)}</p>
     <span class="coupon-card__notch"></span>
@@ -612,11 +618,11 @@ function clearDrawerBody() {
 // LEVEL 1 — the cafés this customer has a live loyalty card with
 function renderCafeList() {
   clearDrawerBody();
-  if (drawerTitle) drawerTitle.textContent = "My Cafés";
+  if (drawerTitle) drawerTitle.textContent = t("WALLET_MY_CAFES");
   if (drawerBack) drawerBack.hidden = true;
 
   if (!memberships.length) {
-    drawerEmpty.innerHTML = "No cafés yet.<br/>Tap a café's card to start your first loyalty card.";
+    drawerEmpty.innerHTML = t("WALLET_NO_CAFES_YET");
     drawerEmpty.style.display = "block";
     return;
   }
@@ -634,7 +640,6 @@ function renderCafeList() {
       <span class="cafe-row__avatar">${escapeHtml(initial)}</span>
       <span class="cafe-row__body">
         <span class="cafe-row__name">${escapeHtml(m.cafeName)}</span>
-        <span class="cafe-row__sub">${m.stampCount}/${m.stampsRequired} stamps${rewardCount ? " · " + rewardCount + " reward" + (rewardCount > 1 ? "s" : "") : ""}</span>
       </span>
       ${rewardCount ? `<span class="cafe-row__badge">${rewardCount}</span>` : ""}
       <span class="cafe-row__go" aria-hidden="true">›</span>`;
@@ -647,7 +652,7 @@ function renderCafeList() {
 // LEVEL 2 — one café's discount grid
 function renderCafeDiscounts(cafeId) {
   const m = memberships.find((x) => x.cafeId === cafeId);
-  if (drawerTitle) drawerTitle.textContent = (m && m.cafeName) || "Discounts";
+  if (drawerTitle) drawerTitle.textContent = (m && m.cafeName) || t("WALLET_TAB_DISCOUNTS");
   if (drawerBack) drawerBack.hidden = false;
 
   const active = discounts.filter((d) => d.cafeId === cafeId && !pocketState(d).past);
@@ -661,7 +666,7 @@ function renderCafeDiscounts(cafeId) {
   page.className = "discounts-page";
   drawerList.appendChild(page);
 
-  drawerEmpty.innerHTML = "No discounts yet.<br/>Fill this card to earn one.";
+  drawerEmpty.innerHTML = t("WALLET_NO_DISCOUNTS_HERE");
   drawerEmpty.style.display = active.length ? "none" : "block";
 
   // active rewards as a grid of coupon cards
@@ -870,7 +875,7 @@ function markTicketUsed(rec, animate) {
     ticketUsed.hidden = false;
     ticketUsed.classList.remove("stamp-in"); void ticketUsed.offsetWidth; ticketUsed.classList.add("stamp-in");
     congrats.classList.add("is-used");
-    if (ticketHint) ticketHint.textContent = "Redeemed — enjoy your reward 🎉";
+    if (ticketHint) ticketHint.textContent = t("WALLET_REDEEMED_HINT");
     if (navigator.vibrate) { try { navigator.vibrate(60); } catch (_) {} }
   };
   if (animate) playUsedStamp(reveal, () => {});
@@ -878,7 +883,7 @@ function markTicketUsed(rec, animate) {
 }
 
 function showCongrats(rec) {
-  congratsSub.innerHTML = `Show this to <b>${escapeHtml(rec.shop)}</b> staff to claim your reward`;
+  congratsSub.innerHTML = t("WALLET_SHOW_TO_STAFF", { shop: escapeHtml(rec.shop) });
   ticketDiscount.textContent = rec.short || shortDiscount(rec.deal);
   ticketDue.textContent = rec.due || dueDateStr();
   try { ticketQr.innerHTML = qrSvgDotted(rec.code, QR_COLOR); } catch (_) {}
@@ -886,7 +891,7 @@ function showCongrats(rec) {
   // fresh state (in case this ticket was previously shown used)
   congrats.classList.remove("is-used");
   ticketUsed.hidden = true; ticketUsed.classList.remove("stamp-in");
-  if (ticketHint) ticketHint.textContent = "Show this QR to the staff";
+  if (ticketHint) ticketHint.textContent = t("WALLET_TICKET_HINT_DEFAULT");
   congrats.hidden = false;
   congrats.setAttribute("aria-hidden", "false");
   requestAnimationFrame(() => congrats.classList.add("show"));
@@ -923,7 +928,7 @@ function rebuildCard(deck, n) {
   deck.el.replaceWith(fresh.el);
   decks[i] = fresh;
   const btn = fresh.stampBtn;
-  if (btn) { btn.disabled = false; const lbl = btn.querySelector(".btn__label"); if (lbl) lbl.textContent = "Stamp"; }
+  if (btn) { btn.disabled = false; const lbl = btn.querySelector(".btn__label"); if (lbl) lbl.textContent = t("WALLET_STAMP_BTN"); }
   sizeConfetti();
   layout();
 }
@@ -981,7 +986,7 @@ async function loadMemberships() {
       return {
         id: it.id,
         cafeId: it.cafe,
-        cafeName: c.cafe_name || "Café",
+        cafeName: c.cafe_name || t("WALLET_CAFE_FALLBACK"),
         tagline: c.tagline || "",
         accent: c.accent || "#171717",
         // an in-progress card keeps the goal locked onto it when it started; an
@@ -1031,8 +1036,8 @@ function renderAllCards() {
 function renderWalletEmpty() {
   wallet.innerHTML = `
     <div class="wallet-empty">
-      <p class="wallet-empty__title">No loyalty cards yet</p>
-      <p class="wallet-empty__sub">Tap a café's card to start earning stamps.</p>
+      <p class="wallet-empty__title">${t("WALLET_NO_CARDS_TITLE")}</p>
+      <p class="wallet-empty__sub">${t("WALLET_NO_CARDS_SUB")}</p>
     </div>`;
 }
 
@@ -1058,7 +1063,7 @@ async function init() {
   try { if (user.phone) localStorage.setItem("loytap_phone", user.phone); } catch (_) {}
 
   const g = document.getElementById("greeting");
-  if (g) g.textContent = `Welcome back, ${(user.name || "there").trim()} 👋`;
+  if (g) g.textContent = t("WALLET_GREETING", { name: (user.name || t("AUTH_THERE")).trim() });
 
   await loadMemberships();
 

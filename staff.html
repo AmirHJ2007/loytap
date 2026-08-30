@@ -13,7 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=9" />
+  <link rel="stylesheet" href="staff.css?v=10" />
+  <script src="i18n.js"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span><span class="grain"></span></div>
@@ -22,7 +23,7 @@
     <header class="staff-head">
       <h1 class="staff-title" id="cafeName">Oram Cafe &amp; Restaurant</h1>
     </header>
-    <span class="staff-badge">Staff Scanner</span>
+    <span class="staff-badge" data-i18n="STAFF_BADGE">Staff Scanner</span>
 
     <div class="staff-card">
       <!-- Scanner -->
@@ -41,25 +42,25 @@
                 <rect x="8" y="8" width="8" height="8" rx="1"/>
               </svg>
             </div>
-            <p>Ready to scan</p>
-            <span>Point the camera at a customer's QR</span>
+            <p data-i18n="STAFF_IDLE_TITLE">Ready to scan</p>
+            <span data-i18n="STAFF_IDLE_SUB">Point the camera at a customer's QR</span>
           </div>
         </div>
       </div>
 
       <button class="btn btn--primary scan-cta" id="scanBtn" type="button">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M4 12h16"/></svg>
-        <span>Start scanning</span>
+        <span data-i18n="STAFF_BTN_START">Start scanning</span>
       </button>
       <p class="scanner__note" id="scannerNote"></p>
 
       <!-- Manual fallback -->
       <div class="manual">
-        <div class="manual__divider"><span>or enter the code</span></div>
+        <div class="manual__divider"><span data-i18n="STAFF_MANUAL_DIVIDER">or enter the code</span></div>
         <form class="manual__row" id="manualForm">
           <input class="manual__input" id="manualInput" type="text" inputmode="text" autocapitalize="characters"
-                 autocomplete="off" placeholder="e.g. LOY4N4384" />
-          <button class="btn btn--ghost" type="submit">Check</button>
+                 autocomplete="off" placeholder="e.g. LOY4N4384" data-i18n-placeholder="STAFF_MANUAL_PLACEHOLDER" />
+          <button class="btn btn--ghost" type="submit" data-i18n="STAFF_BTN_CHECK">Check</button>
         </form>
       </div>
     </div>
@@ -68,14 +69,14 @@
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
       </svg>
-      <span>Sign out</span>
+      <span data-i18n="WALLET_SIGNOUT">Sign out</span>
     </button>
   </main>
 
   <!-- Result modal -->
   <div class="result" id="result" hidden aria-hidden="true">
     <div class="result__scrim" id="resultScrim"></div>
-    <div class="result__card" id="resultCard" role="dialog" aria-label="Discount result">
+    <div class="result__card" id="resultCard" role="dialog" aria-label="Discount result" data-i18n-aria="STAFF_RESULT_ARIA">
       <div class="result__icon" id="resultIcon"></div>
       <p class="result__status" id="resultStatus"></p>
       <div class="result__body" id="resultBody"></div>
@@ -95,6 +96,6 @@
     });
   </script>
   <script src="jsQR.js"></script>
-  <script src="staff.js?v=4"></script>
+  <script src="staff.js?v=5"></script>
 </body>
 </html>

@@ -16,11 +16,18 @@
   --glass-border: rgba(255, 255, 255, 0.7);
   --glass-hi: rgba(255, 255, 255, 0.9);
   --glass-shadow: 0 34px 70px -28px rgba(20, 20, 20, 0.5);
+  /* swapped for a Persian-capable font under html[dir="rtl"] (see fonts.css) */
+  --font-heading: "Quicksand", sans-serif;
+  --font-body: "Nunito", sans-serif;
+}
+html[dir="rtl"] {
+  --font-heading: "Vazirmatn", "Quicksand", sans-serif;
+  --font-body: "Vazirmatn", "Nunito", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; margin: 0; }
 body {
-  font-family: "Nunito", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
   color: var(--ink);
   background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
   -webkit-font-smoothing: antialiased;
@@ -108,6 +115,16 @@ body {
 .auth__brand img { width: 250px; max-width: 78%; height: auto; display: inline-block; filter: grayscale(1) contrast(1.15); }
 @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+/* language switcher */
+.lang-switch { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px; }
+.lang-switch__btn {
+  font-family: var(--font-body); font-weight: 700; font-size: 12px; padding: 5px 12px;
+  border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; background: rgba(255,255,255,0.25);
+  color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease;
+}
+html[lang="en"] .lang-switch__btn[data-lang="en"],
+html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: #fff; border-color: #171717; }
+
 /* segmented (role) — glass pill */
 .seg {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
@@ -115,7 +132,7 @@ body {
   border-radius: 13px; margin-bottom: 18px;
   animation: fadeUp 0.6s var(--ease-spring) 0.16s both;
 }
-.seg__btn { font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 15px; padding: 12px; border: none; border-radius: 10px; background: transparent; color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+.seg__btn { font-family: var(--font-heading); font-weight: 600; font-size: 15px; padding: 12px; border: none; border-radius: 10px; background: transparent; color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
 .seg--3 { grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0; }
 .seg--3 .seg__btn { font-size: 12px; padding: 10px 4px; }
 .seg__btn.is-on { background: #171717; color: #ffffff; box-shadow: 0 6px 16px -8px rgba(20,20,20,0.5); }
@@ -123,7 +140,7 @@ body {
 
 /* tabs (sign in / register) */
 .tabs { display: flex; gap: 18px; margin-bottom: 16px; border-bottom: 1.5px solid rgba(20,20,20,0.1); animation: fadeUp 0.6s var(--ease-spring) 0.2s both; }
-.tabs__btn { position: relative; font-family: "Quicksand", sans-serif; font-weight: 600; font-size: 16px; padding: 4px 2px 10px; border: none; background: none; color: var(--ink-faint); cursor: pointer; }
+.tabs__btn { position: relative; font-family: var(--font-heading); font-weight: 600; font-size: 16px; padding: 4px 2px 10px; border: none; background: none; color: var(--ink-faint); cursor: pointer; }
 .tabs__btn.is-on { color: var(--ink); }
 .tabs__btn.is-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 2.5px; border-radius: 2px; background: #171717; }
 
@@ -131,22 +148,32 @@ body {
 .field { margin-bottom: 14px; animation: fadeUp 0.6s var(--ease-spring) 0.24s both; }
 .field > label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-dim); margin-bottom: 6px; }
 .field input, .phone {
-  width: 100%; font-family: "Nunito", sans-serif; font-weight: 600; font-size: 17px; color: var(--ink);
+  width: 100%; font-family: var(--font-body); font-weight: 600; font-size: 17px; color: var(--ink);
   background: rgba(255,255,255,0.42); backdrop-filter: blur(6px);
   border: 1.5px solid rgba(255,255,255,0.55); border-radius: 14px; padding: 15px 16px; outline: none;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 .field input:focus, .phone:focus-within { border-color: #171717; background: rgba(255,255,255,0.62); }
 .field input::placeholder { color: var(--ink-faint); font-weight: 500; }
-.phone { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; }
+/* names (personal + business) are typically entered in Latin script even in
+   a Persian UI — keep these inputs LTR regardless of page direction */
+#name, #cafeName, #cCafe, #cName, #cafeCode,
+#cEmail, #cPass, #cPassConfirm, #ownerPass { direction: ltr; text-align: left; }
+/* always laid out like the English version (flag, then number) — a phone
+   number reads the same way regardless of UI language, so this box doesn't
+   mirror under RTL */
+.phone { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; direction: ltr; }
 .phone__cc { font-weight: 700; font-size: 15px; color: var(--ink-dim); white-space: nowrap; font-size: 16px; }
-.phone input { border: none; background: none; padding: 15px 16px 15px 6px; letter-spacing: 1px; }
+.phone input { border: none; background: none; padding: 15px 16px 15px 6px; letter-spacing: 1px; direction: ltr; text-align: left; }
 .field__err { margin: 6px 2px 0; font-size: 12px; color: var(--bad); font-weight: 700; }
+/* a phone number reads the same way regardless of UI language — isolate it
+   from the surrounding RTL paragraph so the digit groups don't reorder */
+#otpPhone { direction: ltr; unicode-bidi: isolate; }
 
 /* otp */
 .otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 8px 0 4px; direction: ltr; }
 .otp input {
-  width: 100%; aspect-ratio: 1; text-align: center; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 24px; color: var(--ink);
+  width: 100%; aspect-ratio: 1; text-align: center; font-family: var(--font-heading); font-weight: 700; font-size: 24px; color: var(--ink);
   background: rgba(255,255,255,0.42); backdrop-filter: blur(6px);
   border: 1.5px solid rgba(255,255,255,0.55); border-radius: 12px; outline: none;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--ease-spring);
@@ -155,7 +182,7 @@ body {
 .otp input.filled { border-color: #171717; background: rgba(255,255,255,0.75); }
 
 /* buttons — solid charcoal, matches the wallet's Stamp button */
-.btn { display: block; width: 100%; text-align: center; text-decoration: none; box-sizing: border-box; font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; border: none; border-radius: 15px; padding: 16px 22px; cursor: pointer; transition: transform 0.14s ease, box-shadow 0.3s ease, opacity 0.3s ease; margin-top: 6px; }
+.btn { display: block; width: 100%; text-align: center; text-decoration: none; box-sizing: border-box; font-family: var(--font-heading); font-weight: 700; font-size: 17px; border: none; border-radius: 15px; padding: 16px 22px; cursor: pointer; transition: transform 0.14s ease, box-shadow 0.3s ease, opacity 0.3s ease; margin-top: 6px; }
 .btn:active { transform: translateY(1px) scale(0.99); }
 .btn--primary { color: #ffffff; background: #171717; box-shadow: 0 14px 28px -10px rgba(20,20,20,0.55), inset 0 1px 0 rgba(255,255,255,0.15); }
 .btn--primary:hover { background: #000000; box-shadow: 0 18px 34px -10px rgba(20,20,20,0.65), inset 0 1px 0 rgba(255,255,255,0.15); }
@@ -164,8 +191,8 @@ body {
 .fine a { color: var(--ink-dim); }
 .fine.demo { color: var(--ink); font-weight: 700; }
 
-.back { background: none; border: none; color: var(--ink-dim); font-family: "Nunito", sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 12px; }
-.step__title { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 20px; margin: 0 0 4px; }
+.back { background: none; border: none; color: var(--ink-dim); font-family: var(--font-body); font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 12px; }
+.step__title { font-family: var(--font-heading); font-weight: 700; font-size: 20px; margin: 0 0 4px; }
 .step__sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-dim); }
 .step__sub b { color: var(--ink); }
 .resend { text-align: center; font-size: 12px; color: var(--ink-dim); margin: 12px 0 0; }
@@ -198,7 +225,7 @@ body {
 .toast__icon { font-size: 24px; line-height: 1; animation: wobble 0.6s ease 0.25s 2; }
 @keyframes wobble { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
 .toast__body { display: flex; flex-direction: column; }
-.toast__title { color: #171717; font-size: 13px; font-weight: 800; font-family: "Quicksand", sans-serif; }
+.toast__title { color: #171717; font-size: 13px; font-weight: 800; font-family: var(--font-heading); }
 .toast__msg { font-size: 12px; color: var(--ink-dim); margin-top: 1px; }
 
 .phone.shake { animation: shakeX 0.45s ease; }
@@ -206,7 +233,7 @@ body {
 
 .field input.shake { animation: shakeX 0.45s ease; }
 
-.link-btn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--ink); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; cursor: pointer; }
+.link-btn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--ink); font-family: var(--font-heading); font-weight: 700; font-size: 17px; cursor: pointer; }
 .link-btn:hover { text-decoration: underline; }
 
 .opt { color: var(--ink-faint); font-weight: 600; }

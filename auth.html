@@ -12,7 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=23" />
+  <link rel="stylesheet" href="auth.css?v=30" />
+  <script src="i18n.js"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -23,136 +24,140 @@
       <div class="toast" id="toast" hidden>
         <span class="toast__icon">🙁</span>
         <div class="toast__body">
-          <b class="toast__title">Not registered yet</b>
+          <b class="toast__title" data-i18n="AUTH_TOAST_NOT_REGISTERED_TITLE">Not registered yet</b>
           <span class="toast__msg" id="toastMsg"></span>
         </div>
+      </div>
+      <div class="lang-switch" id="langSwitch" role="tablist" aria-label="Language">
+        <button class="lang-switch__btn" data-lang="en" type="button" data-i18n="LANG_EN">English</button>
+        <button class="lang-switch__btn" data-lang="fa" type="button" data-i18n="LANG_FA">فارسی</button>
       </div>
       <h1 class="auth__brand"><img src="reloy-logo.png?v=2" alt="Reloy" /></h1>
 
       <!-- role -->
       <div class="seg" id="roleSeg" role="tablist" aria-label="Account type">
-        <button class="seg__btn is-on" data-role="customer" type="button">Customer</button>
-        <button class="seg__btn" data-role="cafe" type="button">Business</button>
+        <button class="seg__btn is-on" data-role="customer" type="button" data-i18n="AUTH_ROLE_CUSTOMER">Customer</button>
+        <button class="seg__btn" data-role="cafe" type="button" data-i18n="AUTH_ROLE_BUSINESS">Business</button>
       </div>
 
       <!-- STEP 1: phone -->
       <section class="step" id="stepPhone">
         <div class="tabs" id="modeTabs">
-          <button class="tabs__btn is-on" data-mode="signin" type="button">Sign in</button>
-          <button class="tabs__btn" data-mode="register" type="button">Register</button>
+          <button class="tabs__btn is-on" data-mode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
+          <button class="tabs__btn" data-mode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
         </div>
 
         <div class="field" id="fieldName" hidden>
-          <label for="name">What can we call you?</label>
-          <input id="name" type="text" autocomplete="name" placeholder="e.g. Sara" />
+          <label for="name" data-i18n="AUTH_LABEL_NAME">What can we call you?</label>
+          <input id="name" type="text" autocomplete="name" placeholder="e.g. Sara" data-i18n-placeholder="AUTH_PH_NAME" />
         </div>
         <div class="field" id="fieldCafe" hidden>
-          <label for="cafeName">Business name</label>
-          <input id="cafeName" type="text" autocomplete="organization" placeholder="e.g. Aurora Coffee" />
+          <label for="cafeName" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
+          <input id="cafeName" type="text" autocomplete="organization" placeholder="e.g. Aurora Coffee" data-i18n-placeholder="AUTH_PH_BUSINESS_NAME_TAGLINE" />
         </div>
 
         <div class="field">
-          <label for="phone">Mobile number</label>
+          <label for="phone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
           <div class="phone">
             <span class="phone__cc">🇮🇷 +98</span>
-            <input id="phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="11" placeholder="912 345 6789" />
+            <input id="phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
           </div>
-          <p class="field__err" id="phoneErr" hidden>Enter a valid Iranian mobile number.</p>
+          <p class="field__err" id="phoneErr" hidden data-i18n="AUTH_ERR_PHONE">Enter a valid Iranian mobile number.</p>
         </div>
 
-        <button class="btn btn--primary" id="sendBtn" type="button">Send code</button>
-        <p class="fine">By continuing you agree to our <a href="terms.html">Terms</a> &amp; <a href="terms.html">Privacy</a>.</p>
+        <button class="btn btn--primary" id="sendBtn" type="button" data-i18n="AUTH_BTN_SEND">Send code</button>
+        <p class="fine" data-i18n-html="AUTH_TERMS_LINE">By continuing you agree to our <a href="terms.html">Terms</a> &amp; <a href="terms.html">Privacy</a>.</p>
       </section>
 
       <!-- STEP 1 (cafe): shared code, no phone/registration -->
       <section class="step" id="stepCafe" hidden>
         <div class="field">
-          <label for="cafeCode">Business code</label>
-          <input id="cafeCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="e.g. ORAM-4821" />
-          <p class="field__err" id="cafeCodeErr" hidden>Wrong code — try again.</p>
+          <label for="cafeCode" data-i18n="AUTH_LABEL_BUSINESS_CODE">Business code</label>
+          <input id="cafeCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="e.g. ORAM-4821" data-i18n-placeholder="AUTH_PH_BUSINESS_CODE" />
+          <p class="field__err" id="cafeCodeErr" hidden data-i18n="AUTH_ERR_WRONG_CODE">Wrong code — try again.</p>
         </div>
-        <button class="btn btn--primary" id="cafeEnterBtn" type="button">Enter</button>
-        <p class="fine">Ask your manager for the business code — no account needed.</p>
-        <button class="link-btn" id="ownerLink" type="button">Business owner?</button>
+        <button class="btn btn--primary" id="cafeEnterBtn" type="button" data-i18n="AUTH_BTN_ENTER">Enter</button>
+        <p class="fine" data-i18n="AUTH_FINE_BUSINESS_CODE">Ask your manager for the business code — no account needed.</p>
+        <button class="link-btn" id="ownerLink" type="button" data-i18n="AUTH_LINK_BUSINESS_OWNER">Business owner?</button>
       </section>
 
       <!-- STEP 1 (owner): phone + password, no registration -->
       <section class="step" id="stepOwner" hidden>
-        <button class="back" id="ownerBack" type="button">← Back</button>
+        <button class="back" id="ownerBack" type="button" data-i18n="AUTH_BACK">← Back</button>
         <div class="tabs owner-tabs">
-          <button class="tabs__btn is-on" data-omode="signin" type="button">Sign in</button>
-          <button class="tabs__btn" data-omode="register" type="button">Register</button>
+          <button class="tabs__btn is-on" data-omode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
+          <button class="tabs__btn" data-omode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
         </div>
         <div class="field">
-          <label for="ownerPhone">Mobile number</label>
+          <label for="ownerPhone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
           <div class="phone">
             <span class="phone__cc">🇮🇷 +98</span>
-            <input id="ownerPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" />
+            <input id="ownerPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
           </div>
         </div>
         <div class="field">
-          <label for="ownerPass">Password</label>
+          <label for="ownerPass" data-i18n="AUTH_LABEL_PASSWORD">Password</label>
           <input id="ownerPass" type="password" autocomplete="current-password" placeholder="••••••••" />
-          <p class="field__err" id="ownerErr" hidden>Wrong password.</p>
+          <p class="field__err" id="ownerErr" hidden data-i18n="AUTH_ERR_WRONG_PASSWORD">Wrong password.</p>
         </div>
-        <button class="btn btn--primary" id="ownerLoginBtn" type="button">Log in</button>
+        <button class="btn btn--primary" id="ownerLoginBtn" type="button" data-i18n="AUTH_BTN_LOGIN">Log in</button>
       </section>
 
       <!-- STEP: create a cafe (self-serve owner registration) -->
       <section class="step" id="stepCreate" hidden>
-        <button class="back" id="createBack" type="button">← Back</button>
+        <button class="back" id="createBack" type="button" data-i18n="AUTH_BACK">← Back</button>
         <div class="tabs owner-tabs">
-          <button class="tabs__btn" data-omode="signin" type="button">Sign in</button>
-          <button class="tabs__btn is-on" data-omode="register" type="button">Register</button>
+          <button class="tabs__btn" data-omode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
+          <button class="tabs__btn is-on" data-omode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
         </div>
         <div class="field">
-          <label for="cCafe">Business name</label>
-          <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora" />
+          <label for="cCafe" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
+          <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora" data-i18n-placeholder="AUTH_PH_BUSINESS_NAME" />
         </div>
         <div class="field">
-          <label>Business type</label>
+          <label data-i18n="AUTH_LABEL_BUSINESS_TYPE">Business type</label>
           <div class="seg seg--3" id="cType" role="tablist" aria-label="Business type">
-            <button class="seg__btn is-on" data-type="Cafe" type="button">Cafe</button>
-            <button class="seg__btn" data-type="Restaurant" type="button">Restaurant</button>
-            <button class="seg__btn" data-type="Cafe &amp; Restaurant" type="button">Cafe &amp; Restaurant</button>
+            <button class="seg__btn is-on" data-type="Cafe" type="button"><span data-i18n="AUTH_TYPE_CAFE">Cafe</span></button>
+            <button class="seg__btn" data-type="Restaurant" type="button"><span data-i18n="AUTH_TYPE_RESTAURANT">Restaurant</span></button>
+            <button class="seg__btn" data-type="Cafe &amp; Restaurant" type="button"><span data-i18n="AUTH_TYPE_BOTH">Cafe &amp; Restaurant</span></button>
           </div>
         </div>
         <div class="field">
-          <label>Card accent colour</label>
+          <label data-i18n="AUTH_LABEL_ACCENT">Card accent colour</label>
           <div class="swatches" id="cAccent"></div>
         </div>
         <div class="field">
-          <label for="cName">Your name</label>
-          <input id="cName" type="text" maxlength="40" placeholder="Owner name" />
+          <label for="cName" data-i18n="AUTH_LABEL_YOUR_NAME">Your name</label>
+          <input id="cName" type="text" maxlength="40" placeholder="Owner name" data-i18n-placeholder="AUTH_PH_OWNER_NAME" />
         </div>
         <div class="field">
-          <label for="cPhone">Mobile number</label>
+          <label for="cPhone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
           <div class="phone">
             <span class="phone__cc">🇮🇷 +98</span>
-            <input id="cPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" />
+            <input id="cPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
           </div>
         </div>
         <div class="field">
-          <label for="cEmail">Email</label>
-          <input id="cEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+          <label for="cEmail" data-i18n="AUTH_LABEL_EMAIL">Email</label>
+          <input id="cEmail" type="email" autocomplete="email" placeholder="you@example.com" data-i18n-placeholder="AUTH_PH_EMAIL" />
         </div>
         <div class="field">
-          <label for="cPass">Password <span class="opt">(min 6)</span></label>
+          <label for="cPass"><span data-i18n="AUTH_LABEL_PASSWORD">Password</span> <span class="opt" data-i18n="AUTH_OPT_MIN6">(min 6)</span></label>
           <input id="cPass" type="password" autocomplete="new-password" placeholder="••••••••" />
         </div>
         <div class="field">
-          <label for="cPassConfirm">Confirm password</label>
+          <label for="cPassConfirm" data-i18n="AUTH_LABEL_CONFIRM_PASSWORD">Confirm password</label>
           <input id="cPassConfirm" type="password" autocomplete="new-password" placeholder="••••••••" />
           <p class="field__err" id="createErr" hidden></p>
         </div>
-        <button class="btn btn--primary" id="createBtn" type="button">Create business</button>
+        <button class="btn btn--primary" id="createBtn" type="button" data-i18n="AUTH_BTN_CREATE_BUSINESS">Create business</button>
       </section>
 
       <!-- STEP 2: otp -->
       <section class="step" id="stepOtp" hidden>
-        <button class="back" id="backBtn" type="button">← Change number</button>
-        <p class="step__title">Enter the code</p>
-        <p class="step__sub">We sent a 6-digit code to <b id="otpPhone">+98 …</b></p>
+        <button class="back" id="backBtn" type="button" data-i18n="AUTH_CHANGE_NUMBER">← Change number</button>
+        <p class="step__title" data-i18n="AUTH_OTP_TITLE">Enter the code</p>
+        <p class="step__sub"><span data-i18n="AUTH_OTP_SENT_TO">We sent a 6-digit code to</span> <b id="otpPhone">+98 …</b></p>
         <div class="otp" id="otp">
           <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
@@ -161,22 +166,22 @@
           <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
         </div>
-        <p class="field__err" id="otpErr" hidden>Please enter all 6 digits.</p>
-        <button class="btn btn--primary" id="verifyBtn" type="button">Verify</button>
+        <p class="field__err" id="otpErr" hidden data-i18n="AUTH_OTP_ERR_INCOMPLETE">Please enter all 6 digits.</p>
+        <button class="btn btn--primary" id="verifyBtn" type="button" data-i18n="AUTH_BTN_VERIFY">Verify</button>
         <p class="resend" id="resend">Resend code in <b id="resendT">60</b>s</p>
-        <p class="fine demo">Dev mode: no SMS yet — the code is filled in for you.</p>
+        <p class="fine demo" data-i18n="AUTH_DEV_NOTE">Dev mode: no SMS yet — the code is filled in for you.</p>
       </section>
 
       <!-- STEP 3: done -->
       <section class="step" id="stepDone" hidden>
         <div class="done__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-        <p class="step__title" id="doneTitle">You're in!</p>
+        <p class="step__title" id="doneTitle" data-i18n="AUTH_DONE_TITLE_DEFAULT">You're in!</p>
         <p class="step__sub" id="doneSub"></p>
-        <a class="btn btn--primary" id="continueBtn" href="index.html">Continue</a>
+        <a class="btn btn--primary" id="continueBtn" href="index.html" data-i18n="AUTH_CONTINUE">Continue</a>
       </section>
     </div>
   </main>
 
-  <script src="auth.js?v=20"></script>
+  <script src="auth.js?v=22"></script>
 </body>
 </html>
