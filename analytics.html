@@ -129,6 +129,7 @@
 
     /* reward used rate — hero ring + per-reward percentage bars */
     .ru-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+    html[dir="rtl"] .ru-hero { direction: rtl; }
     .ru-hero .donut { width: 116px; height: 116px; flex: 0 0 auto; }
     .ru-hero__txt { font-size: 13.5px; line-height: 1.5; color: var(--dim); }
     .ru-hero__txt b { font-family: var(--font-heading); font-weight: 700; font-size: 18px; color: var(--ink); display: block; margin-bottom: 3px; }
@@ -277,6 +278,9 @@
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const plural1 = (n, one, many) => t(n === 1 ? one : many);
     const stampWord = (n) => plural1(n, "AN_STAMP_LC_ONE", "AN_STAMP_LC_MANY");
+    // a "13-16" time-slot range reorders to "16-13" when embedded in Persian text —
+    // isolate control chars keep its internal digit-hyphen-digit order intact.
+    const isolateLTR = (s) => "⁦" + s + "⁩";
     // backend sends English 3-letter weekday abbreviations (dow / days / the leading
     // token of "label" strings like "Mon 31 Aug") — translate just that token client-side.
     const DOW_KEYS = { Sun: "DOW_SUN", Mon: "DOW_MON", Tue: "DOW_TUE", Wed: "DOW_WED", Thu: "DOW_THU", Fri: "DOW_FRI", Sat: "DOW_SAT" };
@@ -415,12 +419,12 @@
       c.grid.forEach((rowvals, r) => {
         cells += `<div class="hm__dl">${esc(days[r])}</div>`;
         cells += rowvals.map((v, s) =>
-          `<button class="hm__cell" data-r="${r}" data-s="${s}" data-v="${v}" style="background:${cellBg(v)}" title="${esc(t("AN_HM_CELL_TITLE", { day: days[r], slot: c.slots[s], v, stampWord: stampWord(v) }))}"></button>`
+          `<button class="hm__cell" data-r="${r}" data-s="${s}" data-v="${v}" style="background:${cellBg(v)}" title="${esc(t("AN_HM_CELL_TITLE", { day: days[r], slot: isolateLTR(c.slots[s]), v, stampWord: stampWord(v) }))}"></button>`
         ).join("");
       });
 
       const ex = (o, kicker) => o
-        ? `<div class="hm-ex"><span>${kicker}</span><b>${esc(dow(o.day))} · ${esc(o.slot)}</b><br><i>${o.count} ${stampWord(o.count)}</i></div>`
+        ? `<div class="hm-ex"><span>${kicker}</span><b>${esc(dow(o.day))} · ${isolateLTR(esc(o.slot))}</b><br><i>${o.count} ${stampWord(o.count)}</i></div>`
         : `<div class="hm-ex"><span>${kicker}</span><b>—</b></div>`;
 
       card.innerHTML = `
@@ -441,7 +445,7 @@
         if (selEl) selEl.classList.remove("is-sel");
         el.classList.add("is-sel"); selEl = el;
         const v = +el.dataset.v;
-        cap.innerHTML = t("AN_HM_SEL_CAP_HTML", { day: esc(days[+el.dataset.r]), slot: esc(c.slots[+el.dataset.s]), v, stampWord: stampWord(v), days: c.windowDays });
+        cap.innerHTML = t("AN_HM_SEL_CAP_HTML", { day: esc(days[+el.dataset.r]), slot: isolateLTR(esc(c.slots[+el.dataset.s])), v, stampWord: stampWord(v), days: c.windowDays });
       });
     }
 
