@@ -640,7 +640,9 @@
       if (data.prevStamps > 0) {
         const chg = Math.round((data.stamps - data.prevStamps) / data.prevStamps * 100);
         cmpCls = chg > 0 ? "up" : (chg < 0 ? "down" : "flat");
-        cmpTxt = t("AN_ACT_CMP_CHANGE", { chg: (chg > 0 ? "+" : "") + chg + "%", period: actPeriod });
+        cmpTxt = chg === 0
+          ? t("AN_ACT_CMP_FLAT", { period: actPeriod })
+          : t("AN_ACT_CMP_CHANGE", { pct: Math.abs(chg), period: actPeriod, dir: t(chg > 0 ? "AN_ACT_CMP_UP" : "AN_ACT_CMP_DOWN") });
       } else {
         cmpTxt = data.stamps > 0 ? t("AN_ACT_CMP_FIRST") : t("AN_ACT_CMP_NONE");
       }
