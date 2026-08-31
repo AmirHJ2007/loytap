@@ -100,6 +100,13 @@
     /* wraps a translated phrase (often with embedded numbers) sitting inline next to
        other LTR-locked content, so its own bidi run resolves correctly */
     html[dir="rtl"] .i18n-rtl { direction: rtl; unicode-bidi: isolate; }
+    /* number-then-word pairs (cb-today__v, ar-legend/nl-legend items, nl-v) sit as plain
+       LTR-ordered siblings, which reads backwards for an RTL scanner (word, then number).
+       Flipping the pair's own direction puts the number first, matching Persian reading order. */
+    html[dir="rtl"] .cb-today__v, html[dir="rtl"] .ar-legend > span,
+    html[dir="rtl"] .nl-legend > span, html[dir="rtl"] .nl-v {
+      direction: rtl;
+    }
     .card.in { opacity: 1; transform: none; }
     .card.in:hover { transform: translateY(-4px); box-shadow: var(--glass-shadow), 0 32px 52px -26px rgba(20,20,20,0.55), inset 0 1px 0 var(--glass-hi); }
     .card__title { font-family: var(--font-heading); font-weight: 700; font-size: 16px; margin: 0 0 2px; }
