@@ -241,7 +241,7 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
      card's ancestor is transforming during the select animation is one of the
      most expensive things WebKit can do; a solid-ish gradient looks close
      enough and stays cheap to composite. */
-  background: linear-gradient(120deg, rgba(31,122,77,0.85), rgba(255,255,255,0.85));
+  background: linear-gradient(120deg, rgba(86,86,86,0.85), rgba(255,255,255,0.85));
   border: 1px solid rgba(255,255,255,0.5);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 20px -12px rgba(20,20,20,0.45);
   position: relative; z-index: 1; overflow: hidden;
@@ -254,7 +254,7 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
 .reward-teaser__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .reward-teaser__main { font-family: var(--font-heading); font-weight: 700; font-size: 13px; color: #171717; letter-spacing: -0.2px; }
 .reward-teaser__main b { font-weight: 800; color: #1c1c1c; }
-.reward-teaser__sub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #0f3d28; }
+.reward-teaser__sub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #2b2b2b; }
 @keyframes teaserIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes giftBob { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
 
