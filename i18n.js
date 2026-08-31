@@ -477,7 +477,7 @@ const STRINGS = {
     OWNER_TAP_TO_COPY: "برای کپی ضربه بزنید",
     OWNER_COPIED: "کپی شد ✓",
     OWNER_STAFF_CODE_LABEL: "کد کارمند",
-    OWNER_STAMPS_LABEL: "مهر / جایزه",
+    OWNER_STAMPS_LABEL: "تعداد مهر نیاز برای دریافت جایزه",
     OWNER_ARIA_FEWER: "مهر کمتر",
     OWNER_ARIA_MORE: "مهر بیشتر",
     OWNER_STAMPS_HINT: "برای دریافت جایزه",
