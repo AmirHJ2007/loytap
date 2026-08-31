@@ -562,7 +562,7 @@
       const info = card.querySelector(".cb-info");
       card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
       const cap = $("cbCap");
-      const setCap = (i) => { const x = s[i]; cap.innerHTML = t("AN_CB_CAP_HTML", { days: cb.windowDays, label: esc(x.label), rate: x.rate, returners: x.returners, newMembers: x.newMembers }); };
+      const setCap = (i) => { const x = s[i]; cap.innerHTML = t("AN_CB_CAP_HTML", { days: cb.windowDays, label: isolateLTR(esc(x.label)), rate: x.rate, returners: x.returners, newMembers: x.newMembers }); };
       setCap(s.length - 1);
       card.querySelectorAll(".cb-hit").forEach((el) => el.onclick = () => setCap(+el.dataset.i));
     }
@@ -628,8 +628,8 @@
       const setCap = (i) => {
         const x = s[i];
         cap.innerHTML = x.value == null
-          ? t("AN_VR_CAP_EMPTY_HTML", { days: vr.windowDays, label: esc(x.label) })
-          : t("AN_VR_CAP_HTML", { days: vr.windowDays, label: esc(x.label), value: x.value, unit: unit(x.value), n: x.customers, customerWord: customerWord(x.customers) });
+          ? t("AN_VR_CAP_EMPTY_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)) })
+          : t("AN_VR_CAP_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)), value: x.value, unit: unit(x.value), n: x.customers, customerWord: customerWord(x.customers) });
       };
       setCap(s.length - 1);
       card.querySelectorAll(".vr-hit").forEach((el) => el.onclick = () => setCap(+el.dataset.i));
