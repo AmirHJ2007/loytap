@@ -1,27 +1,44 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Reloy card — one authenticated stamp, at one café. The SERVER generates the
-// stamp's look (off-centre offset, rotation, ink strength, colour) and stores
-// it on the customer's membership row for that café, so it comes back
-// identically on sign-in. On completion it draws a weighted-random reward
-// from that café's own prize pool, mints a discount, and resets the card.
+// Reloy card — a stamp is a two-step, REAL-TIME confirmed event:
 //
-//   POST /card/stamp  (auth) { tag }
-//     -> { stamp, stamp_count, required, completed, discount?,
-//          cafe: { id, name, stamps_required, theme } }
+//   POST /card/stamp/request  (customer auth) { tag }
+//     -> { request_id, expires_in, cafe: {...} }
+//     Validates the tap (active nfc_tags row) and the per-café cooldown, then
+//     creates a PENDING stamp_requests row. No stamp is granted yet.
 //
-// A stamp is only granted for a real NFC tap: the request must carry the
-// tag's secret `code`, which must match an ACTIVE row in nfc_tags. The tag
-// itself says which café it belongs to — the client never picks the café.
-// A per-user, per-café cooldown (cafe_card.stamp_cooldown_minutes) caps how
-// often the same customer can earn a stamp at that café, so a copied
-// static-tag URL is worth at most one stamp per window.
+//   POST /card/stamp/confirm  (staff/admin auth) { request_id, approve }
+//     -> { status: "approved"|"denied"|"expired", result? }
+//     Only that café's own staff/owner may act on it, and only within 30s of
+//     creation. Approving is what actually runs the stamp logic below
+//     (SERVER generates the stamp's look, draws a reward on completion,
+//     etc.) — exactly what /card/stamp used to do synchronously.
+//
+// Both the customer and the café's staff panel watch the stamp_requests row
+// over PocketBase realtime (see rtWatch in app.js / staff.js), so the
+// customer's "waiting…" screen resolves the instant staff taps Confirm/Deny —
+// no polling, no refresh.
+//
+// Why: a static NFC tag's code is plain text on the chip — any NFC-reader app
+// can read it, so it can never be kept secret from the customer holding the
+// card. Requiring a human at the café to confirm every stamp means a captured
+// or replayed code is worthless on its own; a stamp can only ever happen with
+// staff physically present and paying attention.
+//
+// NOTE: each routerAdd callback below is fully self-contained (no shared
+// top-level helper functions). PocketBase's JS hook runtime does not give a
+// routerAdd callback access to sibling top-level `function` declarations from
+// the same file at request time — calling one throws "X is not defined" even
+// though it's plainly in scope in the source. Every other hook file in this
+// project already follows this same self-contained-callback shape; this file
+// briefly deviated (via a `commitStamp`/`cafeEcho` helper split) and every
+// real tap silently failed as a result. Keep new routes self-contained too.
 
-routerAdd("POST", "/card/stamp", (e) => {
+routerAdd("POST", "/card/stamp/request", (e) => {
   const u = e.auth;
   if (!u) return e.json(401, { error: "Not signed in" });
 
-  // require a valid, active tag code
+  const REQUEST_TTL_MS = 30000;
   const tagCode = String((e.requestInfo().body || {}).tag || "").trim();
   if (!tagCode) return e.json(400, { error: "Tap your café's card to collect a stamp." });
   let tag = null;
@@ -35,23 +52,18 @@ routerAdd("POST", "/card/stamp", (e) => {
   try { cafe = $app.findRecordById("cafe_card", cafeId); } catch (err) { cafe = null; }
   if (!cafe) return e.json(400, { error: "This card isn't recognised." });
 
-  const inkColor = "#1c2b3a";
+  const cafeEcho = {
+    id: cafe.id,
+    name: cafe.getString("cafe_name"),
+    tagline: cafe.getString("tagline"),
+    accent: cafe.getString("accent") || "#171717",
+    stamps_required: cafe.getInt("stamps_required"),
+    min_purchase: cafe.getInt("min_purchase"),
+    theme: cafe.getString("theme"),
+  };
 
-  // this customer's progress AT THIS CAFÉ — find or start one
-  let membership = null;
-  try {
-    membership = $app.findFirstRecordByFilter("memberships", "user = {:u} && cafe = {:c}", { u: u.id, c: cafe.id });
-  } catch (err) { membership = null; }
-  if (!membership) {
-    membership = new Record($app.findCollectionByNameOrId("memberships"));
-    membership.set("user", u.id);
-    membership.set("cafe", cafe.id);
-    membership.set("stamp_count", 0);
-    membership.set("cycles", 0);
-    membership.set("stamps", []);
-  }
-
-  // per-user-per-café cooldown: reject if this customer stamped too recently HERE
+  // per-user, per-café cooldown — caps how often the same customer's tap can
+  // even START a confirmation request
   const cooldownMin = cafe.getInt("stamp_cooldown_minutes");
   if (cooldownMin > 0) {
     const last = $app.findRecordsByFilter("stamp_events", "user = {:u} && cafe = {:c}", "-created", 1, 0, { u: u.id, c: cafe.id })[0];
@@ -66,7 +78,96 @@ routerAdd("POST", "/card/stamp", (e) => {
     }
   }
 
-  // generate this stamp's hand-pressed look
+  // one outstanding request per customer per café — a re-tap while a request
+  // is already pending just re-surfaces it instead of spamming the staff panel
+  let existing = null;
+  try {
+    existing = $app.findFirstRecordByFilter("stamp_requests", "user = {:u} && cafe = {:c} && status = 'pending'", { u: u.id, c: cafe.id });
+  } catch (err) { existing = null; }
+  if (existing) {
+    const createdMs = new Date(String(existing.getString("created")).replace(" ", "T")).getTime();
+    const age = isNaN(createdMs) ? Infinity : Date.now() - createdMs;
+    if (age < REQUEST_TTL_MS) {
+      return e.json(200, { request_id: existing.id, expires_in: Math.ceil((REQUEST_TTL_MS - age) / 1000), cafe: cafeEcho });
+    }
+    existing.set("status", "expired");
+    $app.save(existing);
+  }
+
+  const req = new Record($app.findCollectionByNameOrId("stamp_requests"));
+  req.set("user", u.id);
+  req.set("cafe", cafe.id);
+  req.set("user_name", u.getString("name") || "");
+  req.set("tag", tagCode);
+  req.set("status", "pending");
+  $app.save(req);
+
+  // note when this tag was last tapped
+  try { tag.set("last_used", new Date().toISOString()); $app.save(tag); } catch (err) {}
+
+  return e.json(200, { request_id: req.id, expires_in: REQUEST_TTL_MS / 1000, cafe: cafeEcho });
+}, $apis.requireAuth());
+
+routerAdd("POST", "/card/stamp/confirm", (e) => {
+  const u = e.auth;
+  const role = u ? u.getString("role") : "";
+  if (role !== "staff" && role !== "admin") {
+    return e.json(403, { error: "Staff access only" });
+  }
+
+  const REQUEST_TTL_MS = 30000;
+  const body = e.requestInfo().body || {};
+  const reqId = String(body.request_id || "").trim();
+  const approve = !!body.approve;
+  if (!reqId) return e.json(400, { error: "Missing request" });
+
+  let req = null;
+  try { req = $app.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
+  if (!req) return e.json(404, { status: "invalid", error: "Request not found" });
+
+  // this staff/owner's own café only — never someone else's pending request
+  let cafe = null;
+  try {
+    cafe = $app.findFirstRecordByFilter("cafe_card", "id = {:c} && (staff_user = {:u} || owner_user = {:u})", { c: req.getString("cafe"), u: u.id });
+  } catch (err) { cafe = null; }
+  if (!cafe) return e.json(403, { status: "invalid", error: "Not your café" });
+
+  if (req.getString("status") !== "pending") {
+    return e.json(409, { status: req.getString("status"), error: "Already handled" });
+  }
+
+  const createdMs = new Date(String(req.getString("created")).replace(" ", "T")).getTime();
+  if (isNaN(createdMs) || Date.now() - createdMs > REQUEST_TTL_MS) {
+    req.set("status", "expired");
+    $app.save(req);
+    return e.json(410, { status: "expired", error: "This request expired" });
+  }
+
+  if (!approve) {
+    req.set("status", "denied");
+    $app.save(req);
+    return e.json(200, { status: "denied" });
+  }
+
+  // ---- the actual stamp: server-generated look, audit row, and — on ----
+  // ---- completion — a weighted-random reward draw + minted discount ----
+  const userId = req.getString("user");
+  const tagCode = req.getString("tag");
+  const inkColor = "#1c2b3a";
+
+  let membership = null;
+  try {
+    membership = $app.findFirstRecordByFilter("memberships", "user = {:u} && cafe = {:c}", { u: userId, c: cafe.id });
+  } catch (err) { membership = null; }
+  if (!membership) {
+    membership = new Record($app.findCollectionByNameOrId("memberships"));
+    membership.set("user", userId);
+    membership.set("cafe", cafe.id);
+    membership.set("stamp_count", 0);
+    membership.set("cycles", 0);
+    membership.set("stamps", []);
+  }
+
   const stamp = {
     dx: +(Math.random() * 32 - 16).toFixed(1),
     dy: +(Math.random() * 32 - 16).toFixed(1),
@@ -97,14 +198,11 @@ routerAdd("POST", "/card/stamp", (e) => {
 
   // audit log (records the real tap source, café, and which tag)
   const ev = new Record($app.findCollectionByNameOrId("stamp_events"));
-  ev.set("user", u.id);
+  ev.set("user", userId);
   ev.set("cafe", cafe.id);
   ev.set("source", "nfc");
   ev.set("tag", tagCode);
   $app.save(ev);
-
-  // note when this tag was last tapped
-  try { tag.set("last_used", new Date().toISOString()); $app.save(tag); } catch (err) {}
 
   let completed = false;
   let discount = null;
@@ -129,7 +227,7 @@ routerAdd("POST", "/card/stamp", (e) => {
     const code = "LOY" + $security.randomStringWithAlphabet(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
 
     const d = new Record($app.findCollectionByNameOrId("discounts"));
-    d.set("user", u.id);
+    d.set("user", userId);
     d.set("cafe", cafe.id);
     if (picked) d.set("reward_option", picked.id);
     d.set("code", code);
@@ -163,7 +261,7 @@ routerAdd("POST", "/card/stamp", (e) => {
   membership.set("stamp_count", count);
   $app.save(membership);
 
-  return e.json(200, {
+  const result = {
     stamp, stamp_count: count, required, completed, discount,
     // the goal the NEXT card will use — after a completion this is the café's
     // current (possibly changed) value, so the client can rebuild with it
@@ -177,5 +275,11 @@ routerAdd("POST", "/card/stamp", (e) => {
       min_purchase: cafe.getInt("min_purchase"),
       theme: cafe.getString("theme"),
     },
-  });
+  };
+
+  req.set("status", "approved");
+  req.set("result", result);
+  $app.save(req);
+
+  return e.json(200, { status: "approved", result });
 }, $apis.requireAuth());

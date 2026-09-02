@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=30" />
-  <script src="i18n.js?v=2"></script>
+  <link rel="stylesheet" href="auth.css?v=34" />
+  <script src="i18n.js?v=6"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -34,12 +34,6 @@
       </div>
       <h1 class="auth__brand"><img src="reloy-logo.png?v=2" alt="Reloy" /></h1>
 
-      <!-- role -->
-      <div class="seg" id="roleSeg" role="tablist" aria-label="Account type">
-        <button class="seg__btn is-on" data-role="customer" type="button" data-i18n="AUTH_ROLE_CUSTOMER">Customer</button>
-        <button class="seg__btn" data-role="cafe" type="button" data-i18n="AUTH_ROLE_BUSINESS">Business</button>
-      </div>
-
       <!-- STEP 1: phone -->
       <section class="step" id="stepPhone">
         <div class="tabs" id="modeTabs">
@@ -50,10 +44,6 @@
         <div class="field" id="fieldName" hidden>
           <label for="name" data-i18n="AUTH_LABEL_NAME">What can we call you?</label>
           <input id="name" type="text" autocomplete="name" placeholder="e.g. Sara" data-i18n-placeholder="AUTH_PH_NAME" />
-        </div>
-        <div class="field" id="fieldCafe" hidden>
-          <label for="cafeName" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
-          <input id="cafeName" type="text" autocomplete="organization" placeholder="e.g. Aurora Coffee" data-i18n-placeholder="AUTH_PH_BUSINESS_NAME_TAGLINE" />
         </div>
 
         <div class="field">
@@ -67,90 +57,7 @@
 
         <button class="btn btn--primary" id="sendBtn" type="button" data-i18n="AUTH_BTN_SEND">Send code</button>
         <p class="fine" data-i18n-html="AUTH_TERMS_LINE">By continuing you agree to our <a href="terms.html">Terms</a> &amp; <a href="terms.html">Privacy</a>.</p>
-      </section>
-
-      <!-- STEP 1 (cafe): shared code, no phone/registration -->
-      <section class="step" id="stepCafe" hidden>
-        <div class="field">
-          <label for="cafeCode" data-i18n="AUTH_LABEL_BUSINESS_CODE">Business code</label>
-          <input id="cafeCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="e.g. ORAM-4821" data-i18n-placeholder="AUTH_PH_BUSINESS_CODE" />
-          <p class="field__err" id="cafeCodeErr" hidden data-i18n="AUTH_ERR_WRONG_CODE">Wrong code — try again.</p>
-        </div>
-        <button class="btn btn--primary" id="cafeEnterBtn" type="button" data-i18n="AUTH_BTN_ENTER">Enter</button>
-        <p class="fine" data-i18n="AUTH_FINE_BUSINESS_CODE">Ask your manager for the business code — no account needed.</p>
-        <button class="link-btn" id="ownerLink" type="button" data-i18n="AUTH_LINK_BUSINESS_OWNER">Business owner?</button>
-      </section>
-
-      <!-- STEP 1 (owner): phone + password, no registration -->
-      <section class="step" id="stepOwner" hidden>
-        <button class="back" id="ownerBack" type="button" data-i18n="AUTH_BACK">← Back</button>
-        <div class="tabs owner-tabs">
-          <button class="tabs__btn is-on" data-omode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
-          <button class="tabs__btn" data-omode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
-        </div>
-        <div class="field">
-          <label for="ownerPhone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
-          <div class="phone">
-            <span class="phone__cc">🇮🇷 +98</span>
-            <input id="ownerPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
-          </div>
-        </div>
-        <div class="field">
-          <label for="ownerPass" data-i18n="AUTH_LABEL_PASSWORD">Password</label>
-          <input id="ownerPass" type="password" autocomplete="current-password" placeholder="••••••••" />
-          <p class="field__err" id="ownerErr" hidden data-i18n="AUTH_ERR_WRONG_PASSWORD">Wrong password.</p>
-        </div>
-        <button class="btn btn--primary" id="ownerLoginBtn" type="button" data-i18n="AUTH_BTN_LOGIN">Log in</button>
-      </section>
-
-      <!-- STEP: create a cafe (self-serve owner registration) -->
-      <section class="step" id="stepCreate" hidden>
-        <button class="back" id="createBack" type="button" data-i18n="AUTH_BACK">← Back</button>
-        <div class="tabs owner-tabs">
-          <button class="tabs__btn" data-omode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
-          <button class="tabs__btn is-on" data-omode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
-        </div>
-        <div class="field">
-          <label for="cCafe" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
-          <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora" data-i18n-placeholder="AUTH_PH_BUSINESS_NAME" />
-        </div>
-        <div class="field">
-          <label data-i18n="AUTH_LABEL_BUSINESS_TYPE">Business type</label>
-          <div class="seg seg--3" id="cType" role="tablist" aria-label="Business type">
-            <button class="seg__btn is-on" data-type="Cafe" type="button"><span data-i18n="AUTH_TYPE_CAFE">Cafe</span></button>
-            <button class="seg__btn" data-type="Restaurant" type="button"><span data-i18n="AUTH_TYPE_RESTAURANT">Restaurant</span></button>
-            <button class="seg__btn" data-type="Cafe &amp; Restaurant" type="button"><span data-i18n="AUTH_TYPE_BOTH">Cafe &amp; Restaurant</span></button>
-          </div>
-        </div>
-        <div class="field">
-          <label data-i18n="AUTH_LABEL_ACCENT">Card accent colour</label>
-          <div class="swatches" id="cAccent"></div>
-        </div>
-        <div class="field">
-          <label for="cName" data-i18n="AUTH_LABEL_YOUR_NAME">Your name</label>
-          <input id="cName" type="text" maxlength="40" placeholder="Owner name" data-i18n-placeholder="AUTH_PH_OWNER_NAME" />
-        </div>
-        <div class="field">
-          <label for="cPhone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
-          <div class="phone">
-            <span class="phone__cc">🇮🇷 +98</span>
-            <input id="cPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
-          </div>
-        </div>
-        <div class="field">
-          <label for="cEmail" data-i18n="AUTH_LABEL_EMAIL">Email</label>
-          <input id="cEmail" type="email" autocomplete="email" placeholder="you@example.com" data-i18n-placeholder="AUTH_PH_EMAIL" />
-        </div>
-        <div class="field">
-          <label for="cPass"><span data-i18n="AUTH_LABEL_PASSWORD">Password</span> <span class="opt" data-i18n="AUTH_OPT_MIN6">(min 6)</span></label>
-          <input id="cPass" type="password" autocomplete="new-password" placeholder="••••••••" />
-        </div>
-        <div class="field">
-          <label for="cPassConfirm" data-i18n="AUTH_LABEL_CONFIRM_PASSWORD">Confirm password</label>
-          <input id="cPassConfirm" type="password" autocomplete="new-password" placeholder="••••••••" />
-          <p class="field__err" id="createErr" hidden></p>
-        </div>
-        <button class="btn btn--primary" id="createBtn" type="button" data-i18n="AUTH_BTN_CREATE_BUSINESS">Create business</button>
+        <button class="link-btn" id="businessLink" type="button" data-i18n="AUTH_LINK_ARE_YOU_BUSINESS">Are you a business?</button>
       </section>
 
       <!-- STEP 2: otp -->
@@ -182,6 +89,6 @@
     </div>
   </main>
 
-  <script src="auth.js?v=22"></script>
+  <script src="auth.js?v=24"></script>
 </body>
 </html>

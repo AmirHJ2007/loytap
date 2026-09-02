@@ -155,7 +155,7 @@ body {
   display: flex; flex-direction: column;
   /* Opaque card so stacked cards fully cover each other — no bleed-through. */
   background:
-    linear-gradient(158deg, rgba(255,255,255,0.97), rgba(255,255,255,0.9)),
+    linear-gradient(158deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02)),
     linear-gradient(158deg, var(--paper), var(--paper-2));
   border: 1px solid var(--glass-border);
   box-shadow:
@@ -168,8 +168,8 @@ body {
 .face::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background:
-    radial-gradient(130% 60% at 20% -10%, rgba(255,255,255,0.6), transparent 52%),
-    linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.18) 46%, transparent 60%);
+    radial-gradient(130% 60% at 20% -10%, rgba(255,255,255,0.28), transparent 52%),
+    linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.08) 46%, transparent 60%);
 }
 .face--front { opacity: 1; animation: cardIn 0.9s var(--ease-spring) both; }
 @keyframes cardIn {
@@ -191,7 +191,7 @@ body {
 /* ---------------- Oram card header ---------------- */
 .oram-sheen {
   position: absolute; top: 0; left: 0; width: 55%; height: 100%;
-  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%);
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
   transform: translateX(-170%) skewX(-12deg);
   pointer-events: none; z-index: 3;
   animation: sheen 7s ease-in-out 0.9s infinite;
@@ -206,12 +206,13 @@ body {
 .oram-head__id { min-width: 0; }
 /* compact progress in the top-right corner */
 .oram-mini { flex: 0 0 auto; display: flex; align-items: baseline; gap: 2px; font-family: var(--font-heading); line-height: 1; }
-.oram-mini .count { font-weight: 700; font-size: 22px; color: var(--accent, var(--ink)); }
+.oram-mini .count { font-weight: 700; font-size: 22px; color: var(--ink); }
 .oram-mini__sep { font-size: 16px; color: var(--ink-faint); opacity: 0.5; }
 .oram-mini > span:last-child { font-size: 16px; color: var(--ink-faint); font-weight: 700; }
 .oram-name {
   font-family: var(--font-heading); font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
-  margin: 0; color: var(--accent, var(--ink)); text-transform: uppercase;
+  margin: 0; color: var(--ink); text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.22);
   opacity: 0; transform-origin: 0% 50%;
   animation: nameIn 0.7s var(--ease-spring) 0.12s forwards;
 }
@@ -225,7 +226,7 @@ body {
 
 /* optional "minimum purchase for a stamp" note — only shown when the café sets one */
 .oram-min { margin: -8px 4px 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-dim); text-align: center;
-  background: rgba(20,20,20,0.05); border: 1px dashed rgba(20,20,20,0.16); border-radius: 10px; padding: 7px 10px; }
+  background: rgba(255,255,255,0.14); border: 1px dashed rgba(255,255,255,0.34); border-radius: 10px; padding: 7px 10px; }
 
 /* ---------------- Reward teaser (shown below the card, only once it's open) ---------------- */
 /* UI chrome, not part of the branded card — reads in the page's own
@@ -265,9 +266,9 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
   aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 84px;
   color: var(--ink-faint);
   background:
-    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.55), transparent 60%),
-    rgba(255, 251, 242, 0.28);
-  border: 1.5px dashed rgba(110, 110, 110, 0.42);
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.7), transparent 60%),
+    rgba(255, 255, 255, 0.3);
+  border: 1.5px dashed rgba(255, 255, 255, 0.68);
   box-shadow: inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 6px rgba(70,70,70,0.06);
   transition: border-color 0.4s ease, transform 0.3s var(--ease-spring);
   animation: slotIn 0.5s var(--ease-spring) both;
@@ -288,6 +289,10 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
 }
 .slot .halo { position: absolute; inset: 8%; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,0.18), transparent 65%); opacity: 0; pointer-events: none; }
 .slot.is-stamped .halo { animation: halo 0.6s ease-out forwards; }
+/* shockwave ring pulsing outward the instant the stamp lands */
+.slot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 0 rgba(28,43,58,0.45); opacity: 0; pointer-events: none; }
+.slot.impact::after { animation: slotImpact 0.62s ease-out; }
+@keyframes slotImpact { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(28,43,58,0.45); } 100% { opacity: 0; box-shadow: 0 0 0 18px rgba(28,43,58,0); } }
 @keyframes halo {
   0% { opacity: 0.7; transform: translate(var(--dx,0), var(--dy,0)) scale(0.5); }
   100% { opacity: 0; transform: translate(var(--dx,0), var(--dy,0)) scale(1.6); }
@@ -656,6 +661,140 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 .congrats__continue:hover { background: rgba(255,255,255,0.26); }
 .congrats__continue:active { transform: scale(0.98); }
 
+/* ================================================================
+   Waiting for staff to confirm the tap (realtime) — the tap is
+   "broadcast" to the counter (sonar pulses), a ring counts the
+   window down, and approval lands as a spring-in check + success
+   burst that zooms through into the stamp press.
+   ================================================================ */
+.confirmwait {
+  position: fixed; inset: 0; z-index: 218;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 22px;
+  background: radial-gradient(125% 90% at 50% 22%, #34383f 0%, #202329 46%, #131418 100%);
+  opacity: 0; transition: opacity 0.4s ease;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.confirmwait[hidden] { display: none; }
+.confirmwait.show { opacity: 1; }
+.confirmwait.is-leaving { opacity: 0; transition: opacity 0.42s ease; }
+
+/* drifting ambient glow (shifts to mint on success) */
+.confirmwait__glow { position: absolute; inset: 0; pointer-events: none; }
+.confirmwait__glow::before, .confirmwait__glow::after {
+  content: ""; position: absolute; border-radius: 50%; filter: blur(72px);
+  transition: background 0.5s ease;
+}
+.confirmwait__glow::before { top: 4%; left: 46%; width: 320px; height: 320px; background: radial-gradient(circle, rgba(122,196,255,0.15), transparent 70%); animation: cwDriftA 10s ease-in-out infinite; }
+.confirmwait__glow::after  { bottom: 2%; right: 6%; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.09), transparent 70%); animation: cwDriftB 13s ease-in-out infinite; }
+.confirmwait.is-approved .confirmwait__glow::before { background: radial-gradient(circle, rgba(95,227,166,0.30), transparent 70%); }
+.confirmwait.is-declined .confirmwait__glow::before { background: radial-gradient(circle, rgba(255,102,86,0.22), transparent 70%); }
+@keyframes cwDriftA { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-18px,14px) scale(1.12); } }
+@keyframes cwDriftB { 0%,100% { transform: translate(0,0) scale(1.05); } 50% { transform: translate(14px,-12px) scale(0.94); } }
+
+.confirmwait__card {
+  position: relative; z-index: 1;
+  width: min(90vw, 340px);
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  transform: translateY(30px) scale(0.9); opacity: 0;
+  transition: transform 0.6s var(--ease-spring), opacity 0.4s ease;
+}
+.confirmwait.show .confirmwait__card { transform: none; opacity: 1; }
+.confirmwait.is-leaving .confirmwait__card { transform: scale(1.14); opacity: 0; transition: transform 0.5s var(--ease-spring), opacity 0.4s ease; }
+.confirmwait.is-declined .confirmwait__card { animation: cwShake 0.5s ease both; }
+@keyframes cwShake { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-11px); } 30% { transform: translateX(10px); } 45% { transform: translateX(-7px); } 60% { transform: translateX(5px); } 78% { transform: translateX(-3px); } }
+
+/* the ring stage */
+.confirmwait__stage { position: relative; width: 172px; height: 172px; display: grid; place-items: center; }
+
+/* sonar pulses radiating outward — the request being sent to the counter */
+.confirmwait__sonar {
+  position: absolute; width: 118px; height: 118px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  opacity: 0; transform: scale(0.52);
+  animation: cwSonar 2.7s cubic-bezier(0.2,0.6,0.3,1) infinite;
+}
+.confirmwait__sonar:nth-child(2) { animation-delay: 0.9s; }
+.confirmwait__sonar:nth-child(3) { animation-delay: 1.8s; }
+.confirmwait.is-approved .confirmwait__sonar,
+.confirmwait.is-declined .confirmwait__sonar { animation: none; opacity: 0; }
+@keyframes cwSonar { 0% { opacity: 0; transform: scale(0.52); } 14% { opacity: 0.7; } 100% { opacity: 0; transform: scale(1.5); } }
+
+/* success ripple burst on approval */
+.confirmwait__burst {
+  position: absolute; width: 118px; height: 118px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(95,227,166,0.55), transparent 62%);
+  opacity: 0; transform: scale(0.4); pointer-events: none;
+}
+.confirmwait.is-approved .confirmwait__burst { animation: cwBurst 0.95s ease-out forwards; }
+@keyframes cwBurst { 0% { opacity: 0.95; transform: scale(0.4); } 100% { opacity: 0; transform: scale(2.4); } }
+
+/* a glowing comet circles the ring while we wait — actively "reaching the counter" */
+.confirmwait__orbit {
+  position: absolute; width: 138px; height: 138px; border-radius: 50%;
+  animation: cwOrbit 2.4s linear infinite;
+}
+.confirmwait.is-approved .confirmwait__orbit,
+.confirmwait.is-declined .confirmwait__orbit { animation: none; opacity: 0; transition: opacity 0.3s ease; }
+@keyframes cwOrbit { to { transform: rotate(360deg); } }
+/* the comet's fading tail (a masked conic arc that spins with the orbit) */
+.confirmwait__orbit::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(255,255,255,0) 0deg, rgba(255,255,255,0) 268deg, rgba(255,255,255,0.32) 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+}
+/* the bright comet head */
+.confirmwait__comet {
+  position: absolute; top: -4px; left: 50%; margin-left: -4px;
+  width: 8px; height: 8px; border-radius: 50%; background: #ffffff;
+  box-shadow: 0 0 10px 3px rgba(255,255,255,0.85), 0 0 22px 7px rgba(122,196,255,0.4);
+}
+
+.confirmwait__ring { position: absolute; inset: 26px; width: 120px; height: 120px; transform: rotate(-90deg); }
+.confirmwait__track { fill: none; stroke: rgba(255,255,255,0.13); stroke-width: 5; }
+.confirmwait__bar {
+  fill: none; stroke: #ffffff; stroke-width: 5; stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.5));
+  transition: stroke 0.45s ease, filter 0.45s ease;
+}
+.confirmwait.is-approved .confirmwait__bar { stroke: #5fe3a6; filter: drop-shadow(0 0 12px rgba(95,227,166,0.8)); }
+.confirmwait.is-declined .confirmwait__bar { stroke: #ff6656; filter: drop-shadow(0 0 12px rgba(255,102,86,0.72)); }
+
+/* centre core: the countdown number cross-fades to a check / cross */
+.confirmwait__core { position: relative; width: 100%; height: 100%; display: grid; place-items: center; color: #fff; }
+.confirmwait__disc { grid-area: 1 / 1; width: 98px; height: 98px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.11), transparent 70%); pointer-events: none; }
+.confirmwait.is-approved .confirmwait__disc { background: radial-gradient(circle, rgba(95,227,166,0.20), transparent 70%); }
+.confirmwait.is-declined .confirmwait__disc { background: radial-gradient(circle, rgba(255,102,86,0.18), transparent 70%); }
+.confirmwait__num {
+  grid-area: 1 / 1;
+  font-family: var(--font-heading); font-weight: 700; font-size: 42px; line-height: 1;
+  color: #ffffff; font-variant-numeric: tabular-nums;
+  transition: opacity 0.3s ease, transform 0.3s var(--ease-spring);
+}
+.confirmwait__num.tick { animation: cwNumTick 0.35s var(--ease-spring); }
+@keyframes cwNumTick { 0% { transform: scale(1); } 34% { transform: scale(1.14); } 100% { transform: scale(1); } }
+.confirmwait.is-approved .confirmwait__num,
+.confirmwait.is-declined .confirmwait__num { opacity: 0; transform: scale(0.5); }
+.confirmwait__glyph { grid-area: 1 / 1; width: 46px; height: 46px; opacity: 0; transform: scale(0.3); }
+.confirmwait.is-approved .confirmwait__glyph--ok { color: #5fe3a6; animation: cwPop 0.6s var(--ease-spring) 0.05s forwards; }
+.confirmwait.is-declined .confirmwait__glyph--no { color: #ff6656; animation: cwPop 0.5s var(--ease-spring) 0.05s forwards; }
+@keyframes cwPop { 0% { opacity: 0; transform: scale(0.3) rotate(-12deg); } 60% { opacity: 1; transform: scale(1.2) rotate(4deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+
+.confirmwait__status {
+  margin: 28px 0 0; font-family: var(--font-heading); font-weight: 700; font-size: 21px;
+  color: #ffffff; letter-spacing: -0.2px; transition: color 0.35s ease;
+}
+.confirmwait:not(.is-approved):not(.is-declined) .confirmwait__status { animation: cwBreath 2s ease-in-out infinite; }
+.confirmwait.is-approved .confirmwait__status { color: #7ff0bf; }
+.confirmwait.is-declined .confirmwait__status { color: #ff9186; }
+@keyframes cwBreath { 0%,100% { opacity: 0.82; } 50% { opacity: 1; } }
+.confirmwait__sub { margin: 9px 6px 0; font-size: 13.5px; line-height: 1.45; color: rgba(255,255,255,0.6); max-width: 262px; }
+.confirmwait__sub b { color: #ffffff; font-weight: 700; }
+.confirmwait__sub bdi { font-weight: 700; }
+
 /* ---- celebratory entrance choreography (plays when .congrats gets .show) ---- */
 @keyframes cFadeUp { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: none; } }
 @keyframes popBounce {
@@ -699,6 +838,13 @@ html[dir="rtl"] .cafe-row { text-align: right; }
   .congrats.show .ticket__divider, .congrats.show .ticket__stats, .congrats.show .ticket__qr,
   .congrats.show .ticket__hint, .congrats.show .ticket__code, .congrats.show .congrats__continue { animation: none; opacity: 1; transform: none; }
   .ticket__title { background: none; color: #171717; -webkit-text-fill-color: #171717; }
+  .confirmwait__glow::before, .confirmwait__glow::after, .confirmwait__sonar,
+  .confirmwait__burst, .confirmwait__status, .confirmwait__orbit, .confirmwait__num { animation: none; }
+  .confirmwait__orbit { opacity: 0; }
+  .confirmwait__card { transition: opacity 0.2s ease; transform: none; }
+  .confirmwait.is-declined .confirmwait__card { animation: none; }
+  .confirmwait.is-approved .confirmwait__glyph--ok,
+  .confirmwait.is-declined .confirmwait__glyph--no { animation: none; opacity: 1; transform: scale(1); }
 }
 
 /* ---------------- Toast (cooldown / invalid-tap feedback) ---------------- */

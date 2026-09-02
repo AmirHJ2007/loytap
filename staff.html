@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache" />
   <title>Oram · Staff Scanner</title>
-  <script>try{if(localStorage.getItem("loytap_staff")!=="1")location.replace("auth.html");}catch(e){}</script>
+  <script src="staff.guard.js?v=1"></script>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="reloy-icon-192.png" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=10" />
-  <script src="i18n.js?v=2"></script>
+  <link rel="stylesheet" href="staff.css?v=12" />
+  <script src="i18n.js?v=6"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span><span class="grain"></span></div>
@@ -24,6 +24,9 @@
       <h1 class="staff-title" id="cafeName">Oram Cafe &amp; Restaurant</h1>
     </header>
     <span class="staff-badge" data-i18n="STAFF_BADGE">Staff Scanner</span>
+
+    <!-- Incoming stamp-tap requests — real-time, no refresh -->
+    <div class="request-queue" id="requestQueue" aria-live="polite"></div>
 
     <div class="staff-card">
       <!-- Scanner -->
@@ -84,18 +87,8 @@
     </div>
   </div>
 
-  <script>
-    try {
-      var cn = localStorage.getItem("loytap_cafe");
-      if (cn) document.getElementById("cafeName").textContent = cn;
-    } catch (e) {}
-    document.getElementById("signoutBtn").addEventListener("click", function () {
-      ["loytap_token","loytap_staff","loytap_owner","loytap_role","loytap_signed_in","loytap_name","loytap_cafe"]
-        .forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
-      location.replace("auth.html");
-    });
-  </script>
+  <script src="staff.page.js?v=1"></script>
   <script src="jsQR.js"></script>
-  <script src="staff.js?v=5"></script>
+  <script src="staff.js?v=9"></script>
 </body>
 </html>

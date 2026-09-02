@@ -129,12 +129,35 @@ function updateTeaser(deck) {
   if (selectedIndex === deck.index) layout();
 }
 
+// Blend a hex colour toward black (amt < 0) or white (amt > 0); amt in [-1, 1].
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const mix = (v) => (amt < 0 ? v * (1 + amt) : v + (255 - v) * amt);
+  [r, g, b] = [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(mix(v)))));
+  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
 function buildCard(cfg, index) {
   const el = document.createElement("div");
   el.className = "wcard";
   el.dataset.index = index;
   for (const [k, v] of Object.entries(cfg.theme)) el.style.setProperty(k, v);
-  el.style.setProperty("--accent", cfg.accent || "#171717");
+  const accent = cfg.accent || "#171717";
+  el.style.setProperty("--accent", accent);
+  // The card face is the café's own accent colour, not a neutral paper —
+  // a light stop (top-left) fading to a deeper one (bottom-right) for depth.
+  // Darkening the light stop by 8% (instead of the raw swatch colour) keeps
+  // every curated accent, including the palest one, comfortably legible
+  // under the white name text.
+  el.style.setProperty("--paper", shade(accent, -0.08));
+  el.style.setProperty("--paper-2", shade(accent, -0.30));
+  // Text on a coloured card reads white at full strength down to faint,
+  // instead of the page's neutral dark-on-light greys.
+  el.style.setProperty("--ink", "#ffffff");
+  el.style.setProperty("--ink-dim", "rgba(255,255,255,0.86)");
+  el.style.setProperty("--ink-faint", "rgba(255,255,255,0.56)");
+  el.style.setProperty("--gold", "rgba(255,255,255,0.72)");
 
   const slotsHtml = Array.from({ length: cfg.stamps }, (_, i) => `
     <div class="slot" style="--i:${i}"><span class="halo"></span><span class="slot__num">${i + 1}</span><span class="stamp">${STAR_SVG}</span></div>`).join("");
@@ -168,8 +191,12 @@ function buildCard(cfg, index) {
     stamped: 0,
   };
 
-  // in the browse stack, tapping a card opens it in detail view
-  el.addEventListener("click", () => { if (selectedIndex == null) selectCard(deck.index); });
+  // in the browse stack, tapping a card opens it in detail view; tapping the
+  // already-open card again closes it, same as the ✕ button
+  el.addEventListener("click", () => {
+    if (selectedIndex == null) selectCard(deck.index);
+    else if (selectedIndex === deck.index) deselectCard();
+  });
 
   // No manual/self-serve stamping in production — stamps are only granted by a real
   // NFC tap (see the ?t= handler in init). On localhost only, reveal the button and
@@ -280,16 +307,18 @@ function cfgFromCafe(c) {
 // tag's secret from the tap URL. The server validates it and enforces the cooldown.
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// One tap does everything automatically: the server records the stamp (and
-// resolves WHICH café the tag belongs to), then we surface that café's card to
-// the front of the wallet — creating it with a slide-in if this is the first
-// visit — and press the stamp onto it.
+// A tap only ever REQUESTS a stamp now — a staff member at the café must
+// confirm it in real time before it's actually granted (see SEC-04: a static
+// tag's code can always be read off the chip, so possessing it can't be
+// enough on its own). We surface that café's card to the front of the wallet
+// — creating it with a slide-in if this is the first visit — then show a
+// live "waiting for staff" screen that resolves the instant staff responds.
 async function handleTap(tagCode) {
   if (busy || !tagCode) return;
   busy = true;
   let res = null, r = null;
   try {
-    r = await fetch(API + "/card/stamp", {
+    r = await fetch(API + "/card/stamp/request", {
       method: "POST",
       headers: { Authorization: token, "Content-Type": "application/json" },
       body: JSON.stringify({ tag: tagCode }),
@@ -324,7 +353,92 @@ async function handleTap(tagCode) {
   enterDetail(idx); // the tapped café's card rises to the detail view (others + toolbar hide)
   await wait(isNew ? (REDUCED ? 0 : 620) : (REDUCED ? 60 : 560));
   try { await loadRewardPool(c.id); } catch (_) {}
-  animateStamp(decks[idx], res); // press the stamp that was already recorded (frees busy in onLifted)
+  showConfirmWait(decks[idx], res.request_id, res.expires_in || 30, c.name); // frees busy once staff responds (or it times out)
+}
+
+// ===================================================================
+// Waiting for staff to confirm — live over PocketBase realtime, no refresh
+// ===================================================================
+let confirmWaitTimer = null;
+
+function showConfirmWait(deck, requestId, seconds, cafeName) {
+  const wrap = document.getElementById("confirmWait");
+  const ring = document.getElementById("confirmWaitBar");
+  const num = document.getElementById("confirmWaitNum");
+  const status = document.getElementById("confirmWaitStatus");
+  const sub = document.getElementById("confirmWaitSub");
+  if (!wrap || !requestId) { busy = false; return; }
+
+  clearInterval(confirmWaitTimer);
+  wrap.classList.remove("is-approved", "is-declined");
+  status.textContent = t("WALLET_CONFIRM_WAITING");
+  sub.innerHTML = t("WALLET_CONFIRM_SUB", { shop: escapeHtml(cafeName || "") });
+  wrap.hidden = false;
+  wrap.setAttribute("aria-hidden", "false");
+  void wrap.offsetWidth; // commit the opacity:0 base so the fade-in transition plays
+  // add `.show` via rAF for a smooth first frame, with a timeout fallback in
+  // case rAF is throttled (background/PWA tab) — the overlay must never get
+  // stuck half-faded over the wallet
+  requestAnimationFrame(() => wrap.classList.add("show"));
+  setTimeout(() => wrap.classList.add("show"), 40);
+
+  // countdown ring: an SVG circle whose stroke drains over `seconds`, driven
+  // by a single CSS transition rather than per-frame JS
+  const CIRC = 2 * Math.PI * 52;
+  ring.style.strokeDasharray = String(CIRC);
+  ring.style.transition = "none";
+  ring.style.strokeDashoffset = "0";
+  void ring.offsetWidth;
+  ring.style.transition = `stroke-dashoffset ${seconds}s linear`;
+  requestAnimationFrame(() => { ring.style.strokeDashoffset = String(CIRC); });
+
+  let remaining = seconds;
+  num.textContent = String(remaining);
+  confirmWaitTimer = setInterval(() => {
+    remaining -= 1;
+    num.textContent = String(Math.max(0, remaining));
+    num.classList.remove("tick"); void num.offsetWidth; num.classList.add("tick"); // heartbeat pulse each second
+    if (remaining <= 0) clearInterval(confirmWaitTimer);
+  }, 1000);
+
+  const finish = (outcome, resultForStamp) => {
+    if (wrap.hidden || wrap.classList.contains("is-approved") || wrap.classList.contains("is-declined")) return;
+    clearInterval(confirmWaitTimer);
+    rtStop();
+    if (outcome === "approved") {
+      wrap.classList.add("is-approved");
+      status.textContent = t("WALLET_CONFIRM_APPROVED");
+      if (navigator.vibrate) { try { navigator.vibrate(28); } catch (_) {} }
+      // let the check spring in + success burst breathe, then zoom the overlay
+      // through and hand off to the rubber-stamp press on the card behind
+      setTimeout(() => { hideConfirmWait(); animateStamp(deck, resultForStamp); }, REDUCED ? 60 : 780); // frees busy in onLifted
+    } else {
+      wrap.classList.add("is-declined");
+      if (navigator.vibrate) { try { navigator.vibrate([40, 60, 40]); } catch (_) {} }
+      if (outcome === "denied") { status.textContent = t("WALLET_CONFIRM_DENIED"); sub.textContent = t("WALLET_CONFIRM_DENIED_SUB"); }
+      else { status.textContent = t("WALLET_CONFIRM_EXPIRED"); sub.textContent = t("WALLET_CONFIRM_EXPIRED_SUB"); }
+      setTimeout(() => { hideConfirmWait(); busy = false; }, 1900);
+    }
+  };
+
+  rtWatch("stamp_requests/" + requestId, (rec) => {
+    if (rec.status === "approved") finish("approved", rec.result);
+    else if (rec.status === "denied" || rec.status === "expired") finish(rec.status);
+  });
+
+  // client-side backstop in case the SSE push is missed/dropped — the server
+  // is the real authority on the window (a late confirm is refused there),
+  // this just stops the customer staring at a countdown stuck at 0
+  setTimeout(() => finish("expired"), seconds * 1000 + 1200);
+}
+
+function hideConfirmWait() {
+  const wrap = document.getElementById("confirmWait");
+  if (!wrap) return;
+  wrap.classList.add("is-leaving"); // zoom the card through as the overlay fades
+  wrap.classList.remove("show");
+  wrap.setAttribute("aria-hidden", "true");
+  setTimeout(() => { wrap.hidden = true; wrap.classList.remove("is-approved", "is-declined", "is-leaving"); }, 460);
 }
 
 // Press an already-recorded stamp onto a deck (no network — res came from the tap).
@@ -344,6 +458,8 @@ function onImpact(deck, slot, v) {
   slot.style.setProperty("--sa", v.sa);
   if (v.color) slot.querySelector(".stamp").style.color = v.color;
   slot.classList.add("is-stamped");
+  slot.classList.remove("impact"); void slot.offsetWidth; slot.classList.add("impact"); // shockwave ring
+  if (navigator.vibrate) { try { navigator.vibrate(18); } catch (_) {} }
   deck.countEl.textContent = String(deck.stamped);
   updateTeaser(deck);
   deck.stampBtn.classList.remove("pulse"); void deck.stampBtn.offsetWidth; deck.stampBtn.classList.add("pulse");
@@ -797,25 +913,29 @@ const ticketHint = document.getElementById("ticketHint");
 const ticketCode = document.getElementById("ticketCode");
 const ticketUsed = document.getElementById("ticketUsed");
 
-// ---- Realtime: watch for the cashier redeeming the ticket that's on screen ----
+// ---- Realtime: watch a single record over PocketBase's SSE feed ----
 // PocketBase realtime is Server-Sent Events: open /api/realtime, grab the clientId
-// from the PB_CONNECT event, then POST the subscription (authenticated). When the
-// staff /redeem hook saves status=redeemed, PB pushes an "update" to this client.
-let rtSource = null, rtTopic = null, rtHandler = null, rtOnRedeem = null;
+// from the PB_CONNECT event, then POST the subscription (authenticated). Whenever
+// a hook saves that record server-side, PB pushes an "update" to this client — no
+// polling, no refresh. Used for both the discount-redeem watch and the stamp
+// confirmation watch below.
+let rtSource = null, rtTopic = null, rtHandler = null, rtOnEvent = null;
 
 function rtStop() {
   if (rtSource) {
     try { if (rtTopic && rtHandler) rtSource.removeEventListener(rtTopic, rtHandler); } catch (_) {}
     try { rtSource.close(); } catch (_) {}
   }
-  rtSource = null; rtTopic = null; rtHandler = null; rtOnRedeem = null;
+  rtSource = null; rtTopic = null; rtHandler = null; rtOnEvent = null;
 }
 
-function rtWatchDiscount(id, onRedeem) {
+// Subscribe to one record ("collection/id"); onEvent(record) fires on every
+// create/update push PocketBase sends for it while this subscription is live.
+function rtWatch(topic, onEvent) {
   rtStop();
-  if (!id || !token || typeof EventSource === "undefined") return;
-  rtTopic = "discounts/" + id;
-  rtOnRedeem = onRedeem;
+  if (!topic || !token || typeof EventSource === "undefined") return;
+  rtTopic = topic;
+  rtOnEvent = onEvent;
   rtSource = new EventSource(API + "/api/realtime");
   // (re)subscribe on every connect — EventSource reconnects transparently
   rtSource.addEventListener("PB_CONNECT", (e) => {
@@ -831,9 +951,13 @@ function rtWatchDiscount(id, onRedeem) {
   rtHandler = (e) => {
     let rec = null;
     try { rec = JSON.parse(e.data).record; } catch (_) {}
-    if (rec && rec.status === "redeemed" && rtOnRedeem) rtOnRedeem(rec);
+    if (rec && rtOnEvent) rtOnEvent(rec);
   };
   rtSource.addEventListener(rtTopic, rtHandler);
+}
+
+function rtWatchDiscount(id, onRedeem) {
+  rtWatch("discounts/" + id, (rec) => { if (rec.status === "redeemed") onRedeem(rec); });
 }
 
 // Fly the rubber-stamp tool down onto the ticket (same tool as the loyalty card),

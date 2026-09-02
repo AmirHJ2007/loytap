@@ -119,6 +119,101 @@ body {
 }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+/* ================================================================
+   Incoming stamp-tap requests (realtime) — each customer tap drops
+   in a card that springs down + glows for attention, counts its
+   window down, and collapses on approve / deny / timeout.
+   ================================================================ */
+.request-queue { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.request-queue:empty { display: none; }
+
+.incoming {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: 14px;
+  background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+  backdrop-filter: blur(20px) saturate(165%);
+  -webkit-backdrop-filter: blur(20px) saturate(165%);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  padding: 16px 16px 15px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  transform: translateY(-18px) scale(0.95); opacity: 0;
+  transition: transform 0.55s var(--ease-spring), opacity 0.35s ease, box-shadow 0.4s ease;
+}
+.incoming.show { transform: translateY(0) scale(1); opacity: 1; animation: incomingGlow 1.8s ease-in-out 2; }
+@keyframes incomingGlow {
+  0%,100% { box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), 0 0 0 0 rgba(20,20,20,0); }
+  50%     { box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), 0 0 0 4px rgba(20,20,20,0.14); }
+}
+/* accent stripe wiping across the top edge as it lands */
+.incoming::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--ink), transparent);
+  transform: translateX(-100%); opacity: 0.5;
+}
+.incoming.show::before { animation: incomingWipe 1s ease-out 0.15s; }
+@keyframes incomingWipe { to { transform: translateX(100%); } }
+.incoming.is-approved, .incoming.is-denied, .incoming.is-expired {
+  transform: translateY(-6px) scale(0.97); opacity: 0;
+  transition: transform 0.5s ease, opacity 0.5s ease; animation: none;
+}
+
+.incoming__head { display: flex; align-items: center; gap: 13px; }
+
+.incoming__avatar {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-heading); font-weight: 700; font-size: 18px; color: #fff;
+  background: linear-gradient(155deg, #2a2a2a, #171717);
+  box-shadow: 0 8px 18px -8px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.16);
+}
+.incoming.is-approved .incoming__avatar { background: linear-gradient(155deg, #27b877, #1f9d63); }
+.incoming.is-denied .incoming__avatar, .incoming.is-expired .incoming__avatar { background: linear-gradient(155deg, #d06450, #c0503f); }
+
+.incoming__body { flex: 1; min-width: 0; }
+.incoming__name { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.incoming__sub { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-dim); }
+
+.incoming__ringwrap { position: relative; width: 44px; height: 44px; flex: 0 0 auto; }
+.incoming__ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.incoming__track { fill: none; stroke: rgba(20,20,20,0.12); stroke-width: 4; }
+.incoming__bar { fill: none; stroke: #171717; stroke-width: 4; stroke-linecap: round; transition: stroke 0.4s ease; }
+.incoming.is-approved .incoming__bar { stroke: #1f9d63; }
+.incoming.is-denied .incoming__bar, .incoming.is-expired .incoming__bar { stroke: #c0503f; }
+.incoming__num {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.incoming__actions { display: flex; gap: 10px; }
+.incoming__btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+  height: 46px; border-radius: 14px; border: none; cursor: pointer;
+  font-family: var(--font-heading); font-weight: 700; font-size: 15px;
+  transition: transform 0.14s ease, box-shadow 0.3s ease, background 0.2s ease;
+}
+.incoming__btn svg { width: 18px; height: 18px; }
+.incoming__btn:active { transform: scale(0.97); }
+.incoming__btn--approve {
+  flex: 1.7; color: #fff; background: #171717;
+  box-shadow: 0 12px 24px -10px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.14);
+  animation: approveNudge 2.4s ease-in-out infinite;
+}
+.incoming__btn--approve:hover { background: #000; }
+@keyframes approveNudge { 0%,92%,100% { transform: scale(1); } 96% { transform: scale(1.03); } }
+.incoming__btn--deny { flex: 1; color: #c0503f; background: rgba(192,80,63,0.12); box-shadow: inset 0 0 0 1.5px rgba(192,80,63,0.3); }
+.incoming__btn--deny:hover { background: rgba(192,80,63,0.2); }
+.incoming.is-busy { pointer-events: none; opacity: 0.65; }
+
+@media (prefers-reduced-motion: reduce) {
+  .incoming { transition: opacity 0.2s ease; transform: none; }
+  .incoming.show { animation: none; }
+  .incoming.show::before { animation: none; }
+  .incoming__btn--approve { animation: none; }
+  .incoming.is-approved, .incoming.is-denied, .incoming.is-expired { transform: none; }
+}
+
 /* ---------------- Frosted glass panel wrapping the whole scanner flow ---------------- */
 .staff-card {
   width: 100%;

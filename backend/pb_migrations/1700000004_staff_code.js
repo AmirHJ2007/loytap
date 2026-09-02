@@ -2,6 +2,17 @@
 
 // Café staff sign in with a shared CODE (no phone/OTP). The code logs into a
 // hidden staff service-account for the café, which grants a staff session.
+//
+// Security fix: this migration used to seed a staff code as a string literal
+// in this file. The repo is public and that same string was printed
+// as the sign-in placeholder, so it was a published credential for
+// POST /staff/login. The seeding is now a random code (same alphabet the signup
+// path uses) — the owner reads it from GET /owner/cafe. Neutering it here only
+// protects fresh deploys; 1700000018 rotates the codes in databases that
+// already ran this. The staff service-account password moved off
+// Math.random() to $security.randomString() for the same reason — it is never
+// used to log in directly (staff auth goes through the code), but it should
+// still not be predictable from the seeding time.
 
 migrate((app) => {
   const usersId = app.findCollectionByNameOrId("users").id;
@@ -24,14 +35,16 @@ migrate((app) => {
     staff.set("stamp_count", 0);
     staff.set("cycles", 0);
     staff.set("verified", true);
-    staff.setPassword("oram-staff-" + Math.random().toString(36).slice(2) + Date.now());
+    staff.setPassword($security.randomString(30));
     app.save(staff);
   }
 
   // set the code + link on the single café
   const rec = app.findRecordsByFilter("cafe_card", "stamps_required >= 0", "", 1, 0, {})[0];
   if (rec) {
-    rec.set("staff_code", "ORAM-4821");
+    const name = String(rec.getString("cafe_name") || "").toUpperCase().replace(/[^A-Z]/g, "");
+    const prefix = name.length >= 3 ? name.slice(0, 3) : "CAF";
+    rec.set("staff_code", prefix + "-" + $security.randomStringWithAlphabet(5, "ABCDEFGHJKMNPQRSTUVWXYZ23456789"));
     rec.set("staff_user", staff.id);
     app.save(rec);
   }

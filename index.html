@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache" />
   <title>Reloy · Loyalty Wallet</title>
-  <script>try{if(localStorage.getItem('loytap_signed_in')!=='1'){var _t=new URLSearchParams(location.search).get('t');if(_t)localStorage.setItem('reloy_pending_tap',JSON.stringify({code:_t,at:Date.now()}));location.replace('auth.html');}}catch(e){}</script>
+  <script src="index.guard.js?v=1"></script>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="reloy-icon-192.png" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=81" />
-  <script src="i18n.js?v=2"></script>
+  <link rel="stylesheet" href="styles.css?v=84" />
+  <script src="i18n.js?v=6"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -121,6 +121,31 @@
     <button class="congrats__continue" id="congratsContinue" type="button" data-i18n="WALLET_CONTINUE">Continue</button>
   </div>
 
+  <!-- Waiting for staff to confirm the tap (realtime, no refresh) -->
+  <div class="confirmwait" id="confirmWait" hidden aria-hidden="true">
+    <div class="confirmwait__glow" aria-hidden="true"></div>
+    <div class="confirmwait__card">
+      <div class="confirmwait__stage">
+        <span class="confirmwait__sonar" aria-hidden="true"></span>
+        <span class="confirmwait__sonar" aria-hidden="true"></span>
+        <span class="confirmwait__burst" aria-hidden="true"></span>
+        <span class="confirmwait__orbit" aria-hidden="true"><span class="confirmwait__comet"></span></span>
+        <svg class="confirmwait__ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="confirmwait__track" cx="60" cy="60" r="52" />
+          <circle class="confirmwait__bar" id="confirmWaitBar" cx="60" cy="60" r="52" />
+        </svg>
+        <div class="confirmwait__core">
+          <span class="confirmwait__disc" aria-hidden="true"></span>
+          <span class="confirmwait__num" id="confirmWaitNum">30</span>
+          <svg class="confirmwait__glyph confirmwait__glyph--ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <svg class="confirmwait__glyph confirmwait__glyph--no" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </div>
+      </div>
+      <p class="confirmwait__status" id="confirmWaitStatus" data-i18n="WALLET_CONFIRM_WAITING">Waiting for staff to confirm…</p>
+      <p class="confirmwait__sub" id="confirmWaitSub"></p>
+    </div>
+  </div>
+
   <!-- Settings bottom sheet -->
   <aside class="sheet" id="settings" aria-hidden="true" aria-label="Settings">
     <div class="sheet__grip" aria-hidden="true"></div>
@@ -169,6 +194,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=63"></script>
+  <script src="app.js?v=67"></script>
 </body>
 </html>

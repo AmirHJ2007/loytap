@@ -1,14 +1,41 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Café owner login by phone + password (no registration):
-//   POST /owner/login { phone, password } -> { token, name, role }
+// Café owner login by phone + password, with an SMS second factor:
+//   POST /owner/login        { phone, password } -> { otp_required:true, ttl }  (no token)
+//   POST /owner/login/verify { phone, code }     -> { token, name, role, cafe_name }
+// See the long note above /owner/login for why the password alone is no longer
+// enough and why the challenge lives in its own collection.
 
 // Open self-serve café creation. Anyone can register: creates the admin (owner)
 // user, a staff service-account, a cafe_card (name/tagline/accent + a generated
 // staff code) and one NFC tag, then returns an owner token.
-//   POST /owner/register { name, phone, password, cafe_name, tagline?, accent? }
+//
+// The phone must be verified first: the client calls POST /otp/request for this
+// phone (same OTP endpoint the customer flow uses), then submits the code here.
+// A wrong or missing code fails before anything is created — no account, no
+// café, nothing — so a mistyped/unowned phone number can never register a
+// business.
+//
+// The code gets the same 5 guesses as everywhere else, and the 5th wrong one
+// burns it and sends a replacement out of the same per-phone sms_budgets row
+// /otp/request spends — never in addition to it. See /otp/verify in otp.pb.js,
+// which consumes these same otp_codes rows with identical semantics.
+//   POST /owner/register { name, phone, password, cafe_name, tagline?, accent?, code }
 //     -> { token, name, role, cafe_name, staff_code, nfc }
+//     401 { error }                                    no live code for this number
+//     401 { error, attempts_left }                     wrong code, guesses remain
+//     429 { error, regenerated:true, ttl, devCode? }   5th wrong code, new one sent
+//     429 { error, regenerated:false, restart:true }   5th wrong code, none could be sent
 routerAdd("POST", "/owner/register", (e) => {
+  const MAX_ATTEMPTS = 5;
+  const TTL_MS = 3 * 60 * 1000;
+  const MAX_SENDS = 5;
+  const SEND_WINDOW_MS = 15 * 60 * 1000;
+
+  const now = Date.now();
+  // pb stores/compares datetimes as "YYYY-MM-DD HH:MM:SS.sssZ"
+  const dbTime = (ms) => new Date(ms).toISOString().replace("T", " ");
+  const msOf = (v) => { const t = new Date(String(v || "").replace(" ", "T")).getTime(); return isNaN(t) ? 0 : t; };
   const norm = (raw) => {
     let d = String(raw || "").replace(/\D/g, "");
     if (d.indexOf("98") === 0) d = d.slice(2);
@@ -22,6 +49,7 @@ routerAdd("POST", "/owner/register", (e) => {
   const email = String(b.email || "").trim().toLowerCase();
   const cafeName = String(b.cafe_name || "").trim();
   const tagline = String(b.tagline || "").trim();
+  const code = String(b.code || "").trim();
   let accent = String(b.accent || "#171717").trim();
   if (!/^#[0-9a-fA-F]{6}$/.test(accent)) accent = "#171717";
 
@@ -29,6 +57,106 @@ routerAdd("POST", "/owner/register", (e) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return e.json(400, { error: "Enter a valid email address." });
   if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters." });
   if (!cafeName) return e.json(400, { error: "Enter your café's name." });
+  if (!/^\d{6}$/.test(code)) return e.json(400, { error: "Enter the 6-digit code sent to your phone." });
+
+  // verify the phone BEFORE creating anything — same rows /otp/verify uses.
+  // Fetch by phone, not by phone+code: a wrong guess has to find the row in
+  // order to be counted against it.
+  let otp = null;
+  try {
+    otp = $app.findRecordsByFilter("otp_codes", "phone = {:phone} && expires > {:now}", "-created", 1, 0, { phone, now: dbTime(now) })[0];
+  } catch (err) { otp = null; }
+  if (!otp) return e.json(401, { error: "Invalid or expired code — try again." });
+
+  // otp_codes stores "salt:sha256(salt:code)" — a legacy plaintext row has no
+  // colon and matches nothing, so it just expires unused. Duplicated from
+  // otp.pb.js: pb handlers run isolated and can't share a helper.
+  const codeMatches = (stored, given) => {
+    const t = String(stored || "");
+    const i = t.indexOf(":");
+    if (i < 1) return false;
+    return $security.equal(t, t.slice(0, i) + ":" + $security.sha256(t.slice(0, i) + ":" + given));
+  };
+
+  if (!codeMatches(otp.getString("code_hash"), code)) {
+    const attempts = otp.getInt("attempts") + 1;
+    if (attempts < MAX_ATTEMPTS) {
+      try {
+        otp.set("attempts", attempts);
+        $app.save(otp);
+      } catch (err) {
+        // the guess couldn't be recorded — destroy the code rather than leave
+        // an uncounted one alive to be guessed at for free
+        $app.logger().error("register attempt counter failed", "error", String(err));
+        try { $app.delete(otp); } catch (err2) {}
+        return e.json(401, { error: "Invalid or expired code — try again." });
+      }
+      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+    }
+
+    // ---- 5th wrong code: burn it, try to send a fresh one in its place ----
+    const restart = () => {
+      try { $app.delete(otp); } catch (err) {}
+      return e.json(429, { error: "Too many incorrect codes. Please start again.", regenerated: false, restart: true });
+    };
+
+    let bud = null;
+    try { bud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:phone} && purpose = 'otp'", { phone }); } catch (err) { bud = null; }
+    let sends = bud ? bud.getInt("sends") : 0;
+    let winStart = bud ? msOf(bud.get("window_start")) : 0;
+    if (!winStart || now - winStart > SEND_WINDOW_MS) { sends = 0; winStart = now; }
+    if (sends >= MAX_SENDS) return restart(); // regeneration is NOT exempt from the cap
+
+    const fresh = $security.randomStringWithAlphabet(6, "0123456789");
+    try {
+      const salt = $security.randomString(16);
+      otp.set("code_hash", salt + ":" + $security.sha256(salt + ":" + fresh));
+      otp.set("expires", dbTime(now + TTL_MS));
+      otp.set("attempts", 0); // a new code gets a fresh 5 guesses
+      $app.save(otp);
+    } catch (err) {
+      $app.logger().error("register regenerate failed", "error", String(err));
+      return restart();
+    }
+
+    // spend before sending: a provider that fails must never hand back a free send
+    if (!bud) {
+      bud = new Record($app.findCollectionByNameOrId("sms_budgets"));
+      bud.set("phone", phone);
+      bud.set("purpose", "otp");
+    }
+    bud.set("sends", sends + 1);
+    bud.set("window_start", dbTime(winStart));
+    bud.set("last_sent", dbTime(now));
+    try { $app.save(bud); } catch (err) { $app.logger().error("otp budget save failed", "error", String(err)); }
+
+    const ttl = Math.round(TTL_MS / 1000);
+    const msg = "Too many incorrect codes. We've sent you a new one.";
+    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
+    if (kavKey) {
+      try {
+        $http.send({
+          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
+          method: "GET",
+          timeout: 10,
+        });
+      } catch (err) {
+        $app.logger().error("register SMS resend failed", "error", String(err));
+        return restart();
+      }
+      return e.json(429, { error: msg, regenerated: true, ttl });
+    }
+
+    // no provider: only echo the code when dev mode is explicitly opted into.
+    // without it we must NOT hand it back — fail closed like /otp/request
+    if ($os.getenv("OTP_DEV_MODE") === "1") {
+      $app.logger().info("register OTP regenerated (dev)", "phone", phone, "code", fresh);
+      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+    }
+    $app.logger().error("register OTP blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
+    return restart();
+  }
+  $app.delete(otp);
 
   // A phone may already have a customer account — that's a separate identity
   // from a business account, so only block on an existing *business* account.
@@ -61,16 +189,30 @@ routerAdd("POST", "/owner/register", (e) => {
   staff.setPassword($security.randomString(30));
   $app.save(staff);
 
-  // a readable, unique staff code from the café name + 4 digits
-  const slug = (cafeName.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)) || "CAFE";
-  let staffCode = "";
-  for (let i = 0; i < 6; i++) {
-    const cand = slug + "-" + $security.randomStringWithAlphabet(4, "0123456789");
-    let clash = null;
-    try { clash = $app.findFirstRecordByFilter("staff_codes", "code = {:c}", { c: cand }); } catch (err) { clash = null; }
-    if (!clash) { staffCode = cand; break; }
-  }
-  if (!staffCode) staffCode = slug + "-" + $security.randomStringWithAlphabet(6, "0123456789");
+  // a readable, unique staff code: 3 letters of the café name + 5 random chars
+  // from a confusable-free alphabet (no O/0, no I/1/L) — ~28M codes per prefix,
+  // instead of the 10k of the old SLUG-NNNN.
+  //
+  // Handler functions run in their own JSVM context and can't see file-scope
+  // helpers (same reason `norm` is redeclared in every route above), and
+  // pb_migrations is a separate context again — so this generator is duplicated
+  // in backend/pb_migrations/1700000018_rotate_staff_codes.js. Keep both in sync.
+  const makeStaffCode = (name) => {
+    const AB = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    // fa/ar café names contain no A-Z at all, so a name that yields fewer than
+    // 3 usable letters falls back to CAF rather than a 0/1/2-letter prefix
+    const letters = String(name || "").toUpperCase().replace(/[^A-Z]/g, "");
+    const prefix = letters.length >= 3 ? letters.slice(0, 3) : "CAF";
+    for (let i = 0; i < 8; i++) {
+      const cand = prefix + "-" + $security.randomStringWithAlphabet(5, AB);
+      let clash = null;
+      try { clash = $app.findFirstRecordByFilter("staff_codes", "code = {:c}", { c: cand }); } catch (err) { clash = null; }
+      if (!clash) return cand;
+    }
+    // every attempt clashed — widen the random part, never weaken it
+    return prefix + "-" + $security.randomStringWithAlphabet(12, AB);
+  };
+  const staffCode = makeStaffCode(cafeName);
 
   // the café card
   const card = new Record($app.findCollectionByNameOrId("cafe_card"));
@@ -116,7 +258,52 @@ routerAdd("POST", "/owner/register", (e) => {
   return e.json(200, { token, name: owner.getString("name"), role: "admin", cafe_name: cafeName, staff_code: staffCode, nfc: tagCode });
 });
 
+// Step 1 of owner sign-in. An owner token controls a café's analytics, its
+// whole customer list, rewards, staff code and minimum purchase, so a password
+// on its own is no longer enough to get one — this endpoint never returns a
+// token, it only starts an SMS challenge that /owner/login/verify finishes.
+//
+//   POST /owner/login { phone, password }
+//     200 { otp_required:true, ttl }   code sent (or already in flight)
+//     400 invalid phone / missing password
+//     404 { error, notRegistered:true }
+//     401 wrong password
+//     429 too many codes requested for this number
+//     502 SMS provider refused   503 no SMS provider configured (see below)
+//
+// The SMS is minted ONLY after the password validates. Anything earlier and
+// knowing an owner's phone number would be enough to spam their handset and
+// burn the café's SMS credit — and the send caps below, which are keyed by
+// phone, would become a way to lock a stranger out of their own resend.
+//
+// Resending is just calling this again (the client still has the password), so
+// it has to be cheap to repeat: a call inside the 60s cooldown re-reports the
+// live challenge instead of sending a second SMS, and there are at most 5 sends
+// per number per 15 minutes. Each send mints a NEW code and resets that code's
+// 5-guess budget, so the ceiling is 25 guesses per 15 minutes against fresh
+// random 6-digit codes — and only for someone who already has the password.
+//
+// That 5-per-15-minutes is the WHOLE SMS budget for this number's sign-ins: the
+// automatic regeneration in /owner/login/verify draws on the same row, so five
+// wrong codes cannot conjure an extra send. It lives in sms_budgets rather than
+// on the challenge for the reason spelled out at the lookup below.
+//
+// NO SMS, NO SIGN-IN. Unlike /otp/request (which echoes the code in the JSON
+// whenever KAVENEGAR_API_KEY is missing, dev flag or not), this path refuses to
+// start a challenge it cannot actually deliver: a production box with no API
+// key returns 503 and nobody can sign in, rather than quietly falling back to
+// password-only. The dev echo is gated on an explicit OTP_DEV_MODE=1 opt-in.
 routerAdd("POST", "/owner/login", (e) => {
+  const TTL_MS = 3 * 60 * 1000;            // matches the customer OTP window
+  const RESEND_COOLDOWN_MS = 60 * 1000;
+  const MAX_SENDS = 5;
+  const SEND_WINDOW_MS = 15 * 60 * 1000;
+  const PRUNE_AFTER_MS = 60 * 60 * 1000;
+
+  const now = Date.now();
+  // pb stores/compares datetimes as "YYYY-MM-DD HH:MM:SS.sssZ"
+  const dbTime = (ms) => new Date(ms).toISOString().replace("T", " ");
+  const msOf = (v) => { const t = new Date(String(v || "").replace(" ", "T")).getTime(); return isNaN(t) ? 0 : t; };
   const norm = (raw) => {
     let d = String(raw || "").replace(/\D/g, "");
     if (d.indexOf("98") === 0) d = d.slice(2);
@@ -136,6 +323,303 @@ routerAdd("POST", "/owner/login", (e) => {
   }
   if (!password) return e.json(400, { error: "Enter your password" });
   if (!u.validatePassword(password)) return e.json(401, { error: "Wrong password" });
+
+  // ---- password is good; only now does anything get sent anywhere ----
+
+  // opportunistic prune — a challenge an hour past its 3-minute expiry is dead
+  // several times over, so dropping it just reclaims the row. Budgets are
+  // pruned the same way, an hour after their 15-minute window opened.
+  if (Math.random() < 0.05) {
+    try {
+      const stale = $app.findRecordsByFilter("owner_login_challenges", "expires < {:cut}", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
+      for (const r of stale) $app.delete(r);
+    } catch (err) {}
+    try {
+      const spent = $app.findRecordsByFilter("sms_budgets", "window_start < {:cut}", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
+      for (const r of spent) $app.delete(r);
+    } catch (err) {}
+  }
+
+  let ch = null;
+  try { ch = $app.findFirstRecordByFilter("owner_login_challenges", "phone = {:phone}", { phone }); } catch (err) { ch = null; }
+  // a row left over from a different account on this number is not this
+  // owner's challenge — start clean rather than inherit its code
+  if (ch && ch.getString("user") !== u.id) {
+    try { $app.delete(ch); } catch (err) {}
+    ch = null;
+  }
+
+  // The send counters do NOT live on the challenge: it is destroyed on lockout,
+  // on expiry and on a failed send, and counters kept there died with it — five
+  // deliberate wrong codes bought a caller a fresh budget and another instant
+  // SMS. sms_budgets outlives the code it paid for.
+  let bud = null;
+  try { bud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:phone} && purpose = 'owner_login'", { phone }); } catch (err) { bud = null; }
+
+  // still inside the cooldown with a live code → say so, don't send a second
+  // SMS. Impatient double-taps and page reloads cost nothing.
+  if (ch && bud) {
+    const exp = msOf(ch.get("expires"));
+    const sent = msOf(bud.get("last_sent"));
+    if (exp > now && sent && now - sent < RESEND_COOLDOWN_MS) {
+      $app.logger().info("owner login resend suppressed (cooldown)", "phone", phone);
+      return e.json(200, { otp_required: true, ttl: Math.max(1, Math.ceil((exp - now) / 1000)) });
+    }
+  }
+
+  let sends = bud ? bud.getInt("sends") : 0;
+  let winStart = bud ? msOf(bud.get("window_start")) : 0;
+  if (!winStart || now - winStart > SEND_WINDOW_MS) { sends = 0; winStart = now; } // window rolled over
+  if (sends >= MAX_SENDS) {
+    const left = winStart + SEND_WINDOW_MS - now;
+    try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
+    return e.json(429, {
+      error: "Too many codes requested for this number. Please wait a few minutes and try again.",
+      retry_after: Math.ceil(left / 1000),
+    });
+  }
+
+  // crypto RNG, not Math.random() — the code is the whole second factor
+  const code = $security.randomStringWithAlphabet(6, "0123456789");
+  const salt = $security.randomString(16);
+  const expires = now + TTL_MS;
+
+  if (!ch) {
+    ch = new Record($app.findCollectionByNameOrId("owner_login_challenges"));
+    ch.set("phone", phone);
+  }
+  ch.set("user", u.id);
+  ch.set("salt", salt);
+  ch.set("code_hash", $security.sha256(salt + ":" + code)); // hashed: a dump of this table is not a pile of live second factors
+  ch.set("expires", dbTime(expires));
+  ch.set("attempts", 0);                    // a new code gets a fresh 5 guesses
+  try {
+    $app.save(ch);
+  } catch (err) {
+    $app.logger().error("owner login challenge save failed", "error", String(err));
+    return e.json(500, { error: "Could not start sign-in. Please try again." });
+  }
+
+  // spend the budget BEFORE sending: a provider that fails (or is made to fail)
+  // must never hand back a free send
+  if (!bud) {
+    bud = new Record($app.findCollectionByNameOrId("sms_budgets"));
+    bud.set("phone", phone);
+    bud.set("purpose", "owner_login");
+  }
+  bud.set("sends", sends + 1);
+  bud.set("window_start", dbTime(winStart));
+  bud.set("last_sent", dbTime(now));
+  try { $app.save(bud); } catch (err) { $app.logger().error("owner login budget save failed", "error", String(err)); }
+
+  // nothing was delivered → tear the challenge down, so a failed send can never
+  // leave a code sitting there that only an attacker (or nobody) can use
+  const abort = (status, msg, logMsg) => {
+    try { $app.delete(ch); } catch (err) {}
+    $app.logger().error(logMsg);
+    return e.json(status, { error: msg });
+  };
+
+  const kavKey = $os.getenv("KAVENEGAR_API_KEY");
+  if (kavKey) {
+    let res = null;
+    try {
+      res = $http.send({
+        url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + code + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
+        method: "GET",
+        timeout: 10,
+      });
+    } catch (err) {
+      return abort(502, "Could not send the code. Please try again.", "owner login SMS send failed: " + String(err));
+    }
+    // a 200-shaped failure is still a failure — never assume it arrived
+    if (!res || res.statusCode < 200 || res.statusCode >= 300) {
+      return abort(502, "Could not send the code. Please try again.", "owner login SMS rejected, status " + String(res && res.statusCode));
+    }
+    return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000) });
+  }
+
+  // local dev: explicit opt-in only. OTP_DEV_MODE is never set in production,
+  // so this branch cannot silently turn owner 2FA back into no 2FA.
+  if ($os.getenv("OTP_DEV_MODE") === "1") {
+    $app.logger().info("owner login OTP (dev)", "phone", phone, "code", code);
+    return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000), devCode: code });
+  }
+
+  // no provider and no dev opt-in: we cannot deliver a second factor, so we
+  // refuse to sign anyone in at all rather than degrade to password-only
+  return abort(
+    503,
+    "Sign-in is temporarily unavailable. Please try again later.",
+    "owner login blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+  );
+});
+
+// Step 2 of owner sign-in: trade the SMS code for the owner token. Returns the
+// exact payload /owner/login used to return, so everything downstream of a
+// successful owner login is unchanged.
+//
+//   POST /owner/login/verify { phone, code }
+//     200 { token, name, role, cafe_name }
+//     400 invalid phone
+//     401 { error }                       wrong / expired / already-used code
+//     401 { error, attempts_left }        wrong code, guesses remain
+//     429 { error, regenerated:true, ttl, devCode? }  5th wrong code, new one sent
+//     429 { error, regenerated:false, restart:true }  5th wrong code, none could be sent
+//
+// The challenge is single-use (deleted on success) and each code is capped at 5
+// wrong guesses. The 5th one burns the code and mints a replacement rather than
+// throwing the owner back to the password screen — but that SMS is spent from
+// the SAME sms_budgets row /owner/login spends, never in addition to it, so
+// looping "fail five times" cannot buy an attacker a single extra send. Once
+// the budget is gone (or nothing can be delivered) the challenge is destroyed
+// and the client is told to restart, which is what this endpoint always did.
+//
+// attempts_left deliberately tells the caller a challenge exists — the client
+// needs the counter. The code itself is unguessable either way: 25 guesses per
+// 15 minutes (5 codes x 5 guesses) against a fresh random 6-digit code.
+//
+// It lives in owner_login_challenges, NOT otp_codes: codes minted by the
+// passwordless customer flow (/otp/request) are invisible here, so one can
+// never stand in for the second factor on a business account.
+routerAdd("POST", "/owner/login/verify", (e) => {
+  const MAX_ATTEMPTS = 5;
+  const TTL_MS = 3 * 60 * 1000;
+  const MAX_SENDS = 5;
+  const SEND_WINDOW_MS = 15 * 60 * 1000;
+
+  const now = Date.now();
+  const dbTime = (ms) => new Date(ms).toISOString().replace("T", " ");
+  const msOf = (v) => { const t = new Date(String(v || "").replace(" ", "T")).getTime(); return isNaN(t) ? 0 : t; };
+  const norm = (raw) => {
+    let d = String(raw || "").replace(/\D/g, "");
+    if (d.indexOf("98") === 0) d = d.slice(2);
+    if (d.indexOf("0") === 0) d = d.slice(1);
+    return d;
+  };
+  const b = e.requestInfo().body || {};
+  const phone = norm(b.phone);
+  const code = String(b.code || "").trim();
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+
+  // every code-shaped rejection answers the same way — no hint about whether a
+  // challenge exists, has expired, or how close the guess was
+  const bad = () => e.json(401, { error: "Invalid or expired code" });
+  if (!/^\d{6}$/.test(code)) return bad();
+
+  let ch = null;
+  try { ch = $app.findFirstRecordByFilter("owner_login_challenges", "phone = {:phone}", { phone }); } catch (err) { ch = null; }
+  if (!ch) return bad();
+
+  const expires = msOf(ch.get("expires"));
+  if (!expires || expires <= now) {
+    try { $app.delete(ch); } catch (err) {}
+    return bad();
+  }
+
+  const given = $security.sha256(ch.getString("salt") + ":" + code);
+  if (!$security.equal(ch.getString("code_hash"), given)) {
+    const attempts = ch.getInt("attempts") + 1;
+    if (attempts < MAX_ATTEMPTS) {
+      try {
+        ch.set("attempts", attempts);
+        $app.save(ch);
+      } catch (err) {
+        // the guess couldn't be recorded — destroy the challenge rather than
+        // leave an uncounted one alive to be guessed at for free
+        $app.logger().error("owner login attempt counter failed", "error", String(err));
+        try { $app.delete(ch); } catch (err2) {}
+        return bad();
+      }
+      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+    }
+
+    // ---- guess budget spent: burn this code, try to send a fresh one ----
+    // 429 (not 401) for this case — same shape as the staff-login lockout, and
+    // it tells the client "stop guessing" rather than "wrong".
+
+    // nothing could be sent → the challenge dies and the owner submits their
+    // password again, exactly as this endpoint behaved before regeneration
+    const restart = () => {
+      try { $app.delete(ch); } catch (err) {}
+      return e.json(429, { error: "Too many incorrect codes. Please sign in again to get a new one.", regenerated: false, restart: true });
+    };
+
+    let bud = null;
+    try { bud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:phone} && purpose = 'owner_login'", { phone }); } catch (err) { bud = null; }
+    let sends = bud ? bud.getInt("sends") : 0;
+    let winStart = bud ? msOf(bud.get("window_start")) : 0;
+    if (!winStart || now - winStart > SEND_WINDOW_MS) { sends = 0; winStart = now; }
+    if (sends >= MAX_SENDS) return restart(); // regeneration is NOT exempt from the cap
+
+    const fresh = $security.randomStringWithAlphabet(6, "0123456789");
+    const salt = $security.randomString(16);
+    try {
+      ch.set("salt", salt);
+      ch.set("code_hash", $security.sha256(salt + ":" + fresh));
+      ch.set("expires", dbTime(now + TTL_MS));
+      ch.set("attempts", 0);                  // a new code gets a fresh 5 guesses
+      $app.save(ch);
+    } catch (err) {
+      $app.logger().error("owner login regenerate failed", "error", String(err));
+      return restart();
+    }
+
+    // spend before sending, same as /owner/login
+    if (!bud) {
+      bud = new Record($app.findCollectionByNameOrId("sms_budgets"));
+      bud.set("phone", phone);
+      bud.set("purpose", "owner_login");
+    }
+    bud.set("sends", sends + 1);
+    bud.set("window_start", dbTime(winStart));
+    bud.set("last_sent", dbTime(now));
+    try { $app.save(bud); } catch (err) { $app.logger().error("owner login budget save failed", "error", String(err)); }
+
+    const ttl = Math.round(TTL_MS / 1000);
+    const msg = "Too many incorrect codes. We've sent you a new one.";
+    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
+    if (kavKey) {
+      let res = null;
+      try {
+        res = $http.send({
+          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
+          method: "GET",
+          timeout: 10,
+        });
+      } catch (err) {
+        $app.logger().error("owner login SMS resend failed", "error", String(err));
+        return restart();
+      }
+      // a 200-shaped failure is still a failure — never assume it arrived
+      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
+        $app.logger().error("owner login SMS resend rejected, status " + String(res && res.statusCode));
+        return restart();
+      }
+      return e.json(429, { error: msg, regenerated: true, ttl });
+    }
+
+    // same explicit dev opt-in as /owner/login — no provider and no opt-in means
+    // we cannot deliver a second factor, so the challenge dies rather than sit
+    // there holding a code nobody will ever receive
+    if ($os.getenv("OTP_DEV_MODE") === "1") {
+      $app.logger().info("owner login OTP regenerated (dev)", "phone", phone, "code", fresh);
+      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+    }
+    $app.logger().error("owner login regenerate blocked: no SMS provider");
+    return restart();
+  }
+
+  // right code → consume it before anything is minted, so a replay of the same
+  // code (or two requests racing) can never produce a second token
+  const userId = ch.getString("user");
+  try { $app.delete(ch); } catch (err) {}
+
+  let u = null;
+  try { u = $app.findRecordById("users", userId); } catch (err) { u = null; }
+  // the account must still be the admin on this very number — a challenge is
+  // never a licence to sign in as anyone else
+  if (!u || u.getString("role") !== "admin" || u.getString("phone") !== phone) return bad();
 
   let cafeName = "";
   try {
