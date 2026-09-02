@@ -15,7 +15,7 @@ document.getElementById("langSwitch").addEventListener("click", (e) => {
 
 // These fields are Latin-only (names/codes/email/password) regardless of UI language.
 const PERSIAN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿‌‏]/g;
-["cCafe", "cName", "cafeCode", "cEmail", "cPass", "cPassConfirm", "ownerPass"].forEach((id) => {
+["cCafe", "cName", "cafeCode", "cEmail", "cPass", "cPassConfirm", "ownerPass", "forgotPass", "forgotPassConfirm"].forEach((id) => {
   const el = $(id);
   el.addEventListener("input", () => {
     const filtered = el.value.replace(PERSIAN_RE, "");
@@ -61,11 +61,16 @@ function showBizStep(mode) {
   const staff = mode === "staff";
   stopCreateResend();
   stopOwnerResend();
+  stopForgotResend();
   $("stepCafe").hidden = !staff;
   $("stepOwner").hidden = staff;
   $("stepCreate").hidden = true;
   $("stepCreateOtp").hidden = true;
   $("stepOwnerOtp").hidden = true;
+  $("stepForgotPhone").hidden = true;
+  $("stepForgotOtp").hidden = true;
+  $("stepForgotNew").hidden = true;
+  $("ownerResetOk").hidden = true;
   if (staff) return;
   // reset stepOwner's OWN sign-in/register pill only — stepCreate has its own
   // separate pill (defaults to "register") that must stay untouched here
@@ -279,6 +284,214 @@ async function verifyOwnerLogin() {
   }
 }
 $("ownerOtpVerifyBtn").addEventListener("click", verifyOwnerLogin);
+
+// ---- Owner: forgot password (phone -> code -> new password -> back to sign-in) ----
+// Three visible steps, but only ONE server round-trip verifies anything: the
+// code from step 2 is held in memory and sent together with the new password
+// when step 3 submits. That keeps the backend to a single atomic endpoint
+// (verify the code AND set the password, or neither) instead of a separate
+// "code accepted" ticket to invent and expire correctly.
+let forgotPhoneNum = "";
+let forgotCode = "";
+
+$("forgotPasswordLink").addEventListener("click", () => {
+  $("stepOwner").hidden = true;
+  $("stepForgotPhone").hidden = false;
+  $("forgotPhone").value = $("ownerPhone").value; // carry over what they already typed, if anything
+  $("forgotPhoneErr").hidden = true;
+  $("forgotPhone").focus();
+});
+$("forgotPhoneBack").addEventListener("click", () => {
+  $("stepForgotPhone").hidden = true;
+  $("stepOwner").hidden = false;
+});
+
+// posts /owner/forgot-password — used both for the first send and for "resend code"
+async function requestForgotCode() {
+  if (!validPhone($("forgotPhone").value)) {
+    $("forgotPhoneErr").textContent = t("AUTH_TOAST_INVALID_NUMBER_MSG");
+    $("forgotPhoneErr").hidden = false;
+    const p = $("forgotPhone"); p.classList.remove("shake"); void p.offsetWidth; p.classList.add("shake");
+    return;
+  }
+  forgotPhoneNum = normalizePhone($("forgotPhone").value);
+  const resending = !$("stepForgotOtp").hidden;
+  const errEl = resending ? $("forgotOtpErr") : $("forgotPhoneErr");
+  $("forgotPhoneBtn").disabled = true;
+  errEl.hidden = true;
+  try {
+    const res = await fetch(API + "/owner/forgot-password", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: forgotPhoneNum }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.notRegistered) { flashToast(t("AUTH_TOAST_NOT_OWNER_TITLE"), t("AUTH_TOAST_NOT_OWNER_MSG"), $("forgotPhone")); return; }
+      errEl.textContent =
+        res.status === 429 ? t("AUTH_ERR_SEND_TOO_MANY") :
+        res.status === 502 ? t("AUTH_ERR_SEND_FAILED") :
+        res.status === 503 ? t("AUTH_ERR_SMS_UNAVAILABLE") :
+        (data.error || t("AUTH_ERR_LOGIN_FAILED"));
+      errEl.hidden = false;
+      return;
+    }
+    $("forgotOtpPhone").textContent = prettyPhone($("forgotPhone").value);
+    $("stepForgotPhone").hidden = true;
+    $("stepForgotOtp").hidden = false;
+    startForgotResend();
+    if (data.devCode) fillForgotOtp(data.devCode); // dev mode: no SMS, prefill the code
+    forgotOtpInputs[0].focus();
+  } catch (err) {
+    errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
+    errEl.hidden = false;
+  } finally {
+    $("forgotPhoneBtn").disabled = false;
+  }
+}
+$("forgotPhoneBtn").addEventListener("click", requestForgotCode);
+$("forgotPhone").addEventListener("keydown", (e) => { if (e.key === "Enter") requestForgotCode(); });
+
+$("forgotOtpBack").addEventListener("click", () => {
+  stopForgotResend();
+  $("stepForgotOtp").hidden = true;
+  $("stepForgotPhone").hidden = false;
+});
+
+const forgotOtpInputs = [...$("forgotOtp").querySelectorAll("input")];
+forgotOtpInputs.forEach((inp, i) => {
+  inp.addEventListener("input", () => {
+    inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+    inp.classList.toggle("filled", !!inp.value);
+    if (inp.value && i < forgotOtpInputs.length - 1) forgotOtpInputs[i + 1].focus();
+    $("forgotOtpErr").hidden = true;
+  });
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" && !inp.value && i > 0) forgotOtpInputs[i - 1].focus();
+  });
+  inp.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const digits = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6).split("");
+    digits.forEach((d, k) => { if (forgotOtpInputs[k]) { forgotOtpInputs[k].value = d; forgotOtpInputs[k].classList.add("filled"); } });
+    (forgotOtpInputs[digits.length] || forgotOtpInputs[5]).focus();
+  });
+});
+function fillForgotOtp(code) {
+  const d = String(code).replace(/\D/g, "").slice(0, 6).split("");
+  forgotOtpInputs.forEach((inp, k) => { inp.value = d[k] || ""; inp.classList.toggle("filled", !!d[k]); });
+  $("forgotOtpErr").hidden = true;
+}
+
+let forgotResendTimer = null;
+function startForgotResend() {
+  let secs = 60;
+  const render = (s) => t("AUTH_RESEND_COUNTDOWN", { s }).replace(String(s), "<b>" + s + "</b>");
+  $("forgotResend").classList.remove("ready");
+  $("forgotResend").innerHTML = render(secs);
+  forgotResendTimer = setInterval(() => {
+    secs -= 1;
+    if (secs <= 0) {
+      stopForgotResend();
+      $("forgotResend").classList.add("ready");
+      $("forgotResend").textContent = t("AUTH_RESEND_READY");
+      $("forgotResend").onclick = () => { requestForgotCode(); };
+    } else {
+      $("forgotResend").innerHTML = render(secs);
+    }
+  }, 1000);
+}
+function stopForgotResend() { if (forgotResendTimer) clearInterval(forgotResendTimer); forgotResendTimer = null; $("forgotResend").onclick = null; }
+
+// step 2 -> step 3: no server call yet — the code is only checked once step 3
+// submits it together with the new password
+$("forgotOtpContinueBtn").addEventListener("click", () => {
+  const code = forgotOtpInputs.map((i) => i.value).join("");
+  if (code.length < 6) { $("forgotOtpErr").textContent = t("AUTH_OTP_ERR_INCOMPLETE"); $("forgotOtpErr").hidden = false; return; }
+  forgotCode = code;
+  stopForgotResend();
+  $("stepForgotOtp").hidden = true;
+  $("stepForgotNew").hidden = false;
+  $("forgotPass").value = "";
+  $("forgotPassConfirm").value = "";
+  $("forgotNewErr").hidden = true;
+  $("forgotPass").focus();
+});
+
+$("forgotNewBack").addEventListener("click", () => {
+  $("stepForgotNew").hidden = true;
+  $("stepForgotOtp").hidden = false;
+  startForgotResend(); // a fresh 60s — simplest correct choice for "back on this step"
+  forgotOtpInputs[0].focus();
+});
+
+// 5 wrong codes and the code is dead — same shape as burnOwnerOtp, but the
+// code was collected on step 2 while the failure surfaces on step 3, so this
+// steps back to the right screen instead of staying put.
+function burnForgotPassword(data) {
+  if (data.regenerated) {
+    fillForgotOtp("");
+    stopForgotResend(); startForgotResend();
+    if (data.devCode) fillForgotOtp(data.devCode);
+    $("stepForgotNew").hidden = true;
+    $("stepForgotOtp").hidden = false;
+    $("forgotOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
+    $("forgotOtpErr").hidden = false;
+    flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("forgotOtp"));
+    forgotOtpInputs[0].focus();
+    return;
+  }
+  if (data.restart) {
+    fillForgotOtp("");
+    stopForgotResend();
+    $("stepForgotNew").hidden = true;
+    $("stepForgotPhone").hidden = false;
+    $("forgotPhoneErr").textContent = t("AUTH_ERR_CODE_RESTART");
+    $("forgotPhoneErr").hidden = false;
+    $("forgotPhone").focus();
+    return;
+  }
+  $("forgotNewErr").textContent = t("AUTH_ERR_CODE_TOO_MANY");
+  $("forgotNewErr").hidden = false;
+}
+
+async function submitNewPassword() {
+  const password = $("forgotPass").value;
+  const passwordConfirm = $("forgotPassConfirm").value;
+  const err = (msg) => { $("forgotNewErr").textContent = msg; $("forgotNewErr").hidden = false; };
+  $("forgotNewErr").hidden = true;
+  if (password.length < 6) { $("forgotPass").focus(); return err(t("AUTH_ERR_PASSWORD_SHORT")); }
+  if (password !== passwordConfirm) { $("forgotPassConfirm").focus(); return err(t("AUTH_ERR_PASSWORD_MISMATCH")); }
+
+  $("forgotNewBtn").disabled = true;
+  try {
+    const res = await fetch(API + "/owner/forgot-password/verify", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: forgotPhoneNum, code: forgotCode, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 429) { burnForgotPassword(data); return; }
+      err(wrongCodeMsg(data));
+      return;
+    }
+    // done — back to the ordinary sign-in step, exactly the flow this was built for
+    $("stepForgotNew").hidden = true;
+    $("stepOwner").hidden = false;
+    $("ownerPhone").value = $("forgotPhone").value;
+    $("ownerPass").value = "";
+    $("ownerErr").hidden = true;
+    $("ownerResetOk").hidden = false;
+    $("ownerPass").focus();
+  } catch (err2) {
+    err(t("AUTH_ERR_SERVER_UNREACHABLE"));
+  } finally {
+    $("forgotNewBtn").disabled = false;
+  }
+}
+$("forgotNewBtn").addEventListener("click", submitNewPassword);
+$("forgotPassConfirm").addEventListener("keydown", (e) => { if (e.key === "Enter") submitNewPassword(); });
+
+// typing again after a reset dismisses the "password updated" confirmation
+$("ownerPass").addEventListener("input", () => { $("ownerResetOk").hidden = true; });
 
 // ---- Owner self-registration (create a business) ----
 let cTypeSel = "Cafe";

@@ -5,6 +5,12 @@
 //   POST /owner/login/verify { phone, code }     -> { token, name, role, cafe_name }
 // See the long note above /owner/login for why the password alone is no longer
 // enough and why the challenge lives in its own collection.
+//
+// Forgot password, same SMS-code shape but no password needed to start it:
+//   POST /owner/forgot-password        { phone }               -> { reset_required:true, ttl }
+//   POST /owner/forgot-password/verify { phone, code, password } -> { ok:true }  (no token — sign in again)
+// See the note above /owner/forgot-password for why this is yet another
+// collection rather than reusing owner_login_challenges.
 
 // Open self-serve café creation. Anyone can register: creates the admin (owner)
 // user, a staff service-account, a cafe_card (name/tagline/accent + a generated
@@ -629,6 +635,308 @@ routerAdd("POST", "/owner/login/verify", (e) => {
 
   const token = u.newAuthToken();
   return e.json(200, { token, name: u.getString("name"), role: u.getString("role"), cafe_name: cafeName });
+});
+
+// Forgot password: POST /owner/forgot-password sends a 6-digit SMS code to the
+// account's own phone (no password needed — that's the whole point); POST
+// /owner/forgot-password/verify trades that code for setting a brand-new
+// password. Mirrors /owner/login + /owner/login/verify's shape (fail-closed
+// with no SMS provider, hashed single-use codes, 5-guess cap with auto-
+// regeneration on the 5th wrong code) but lives in its own collection and its
+// own sms_budgets purpose — see 1700000023_owner_password_resets.js for why.
+//
+//   POST /owner/forgot-password { phone }
+//     200 { reset_required:true, ttl, devCode? }
+//     400 invalid phone
+//     404 { error, notRegistered:true }   no owner account on this number
+//     429 { error, retry_after }          too many codes requested
+//     502 / 503                           SMS could not be sent / no provider
+//
+//   POST /owner/forgot-password/verify { phone, code, password }
+//     200 { ok:true }                     password changed — sign in again
+//     400 invalid phone / code shape / password too short
+//     401 { error }                       wrong / expired / already-used code
+//     401 { error, attempts_left }        wrong code, guesses remain
+//     429 { error, regenerated:true, ttl, devCode? }  5th wrong code, new one sent
+//     429 { error, regenerated:false, restart:true }  5th wrong code, none could be sent
+//
+// Unlike login, a successful verify does NOT return a token — the owner goes
+// back to the ordinary sign-in step and logs in with their new password,
+// exactly the flow this was built for.
+routerAdd("POST", "/owner/forgot-password", (e) => {
+  const TTL_MS = 3 * 60 * 1000;
+  const RESEND_COOLDOWN_MS = 60 * 1000;
+  const MAX_SENDS = 5;
+  const SEND_WINDOW_MS = 15 * 60 * 1000;
+  const PRUNE_AFTER_MS = 60 * 60 * 1000;
+  const PURPOSE = "owner_reset";
+
+  const now = Date.now();
+  const dbTime = (ms) => new Date(ms).toISOString().replace("T", " ");
+  const msOf = (v) => { const t = new Date(String(v || "").replace(" ", "T")).getTime(); return isNaN(t) ? 0 : t; };
+  const norm = (raw) => {
+    let d = String(raw || "").replace(/\D/g, "");
+    if (d.indexOf("98") === 0) d = d.slice(2);
+    if (d.indexOf("0") === 0) d = d.slice(1);
+    return d;
+  };
+  const phone = norm(e.requestInfo().body.phone);
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+
+  let u = null;
+  try { u = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { u = null; }
+  if (!u) return e.json(404, { error: "No owner account for this number", notRegistered: true });
+
+  // opportunistic prune, same cadence as /owner/login
+  if (Math.random() < 0.05) {
+    try {
+      const stale = $app.findRecordsByFilter("owner_password_resets", "expires < {:cut}", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
+      for (const r of stale) $app.delete(r);
+    } catch (err) {}
+  }
+
+  let ch = null;
+  try { ch = $app.findFirstRecordByFilter("owner_password_resets", "phone = {:phone}", { phone }); } catch (err) { ch = null; }
+  // a row left over from a different account on this number is not this
+  // owner's challenge — start clean rather than inherit its code
+  if (ch && ch.getString("user") !== u.id) {
+    try { $app.delete(ch); } catch (err) {}
+    ch = null;
+  }
+
+  let bud = null;
+  try { bud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:phone} && purpose = {:p}", { phone, p: PURPOSE }); } catch (err) { bud = null; }
+
+  // still inside the cooldown with a live code → say so, don't send a second SMS
+  if (ch && bud) {
+    const exp = msOf(ch.get("expires"));
+    const sent = msOf(bud.get("last_sent"));
+    if (exp > now && sent && now - sent < RESEND_COOLDOWN_MS) {
+      $app.logger().info("owner password reset resend suppressed (cooldown)", "phone", phone);
+      return e.json(200, { reset_required: true, ttl: Math.max(1, Math.ceil((exp - now) / 1000)) });
+    }
+  }
+
+  let sends = bud ? bud.getInt("sends") : 0;
+  let winStart = bud ? msOf(bud.get("window_start")) : 0;
+  if (!winStart || now - winStart > SEND_WINDOW_MS) { sends = 0; winStart = now; }
+  if (sends >= MAX_SENDS) {
+    const left = winStart + SEND_WINDOW_MS - now;
+    try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
+    return e.json(429, {
+      error: "Too many codes requested for this number. Please wait a few minutes and try again.",
+      retry_after: Math.ceil(left / 1000),
+    });
+  }
+
+  const code = $security.randomStringWithAlphabet(6, "0123456789");
+  const salt = $security.randomString(16);
+  const expires = now + TTL_MS;
+
+  if (!ch) {
+    ch = new Record($app.findCollectionByNameOrId("owner_password_resets"));
+    ch.set("phone", phone);
+  }
+  ch.set("user", u.id);
+  ch.set("salt", salt);
+  ch.set("code_hash", $security.sha256(salt + ":" + code));
+  ch.set("expires", dbTime(expires));
+  ch.set("attempts", 0);
+  try {
+    $app.save(ch);
+  } catch (err) {
+    $app.logger().error("owner password reset challenge save failed", "error", String(err));
+    return e.json(500, { error: "Could not start password reset. Please try again." });
+  }
+
+  // spend the budget BEFORE sending, same reasoning as /owner/login
+  if (!bud) {
+    bud = new Record($app.findCollectionByNameOrId("sms_budgets"));
+    bud.set("phone", phone);
+    bud.set("purpose", PURPOSE);
+  }
+  bud.set("sends", sends + 1);
+  bud.set("window_start", dbTime(winStart));
+  bud.set("last_sent", dbTime(now));
+  try { $app.save(bud); } catch (err) { $app.logger().error("owner password reset budget save failed", "error", String(err)); }
+
+  const abort = (status, msg, logMsg) => {
+    try { $app.delete(ch); } catch (err) {}
+    $app.logger().error(logMsg);
+    return e.json(status, { error: msg });
+  };
+
+  const kavKey = $os.getenv("KAVENEGAR_API_KEY");
+  if (kavKey) {
+    let res = null;
+    try {
+      res = $http.send({
+        url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + code + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
+        method: "GET",
+        timeout: 10,
+      });
+    } catch (err) {
+      return abort(502, "Could not send the code. Please try again.", "owner password reset SMS send failed: " + String(err));
+    }
+    if (!res || res.statusCode < 200 || res.statusCode >= 300) {
+      return abort(502, "Could not send the code. Please try again.", "owner password reset SMS rejected, status " + String(res && res.statusCode));
+    }
+    return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000) });
+  }
+
+  if ($os.getenv("OTP_DEV_MODE") === "1") {
+    $app.logger().info("owner password reset OTP (dev)", "phone", phone, "code", code);
+    return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000), devCode: code });
+  }
+
+  return abort(
+    503,
+    "Password reset is temporarily unavailable. Please try again later.",
+    "owner password reset blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+  );
+});
+
+routerAdd("POST", "/owner/forgot-password/verify", (e) => {
+  const MAX_ATTEMPTS = 5;
+  const TTL_MS = 3 * 60 * 1000;
+  const MAX_SENDS = 5;
+  const SEND_WINDOW_MS = 15 * 60 * 1000;
+  const PURPOSE = "owner_reset";
+
+  const now = Date.now();
+  const dbTime = (ms) => new Date(ms).toISOString().replace("T", " ");
+  const msOf = (v) => { const t = new Date(String(v || "").replace(" ", "T")).getTime(); return isNaN(t) ? 0 : t; };
+  const norm = (raw) => {
+    let d = String(raw || "").replace(/\D/g, "");
+    if (d.indexOf("98") === 0) d = d.slice(2);
+    if (d.indexOf("0") === 0) d = d.slice(1);
+    return d;
+  };
+  const b = e.requestInfo().body || {};
+  const phone = norm(b.phone);
+  const code = String(b.code || "").trim();
+  const password = String(b.password || "");
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+
+  const bad = () => e.json(401, { error: "Invalid or expired code" });
+  if (!/^\d{6}$/.test(code)) return bad();
+  // checked before touching the challenge: a wrong code should never be able
+  // to tell an attacker whether the password they supplied was well-formed
+  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters." });
+
+  let ch = null;
+  try { ch = $app.findFirstRecordByFilter("owner_password_resets", "phone = {:phone}", { phone }); } catch (err) { ch = null; }
+  if (!ch) return bad();
+
+  const expires = msOf(ch.get("expires"));
+  if (!expires || expires <= now) {
+    try { $app.delete(ch); } catch (err) {}
+    return bad();
+  }
+
+  const given = $security.sha256(ch.getString("salt") + ":" + code);
+  if (!$security.equal(ch.getString("code_hash"), given)) {
+    const attempts = ch.getInt("attempts") + 1;
+    if (attempts < MAX_ATTEMPTS) {
+      try {
+        ch.set("attempts", attempts);
+        $app.save(ch);
+      } catch (err) {
+        $app.logger().error("owner password reset attempt counter failed", "error", String(err));
+        try { $app.delete(ch); } catch (err2) {}
+        return bad();
+      }
+      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+    }
+
+    // ---- guess budget spent: burn this code, try to send a fresh one ----
+    const restart = () => {
+      try { $app.delete(ch); } catch (err) {}
+      return e.json(429, { error: "Too many incorrect codes. Please request a new one.", regenerated: false, restart: true });
+    };
+
+    let bud = null;
+    try { bud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:phone} && purpose = {:p}", { phone, p: PURPOSE }); } catch (err) { bud = null; }
+    let sends = bud ? bud.getInt("sends") : 0;
+    let winStart = bud ? msOf(bud.get("window_start")) : 0;
+    if (!winStart || now - winStart > SEND_WINDOW_MS) { sends = 0; winStart = now; }
+    if (sends >= MAX_SENDS) return restart();
+
+    const fresh = $security.randomStringWithAlphabet(6, "0123456789");
+    const salt = $security.randomString(16);
+    try {
+      ch.set("salt", salt);
+      ch.set("code_hash", $security.sha256(salt + ":" + fresh));
+      ch.set("expires", dbTime(now + TTL_MS));
+      ch.set("attempts", 0);
+      $app.save(ch);
+    } catch (err) {
+      $app.logger().error("owner password reset regenerate failed", "error", String(err));
+      return restart();
+    }
+
+    if (!bud) {
+      bud = new Record($app.findCollectionByNameOrId("sms_budgets"));
+      bud.set("phone", phone);
+      bud.set("purpose", PURPOSE);
+    }
+    bud.set("sends", sends + 1);
+    bud.set("window_start", dbTime(winStart));
+    bud.set("last_sent", dbTime(now));
+    try { $app.save(bud); } catch (err) { $app.logger().error("owner password reset budget save failed", "error", String(err)); }
+
+    const ttl = Math.round(TTL_MS / 1000);
+    const msg = "Too many incorrect codes. We've sent you a new one.";
+    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
+    if (kavKey) {
+      let res = null;
+      try {
+        res = $http.send({
+          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
+          method: "GET",
+          timeout: 10,
+        });
+      } catch (err) {
+        $app.logger().error("owner password reset SMS resend failed", "error", String(err));
+        return restart();
+      }
+      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
+        $app.logger().error("owner password reset SMS resend rejected, status " + String(res && res.statusCode));
+        return restart();
+      }
+      return e.json(429, { error: msg, regenerated: true, ttl });
+    }
+
+    if ($os.getenv("OTP_DEV_MODE") === "1") {
+      $app.logger().info("owner password reset OTP regenerated (dev)", "phone", phone, "code", fresh);
+      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+    }
+    $app.logger().error("owner password reset regenerate blocked: no SMS provider");
+    return restart();
+  }
+
+  // right code → consume it before anything is changed, so a replay (or two
+  // requests racing) can never set the password twice from one code
+  const userId = ch.getString("user");
+  try { $app.delete(ch); } catch (err) {}
+
+  let u = null;
+  try { u = $app.findRecordById("users", userId); } catch (err) { u = null; }
+  // the account must still be the admin on this very number — a challenge is
+  // never a licence to change a different account's password
+  if (!u || u.getString("role") !== "admin" || u.getString("phone") !== phone) return bad();
+
+  u.setPassword(password);
+  try {
+    $app.save(u);
+  } catch (err) {
+    $app.logger().error("owner password reset save failed", "error", String(err));
+    return e.json(500, { error: "Could not set your new password. Please try again." });
+  }
+
+  // no token here on purpose — the owner goes back to the sign-in step and
+  // logs in with the password they just set
+  return e.json(200, { ok: true });
 });
 
 // The owner's own café config — resolved from the auth token, never a client-

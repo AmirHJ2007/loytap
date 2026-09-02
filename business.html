@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=34" />
-  <script src="i18n.js?v=6"></script>
+  <link rel="stylesheet" href="auth.css?v=35" />
+  <script src="i18n.js?v=7"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -53,6 +53,7 @@
 
       <!-- OWNER: phone + password -->
       <section class="step" id="stepOwner" hidden>
+        <p class="field__ok" id="ownerResetOk" hidden data-i18n="AUTH_TOAST_PASSWORD_RESET_MSG">Sign in with your new password.</p>
         <div class="tabs owner-tabs">
           <button class="tabs__btn is-on" data-omode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
           <button class="tabs__btn" data-omode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
@@ -68,8 +69,63 @@
           <label for="ownerPass" data-i18n="AUTH_LABEL_PASSWORD">Password</label>
           <input id="ownerPass" type="password" autocomplete="current-password" placeholder="••••••••" />
           <p class="field__err" id="ownerErr" hidden data-i18n="AUTH_ERR_WRONG_PASSWORD">Wrong password.</p>
+          <button class="link-small" id="forgotPasswordLink" type="button" data-i18n="AUTH_LINK_FORGOT_PASSWORD">Forgot password?</button>
         </div>
         <button class="btn btn--primary" id="ownerLoginBtn" type="button" data-i18n="AUTH_BTN_LOGIN">Log in</button>
+      </section>
+
+      <!-- OWNER: forgot password, step 1 — phone number -->
+      <section class="step" id="stepForgotPhone" hidden>
+        <button class="back" id="forgotPhoneBack" type="button" data-i18n="AUTH_BACK">← Back</button>
+        <p class="step__title" data-i18n="AUTH_FORGOT_PHONE_TITLE">Reset your password</p>
+        <p class="step__sub" data-i18n="AUTH_FORGOT_PHONE_SUB">Enter your phone number and we'll text you a code.</p>
+        <div class="field">
+          <label for="forgotPhone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
+          <div class="phone">
+            <span class="phone__cc">🇮🇷 +98</span>
+            <input id="forgotPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
+          </div>
+          <p class="field__err" id="forgotPhoneErr" hidden></p>
+        </div>
+        <button class="btn btn--primary" id="forgotPhoneBtn" type="button" data-i18n="AUTH_BTN_SEND_CODE">Send code</button>
+      </section>
+
+      <!-- OWNER: forgot password, step 2 — the SMS code (not yet verified server-side;
+           that happens together with the new password on step 3's submit) -->
+      <section class="step" id="stepForgotOtp" hidden>
+        <button class="back" id="forgotOtpBack" type="button" data-i18n="AUTH_BACK">← Back</button>
+        <p class="step__title" data-i18n="AUTH_FORGOT_OTP_TITLE">Enter the code</p>
+        <p class="step__sub"><span data-i18n="AUTH_OTP_SENT_TO">We sent a 6-digit code to</span> <b id="forgotOtpPhone">+98 …</b></p>
+        <div class="otp" id="forgotOtp">
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
+          <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
+        </div>
+        <p class="field__err" id="forgotOtpErr" hidden data-i18n="AUTH_OTP_ERR_INCOMPLETE">Please enter all 6 digits.</p>
+        <button class="btn btn--primary" id="forgotOtpContinueBtn" type="button" data-i18n="AUTH_BTN_CONTINUE">Continue</button>
+        <p class="resend" id="forgotResend">Resend code in <b id="forgotResendT">60</b>s</p>
+        <p class="fine demo" data-i18n="AUTH_DEV_NOTE">Dev mode: no SMS yet — the code is filled in for you.</p>
+      </section>
+
+      <!-- OWNER: forgot password, step 3 — new password + confirmation. The code from
+           step 2 is verified together with this submit (see verifyForgotPassword). -->
+      <section class="step" id="stepForgotNew" hidden>
+        <button class="back" id="forgotNewBack" type="button" data-i18n="AUTH_BACK">← Back</button>
+        <p class="step__title" data-i18n="AUTH_FORGOT_NEW_TITLE">Choose a new password</p>
+        <p class="step__sub" data-i18n="AUTH_FORGOT_NEW_SUB">You'll sign in with this from now on.</p>
+        <div class="field">
+          <label for="forgotPass"><span data-i18n="AUTH_LABEL_NEW_PASSWORD">New password</span> <span class="opt" data-i18n="AUTH_OPT_MIN6">(min 6)</span></label>
+          <input id="forgotPass" type="password" autocomplete="new-password" placeholder="••••••••" />
+        </div>
+        <div class="field">
+          <label for="forgotPassConfirm" data-i18n="AUTH_LABEL_CONFIRM_PASSWORD">Confirm password</label>
+          <input id="forgotPassConfirm" type="password" autocomplete="new-password" placeholder="••••••••" />
+          <p class="field__err" id="forgotNewErr" hidden></p>
+        </div>
+        <button class="btn btn--primary" id="forgotNewBtn" type="button" data-i18n="AUTH_BTN_RESET_PASSWORD">Reset password</button>
       </section>
 
       <!-- OWNER: two-factor — the password alone doesn't sign you in, the SMS code does -->
@@ -171,6 +227,6 @@
     </div>
   </main>
 
-  <script src="business.js?v=5"></script>
+  <script src="business.js?v=6"></script>
 </body>
 </html>
