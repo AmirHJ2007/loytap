@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=10"></script>
+  <script src="i18n.js?v=11"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -215,6 +215,17 @@
     .signout-cta:hover { background: linear-gradient(155deg, rgba(253,241,238,0.68), rgba(247,221,214,0.56)); box-shadow: 0 14px 30px -14px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.55); }
     .signout-cta:active { transform: translateY(1px) scale(0.99); }
 
+    /* NFC tag URL section */
+    .nfc-box { animation: cardIn 0.7s var(--ease-spring) 0.23s both; }
+    .nfc-row { display: flex; gap: 10px; margin-top: 4px; direction: ltr; }
+    /* same specificity tie as .crop-modal[hidden] above — without this, hidden
+       does nothing and an empty NFC row shows before loadCafe() populates it,
+       or permanently for a café with no active tag */
+    .nfc-row[hidden] { display: none; }
+    .nfc-row input { flex: 1; min-width: 0; font-family: var(--font-body); font-size: 13px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 12px; padding: 12px 14px; outline: none; }
+    .nfc-row .btn-solid { flex: 0 0 auto; padding: 0 20px; }
+    .nfc-empty { margin: 8px 2px 0; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+
     /* café logo section */
     .logo-box { animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
     .logo-row { display: flex; align-items: center; gap: 16px; margin-top: 4px; }
@@ -308,6 +319,17 @@
         <span class="tile__unit" id="stampsHint" data-i18n="OWNER_STAMPS_HINT">to earn a reward</span>
       </div>
     </div>
+
+    <section class="box glass nfc-box">
+      <h2 class="box__title" data-i18n="OWNER_NFC_TITLE">NFC tag URL</h2>
+      <p class="box__sub" data-i18n="OWNER_NFC_SUB">Write this exact link to your café's NFC tag — tapping it is what lets a customer collect a stamp.</p>
+      <div class="nfc-row" id="nfcRow" hidden>
+        <input type="text" id="nfcUrl" readonly />
+        <button class="btn-solid" id="nfcCopy" type="button" data-i18n="OWNER_NFC_BTN_COPY">Copy</button>
+      </div>
+      <p class="nfc-empty" id="nfcEmpty" hidden data-i18n="OWNER_NFC_EMPTY">No NFC tag is linked to your café yet — contact support to get one set up.</p>
+      <p class="minp__ok" id="nfcOk" hidden data-i18n="OWNER_COPIED">Copied ✓</p>
+    </section>
 
     <section class="box glass logo-box">
       <h2 class="box__title" data-i18n="OWNER_LOGO_TITLE">Your logo</h2>
@@ -425,6 +447,6 @@
     </button>
   </main>
 
-  <script src="owner.page.js?v=5"></script>
+  <script src="owner.page.js?v=6"></script>
 </body>
 </html>

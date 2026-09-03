@@ -35,6 +35,10 @@
           stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
           showLogo(d.collection_id, d.logo);
+          // the NFC code is opaque server-side; this is the same "?t=" the
+          // wallet's own tap handler reads (see index.guard.js/app.js init())
+          if (d.nfc) { $("nfcUrl").value = location.origin + "/?t=" + d.nfc; $("nfcRow").hidden = false; $("nfcEmpty").hidden = true; }
+          else { $("nfcRow").hidden = true; $("nfcEmpty").hidden = false; }
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
       } catch (e) {}
@@ -199,6 +203,14 @@
       } catch (e) { $("minErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("minErr").hidden = false; }
       finally { $("minSave").disabled = false; }
     };
+    $("nfcCopy").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText($("nfcUrl").value);
+        $("nfcOk").hidden = false;
+        setTimeout(() => { $("nfcOk").hidden = true; }, 1800);
+      } catch (e) {}
+    };
+
     // ---------------- café logo ----------------
     // Optional. No logo means the customer's card renders exactly as it always
     // has — there is no placeholder on the card, only in this preview.
