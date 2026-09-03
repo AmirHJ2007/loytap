@@ -52,11 +52,15 @@ routerAdd("POST", "/card/stamp/request", (e) => {
   try { cafe = $app.findRecordById("cafe_card", cafeId); } catch (err) { cafe = null; }
   if (!cafe) return e.json(400, { error: "This card isn't recognised." });
 
+  const logoName = cafe.getString("logo");
   const cafeEcho = {
     id: cafe.id,
     name: cafe.getString("cafe_name"),
     tagline: cafe.getString("tagline"),
     accent: cafe.getString("accent") || "#171717",
+    // ready-to-use URL — this payload isn't a raw record, so the client has no
+    // collectionId to build one from (see fileUrl() in app.js)
+    logo: logoName ? "/api/files/" + cafe.collection().id + "/" + cafe.id + "/" + logoName + "?thumb=240x240" : "",
     stamps_required: cafe.getInt("stamps_required"),
     min_purchase: cafe.getInt("min_purchase"),
     theme: cafe.getString("theme"),
@@ -169,8 +173,8 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
   }
 
   const stamp = {
-    dx: +(Math.random() * 32 - 16).toFixed(1),
-    dy: +(Math.random() * 32 - 16).toFixed(1),
+    dx: 0, // always dead-center in the slot circle — no scatter
+    dy: 0,
     r: +(Math.random() * 14 - 7).toFixed(1),
     sa: +(0.55 + Math.random() * 0.45).toFixed(2),
     color: inkColor,

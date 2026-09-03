@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=7"></script>
+  <script src="i18n.js?v=10"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -215,6 +215,44 @@
     .signout-cta:hover { background: linear-gradient(155deg, rgba(253,241,238,0.68), rgba(247,221,214,0.56)); box-shadow: 0 14px 30px -14px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.55); }
     .signout-cta:active { transform: translateY(1px) scale(0.99); }
 
+    /* café logo section */
+    .logo-box { animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
+    .logo-row { display: flex; align-items: center; gap: 16px; margin-top: 4px; }
+    .logo-prev {
+      flex: 0 0 auto; width: 76px; height: 76px; border-radius: 50%;
+      display: grid; place-items: center; overflow: hidden;
+      background: rgba(255,255,255,0.55); border: 2px dashed rgba(23,23,23,0.22);
+    }
+    .logo-prev.has-img { border-style: solid; border-color: rgba(23,23,23,0.14); }
+    .logo-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .logo-prev__empty { font-size: 28px; opacity: 0.45; line-height: 1; }
+    .logo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+    .logo-actions .btn-solid, .logo-actions .btn-ghost { flex: 0 0 auto; padding: 0 18px; }
+    .logo-hint { flex: 1 0 100%; margin: 0; font-size: 11.5px; color: var(--faint); line-height: 1.5; }
+    .logo-box.is-busy { opacity: 0.6; pointer-events: none; }
+
+    /* position-in-circle modal */
+    .crop-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10,10,10,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadeUp 0.22s ease both; }
+    /* .crop-modal's own display:flex has the same specificity as the browser's
+       [hidden]{display:none} default, so the LATER rule in this stylesheet —
+       ours — would always win and the modal would show on every page load
+       regardless of the hidden attribute. This beats it back. */
+    .crop-modal[hidden] { display: none; }
+    .crop-modal__card { width: 100%; max-width: 340px; background: #fff; border-radius: 22px; padding: 22px 20px 20px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5); text-align: center; }
+    .crop-modal__title { margin: 0 0 4px; font-family: var(--font-heading); font-weight: 700; font-size: 17px; color: var(--ink); }
+    .crop-modal__hint { margin: 0 0 16px; font-size: 12px; color: var(--faint); }
+    .crop-stage {
+      position: relative; width: 240px; height: 240px; margin: 0 auto; border-radius: 50%;
+      overflow: hidden; background: #ececec; cursor: grab; touch-action: none;
+      box-shadow: 0 0 0 4px #fff, 0 0 0 5px rgba(23,23,23,0.12), 0 18px 34px -18px rgba(20,20,20,0.5);
+      user-select: none;
+    }
+    .crop-stage:active { cursor: grabbing; }
+    .crop-stage img { position: absolute; top: 0; left: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+    .crop-zoom { display: block; width: 100%; margin: 18px 0 6px; accent-color: var(--ink); }
+    .crop-modal__actions { display: flex; gap: 10px; margin-top: 10px; }
+    .crop-modal__actions button { flex: 1; }
+
     /* minimum purchase section */
     .minp { animation: cardIn 0.7s var(--ease-spring) 0.29s both; }
     .minp__row { display: flex; gap: 10px; align-items: stretch; margin-top: 2px; direction: ltr; }
@@ -268,6 +306,41 @@
           <button class="step" id="stampsInc" type="button" aria-label="More stamps" data-i18n-aria="OWNER_ARIA_MORE">+</button>
         </div>
         <span class="tile__unit" id="stampsHint" data-i18n="OWNER_STAMPS_HINT">to earn a reward</span>
+      </div>
+    </div>
+
+    <section class="box glass logo-box">
+      <h2 class="box__title" data-i18n="OWNER_LOGO_TITLE">Your logo</h2>
+      <p class="box__sub" data-i18n="OWNER_LOGO_SUB">Optional — shown as a circle next to your name on every customer's card.</p>
+      <div class="logo-row">
+        <div class="logo-prev" id="logoPrev">
+          <img id="logoImg" alt="" hidden />
+          <span class="logo-prev__empty" id="logoEmpty">🏪</span>
+        </div>
+        <div class="logo-actions">
+          <input type="file" id="logoFile" accept="image/jpeg,image/png,image/webp" hidden />
+          <button class="btn-solid" id="logoPick" type="button" data-i18n="OWNER_LOGO_BTN_UPLOAD">Upload image</button>
+          <button class="btn-ghost" id="logoRemove" type="button" hidden data-i18n="OWNER_LOGO_BTN_REMOVE">Remove</button>
+          <p class="logo-hint" data-i18n="OWNER_LOGO_HINT">JPG, PNG or WebP · any photo — you'll position it next</p>
+        </div>
+      </div>
+      <p class="add-err" id="logoErr" hidden></p>
+      <p class="minp__ok" id="logoOk" hidden data-i18n="OWNER_SAVED">Saved ✓</p>
+    </section>
+
+    <!-- Position-in-circle step: shown after picking a file, before it's uploaded -->
+    <div class="crop-modal" id="cropModal" hidden aria-hidden="true">
+      <div class="crop-modal__card">
+        <h3 class="crop-modal__title" data-i18n="OWNER_LOGO_CROP_TITLE">Position your logo</h3>
+        <p class="crop-modal__hint" data-i18n="OWNER_LOGO_CROP_HINT">Drag to move · use the slider to zoom</p>
+        <div class="crop-stage" id="cropStage">
+          <img id="cropImg" alt="" draggable="false" />
+        </div>
+        <input type="range" class="crop-zoom" id="cropZoom" min="100" max="320" value="100" step="1" aria-label="Zoom" />
+        <div class="crop-modal__actions">
+          <button class="btn-ghost" id="cropCancel" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+          <button class="btn-solid" id="cropSave" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
+        </div>
       </div>
     </div>
 
@@ -352,6 +425,6 @@
     </button>
   </main>
 
-  <script src="owner.page.js?v=1"></script>
+  <script src="owner.page.js?v=5"></script>
 </body>
 </html>

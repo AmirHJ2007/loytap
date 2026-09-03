@@ -972,6 +972,9 @@ routerAdd("GET", "/owner/cafe", (e) => {
     reward_expiry_days: card.getInt("reward_expiry_days"),
     min_purchase: card.getInt("min_purchase"),
     nfc: nfc,
+    // filename only — the dashboard builds the URL itself, same as the wallet does
+    logo: card.getString("logo"),
+    collection_id: card.collection().id,
   });
 }, $apis.requireAuth());
 
@@ -1033,4 +1036,65 @@ routerAdd("POST", "/owner/cafe/stamps-required", (e) => {
   card.set("stamps_required", n);
   $app.save(card);
   return e.json(200, { ok: true, stamps_required: n });
+}, $apis.requireAuth());
+
+// Upload the café's logo — shown as a circle before the name on the customer's
+// card. Multipart, single field "logo".
+//
+// Goes through a hook rather than a direct PATCH because cafe_card.updateRule is
+// null (and rule_guard.pb.js keeps it that way): the café is resolved from the
+// auth token, so an owner can only ever replace their OWN logo, and there is no
+// request shape that lets them name a different café.
+//
+// Size and MIME are enforced by the field definition in
+// 1700000025_cafe_logo.js, and that is deliberately the ONLY MIME check:
+// PocketBase sniffs the actual bytes, whereas anything we could read here is
+// the client-supplied Content-Type, which an uploader controls freely. A save
+// failure is turned into a readable message below rather than pre-guessing.
+//   POST /owner/cafe/logo  (admin auth, multipart) -> { ok, logo }
+routerAdd("POST", "/owner/cafe/logo", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café configured for this owner" });
+
+  let files = [];
+  try { files = e.findUploadedFiles("logo") || []; } catch (err) { files = []; }
+  if (!files.length || !files[0]) return e.json(400, { error: "No image was uploaded" });
+
+  const f = files[0];
+  if ((f.size || 0) > 2097152) return e.json(413, { error: "That image is too large — 2MB maximum" });
+
+  // assigning replaces the old file; PocketBase deletes the orphan on save
+  card.set("logo", f);
+  try {
+    $app.save(card);
+  } catch (err) {
+    // the overwhelmingly likely cause is the field's own mimeTypes rejecting a
+    // non-raster upload (an SVG, a PDF renamed to .png), so say that plainly
+    $app.logger().error("cafe logo upload failed", "cafe", card.id, "error", String(err));
+    return e.json(415, { error: "Use a JPG, PNG or WebP image" });
+  }
+
+  return e.json(200, { ok: true, logo: card.getString("logo"), collection_id: card.collection().id });
+}, $apis.requireAuth());
+
+// Clear the café's logo — the card goes back to name-and-tagline only.
+//   POST /owner/cafe/logo/remove  (admin auth) -> { ok }
+routerAdd("POST", "/owner/cafe/logo/remove", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+
+  let card = null;
+  try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café configured for this owner" });
+
+  card.set("logo", null); // PocketBase removes the stored file on save
+  try { $app.save(card); } catch (err) {
+    $app.logger().error("cafe logo remove failed", "cafe", card.id, "error", String(err));
+    return e.json(400, { error: "That didn't work — try again" });
+  }
+  return e.json(200, { ok: true });
 }, $apis.requireAuth());

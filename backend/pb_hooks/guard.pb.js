@@ -13,9 +13,14 @@
 // not `users` — that collection has updateRule=null too, so it gets the same
 // public-API lockout without needing a field-level guard here.
 
-const PROTECTED = ["role", "phone"];
-
 onRecordUpdateRequest((e) => {
+  // PocketBase re-evaluates this handler in a pooled JSVM runtime that does
+  // not see enclosing file scope — a module-level const here throws
+  // ReferenceError the moment it's read, which used to 500 every request
+  // instead of enforcing anything. Declared inside the handler so it's
+  // actually reachable.
+  const PROTECTED = ["role", "phone"];
+
   let isSuper = false;
   try { isSuper = e.hasSuperuserAuth(); } catch (_) { isSuper = false; }
 
@@ -24,8 +29,11 @@ onRecordUpdateRequest((e) => {
     try { original = $app.findRecordById("users", e.record.id); } catch (_) { original = null; }
     if (original) {
       for (const f of PROTECTED) {
-        // toString() normalises JSON/typed fields to comparable strings
-        if (toString(e.record.get(f)) !== toString(original.get(f))) {
+        // String() normalises JSON/typed fields to comparable strings —
+        // toString() is not a global function and previously fell back to
+        // Object.prototype.toString, returning the same constant for every
+        // input and never actually comparing anything.
+        if (String(e.record.get(f)) !== String(original.get(f))) {
           throw new ForbiddenError("You cannot change this field.");
         }
       }

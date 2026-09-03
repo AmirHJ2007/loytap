@@ -34,6 +34,7 @@
           $("staffCode").textContent = d.staff_code || "—";
           stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
+          showLogo(d.collection_id, d.logo);
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
       } catch (e) {}
@@ -198,6 +199,196 @@
       } catch (e) { $("minErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("minErr").hidden = false; }
       finally { $("minSave").disabled = false; }
     };
+    // ---------------- café logo ----------------
+    // Optional. No logo means the customer's card renders exactly as it always
+    // has — there is no placeholder on the card, only in this preview.
+    function showLogo(collectionId, name) {
+      const img = $("logoImg"), prev = $("logoPrev");
+      if (collectionId && name) {
+        // cache-bust so a freshly replaced logo doesn't show the old one
+        img.src = API + "/api/files/" + collectionId + "/" + cafeId + "/" + encodeURIComponent(name) +
+          "?thumb=240x240&r=" + Date.now();
+        img.hidden = false; $("logoEmpty").hidden = true; prev.classList.add("has-img");
+        $("logoRemove").hidden = false;
+      } else {
+        img.removeAttribute("src"); img.hidden = true;
+        $("logoEmpty").hidden = false; prev.classList.remove("has-img");
+        $("logoRemove").hidden = true;
+      }
+    }
+
+    function logoErr(msg) { $("logoErr").textContent = msg; $("logoErr").hidden = false; }
+    function logoSaved() { $("logoOk").hidden = false; setTimeout(() => { $("logoOk").hidden = true; }, 1800); }
+
+    async function uploadLogoBlob(blob) {
+      const box = document.querySelector(".logo-box");
+      box.classList.add("is-busy");
+      try {
+        const fd = new FormData();
+        fd.append("logo", blob, "logo.png");
+        // no Content-Type header — the browser sets the multipart boundary
+        const r = await fetch(API + "/owner/cafe/logo", {
+          method: "POST", headers: { Authorization: token }, body: fd,
+        });
+        const d = await r.json();
+        if (r.ok) { showLogo(d.collection_id, d.logo); logoSaved(); }
+        else logoErr(d.error || t("OWNER_ERR_SAVE_FAILED"));
+      } catch (e) { logoErr(t("AUTH_ERR_SERVER_UNREACHABLE")); }
+      finally { box.classList.remove("is-busy"); }
+    }
+
+    $("logoPick").onclick = () => $("logoFile").click();
+
+    // ---- position-in-circle step ----
+    // The picked photo rarely IS a clean square logo, so instead of uploading
+    // it as-is (and letting object-fit:cover on the card pick an arbitrary
+    // crop), the owner drags/zooms it inside a circle here first. What gets
+    // uploaded is a fresh square render of exactly that framing, not the
+    // original file — so the 2MB/type limits on the server are about the
+    // EXPORT, not what the owner's camera produced; the raw pick only gets a
+    // generous sanity cap so a huge photo doesn't hang the browser decoding it.
+    const cropStage = $("cropStage"), cropImg = $("cropImg"), cropZoom = $("cropZoom");
+    const STAGE = 240, EXPORT = 480;
+    let crop = null; // { iw, ih, baseScale, s, x, y }, or null while the modal is closed
+    let dragging = null; // { startX, startY, x0, y0 }
+
+    function clampCrop() {
+      const dw = crop.iw * crop.s, dh = crop.ih * crop.s;
+      crop.x = Math.min(0, Math.max(STAGE - dw, crop.x));
+      crop.y = Math.min(0, Math.max(STAGE - dh, crop.y));
+    }
+    function renderCrop() {
+      cropImg.style.transform = `translate(${crop.x}px, ${crop.y}px) scale(${crop.s})`;
+    }
+    function setZoom(pct) {
+      const sNew = crop.baseScale * (pct / 100);
+      // keep whatever image point is currently at the stage's centre still
+      // centred after the rescale, instead of re-centring the whole image
+      const cx = STAGE / 2, cy = STAGE / 2;
+      const ix = (cx - crop.x) / crop.s, iy = (cy - crop.y) / crop.s;
+      crop.s = sNew;
+      crop.x = cx - ix * sNew;
+      crop.y = cy - iy * sNew;
+      clampCrop();
+      renderCrop();
+    }
+
+    let cropFailTimer = 0;
+
+    function closeCropper() {
+      $("cropModal").hidden = true;
+      $("cropModal").setAttribute("aria-hidden", "true");
+      crop = null;
+      clearTimeout(cropFailTimer);
+      cropImg.onload = cropImg.onerror = null;
+      cropImg.removeAttribute("src");
+      $("logoFile").value = "";
+    }
+
+    // A photo that can't actually be shown must never leave the modal open
+    // with an empty circle and no way out — this is the one thing that
+    // happened live and is exactly what every guard below exists to prevent.
+    function cropLoadFailed() {
+      closeCropper();
+      logoErr(t("OWNER_LOGO_ERR_LOAD_FAILED"));
+    }
+
+    function openCropper(file) {
+      // data: URL, not URL.createObjectURL() — the CSP's img-src allows
+      // 'self' and data: but not blob:, so an object URL silently fails to
+      // load here (a real bug caught testing this, not a hypothetical)
+      const reader = new FileReader();
+      reader.onerror = cropLoadFailed;
+      reader.onload = () => {
+        cropImg.onerror = cropLoadFailed;
+        cropImg.onload = () => {
+          clearTimeout(cropFailTimer);
+          const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+          // some browsers fire "load" for a resource that didn't actually
+          // decode (a blocked or corrupt image comes back as 0×0) — that is
+          // a failure here, not a valid empty photo
+          if (!iw || !ih) { cropLoadFailed(); return; }
+          const baseScale = STAGE / Math.min(iw, ih); // just covers the circle at zoom 100
+          crop = { iw, ih, baseScale, s: baseScale, x: (STAGE - iw * baseScale) / 2, y: (STAGE - ih * baseScale) / 2 };
+          cropZoom.value = 100;
+          renderCrop();
+          $("cropModal").hidden = false;
+          $("cropModal").setAttribute("aria-hidden", "false");
+        };
+        cropImg.src = reader.result;
+        // belt-and-suspenders: if neither load nor error ever fires, don't
+        // leave the owner stuck — fail out after a few seconds
+        clearTimeout(cropFailTimer);
+        cropFailTimer = setTimeout(cropLoadFailed, 8000);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // second and third way out, on top of the Cancel button: tapping the
+    // dimmed backdrop, and Escape — a stuck modal with no exit is the thing
+    // being fixed here
+    $("cropModal").addEventListener("pointerdown", (e) => { if (e.target === $("cropModal")) closeCropper(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("cropModal").hidden) closeCropper(); });
+
+    cropStage.addEventListener("pointerdown", (e) => {
+      if (!crop) return;
+      dragging = { startX: e.clientX, startY: e.clientY, x0: crop.x, y0: crop.y };
+      cropStage.setPointerCapture(e.pointerId);
+    });
+    cropStage.addEventListener("pointermove", (e) => {
+      if (!dragging || !crop) return;
+      crop.x = dragging.x0 + (e.clientX - dragging.startX);
+      crop.y = dragging.y0 + (e.clientY - dragging.startY);
+      clampCrop();
+      renderCrop();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => cropStage.addEventListener(ev, () => { dragging = null; }));
+    cropZoom.addEventListener("input", () => { if (crop) setZoom(+cropZoom.value); });
+
+    $("cropCancel").onclick = closeCropper;
+
+    $("cropSave").onclick = () => {
+      if (!crop) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = EXPORT; canvas.height = EXPORT;
+      const ctx = canvas.getContext("2d");
+      const k = EXPORT / STAGE;
+      ctx.drawImage(cropImg, crop.x * k, crop.y * k, crop.iw * crop.s * k, crop.ih * crop.s * k);
+      canvas.toBlob((blob) => {
+        closeCropper();
+        if (blob) uploadLogoBlob(blob);
+        else logoErr(t("OWNER_ERR_SAVE_FAILED"));
+      }, "image/png");
+    };
+
+    $("logoFile").onchange = () => {
+      const f = $("logoFile").files && $("logoFile").files[0];
+      if (!f) return;
+      $("logoErr").hidden = true; $("logoOk").hidden = true;
+      // a generous sanity cap so a huge camera photo can't hang the browser
+      // decoding it — the exported crop below is always small regardless
+      if (f.size > 15728640) { logoErr(t("OWNER_LOGO_ERR_TOO_BIG")); $("logoFile").value = ""; return; }
+      if (["image/jpeg", "image/png", "image/webp"].indexOf(f.type) === -1) {
+        logoErr(t("OWNER_LOGO_ERR_TYPE")); $("logoFile").value = ""; return;
+      }
+      openCropper(f);
+    };
+
+    $("logoRemove").onclick = async () => {
+      $("logoErr").hidden = true; $("logoOk").hidden = true;
+      const box = document.querySelector(".logo-box");
+      box.classList.add("is-busy");
+      try {
+        const r = await fetch(API + "/owner/cafe/logo/remove", {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: token },
+        });
+        const d = await r.json();
+        if (r.ok) { showLogo("", ""); logoSaved(); }
+        else logoErr(d.error || t("OWNER_ERR_SAVE_FAILED"));
+      } catch (e) { logoErr(t("AUTH_ERR_SERVER_UNREACHABLE")); }
+      finally { box.classList.remove("is-busy"); }
+    };
+
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
 
     loadCafe().then(loadRewards);

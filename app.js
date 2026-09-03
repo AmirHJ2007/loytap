@@ -152,6 +152,10 @@ function buildCard(cfg, index) {
   // under the white name text.
   el.style.setProperty("--paper", shade(accent, -0.08));
   el.style.setProperty("--paper-2", shade(accent, -0.30));
+  // Deeper still than --paper-2 — used only by the reward banner below the
+  // card so it reads as a distinct, stronger band instead of blending into
+  // the card's own gradient.
+  el.style.setProperty("--paper-3", shade(accent, -0.52));
   // Text on a coloured card reads white at full strength down to faint,
   // instead of the page's neutral dark-on-light greys.
   el.style.setProperty("--ink", "#ffffff");
@@ -168,9 +172,12 @@ function buildCard(cfg, index) {
         <span class="notch notch--l"></span><span class="notch notch--r"></span>
         <div class="oram-sheen" aria-hidden="true"></div>
         <header class="oram-head">
-          <div class="oram-head__id">
-            <h1 class="oram-name">${escapeHtml(cfg.name || t("WALLET_CAFE_FALLBACK"))}</h1>
-            ${cfg.tagline ? `<p class="oram-sub">${escapeHtml(cfg.tagline)}</p>` : ""}
+          <div class="oram-head__main">
+            ${cfg.logo ? `<img class="oram-logo" src="${escapeHtml(cfg.logo)}" alt="" loading="lazy" />` : ""}
+            <div class="oram-head__id">
+              <h1 class="oram-name">${escapeHtml(cfg.name || t("WALLET_CAFE_FALLBACK"))}</h1>
+              ${cfg.tagline ? `<p class="oram-sub">${escapeHtml(cfg.tagline)}</p>` : ""}
+            </div>
           </div>
           <div class="oram-mini"><span class="count">0</span><span class="oram-mini__sep">/</span><span>${cfg.stamps}</span></div>
         </header>
@@ -181,6 +188,13 @@ function buildCard(cfg, index) {
     <div class="reward-teaser" aria-live="polite" hidden></div>`;
 
   const q = (s) => el.querySelector(s);
+
+  // A logo that 404s (deleted between page loads, thumb not generated) drops out
+  // rather than leaving a broken-image icon on the card. Bound here, not as an
+  // inline onerror — script-src 'self' blocks inline handlers.
+  const logoEl = q(".oram-logo");
+  if (logoEl) logoEl.addEventListener("error", () => logoEl.remove());
+
   const deck = {
     cfg, index, el,
     card: q(".card"),
@@ -282,10 +296,20 @@ function deselectCard() {
   layout();
 }
 
+// PocketBase serves record files at /api/files/<collection>/<record>/<name>.
+// Returns "" when the café has no logo, which is what keeps a logo-less card
+// rendering exactly as it did before this existed.
+function fileUrl(rec, name, thumb) {
+  if (!rec || !name || !rec.id || !rec.collectionId) return "";
+  return API + "/api/files/" + rec.collectionId + "/" + rec.id + "/" + encodeURIComponent(name) +
+    (thumb ? "?thumb=" + thumb : "");
+}
+
 // build a card config from a stored membership, or from a /card/stamp café payload
 function cfgFromMembership(m) {
   return Object.assign({}, CARDS[0], {
     cafeId: m.cafeId, name: m.cafeName, tagline: m.tagline || "", accent: m.accent || "#171717",
+    logo: m.logo || "",
     stamps: m.stampsRequired, cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
     tag: `Collect ${m.stampsRequired} · earn a treat`, minPurchase: m.minPurchase || 0,
   });
@@ -293,6 +317,7 @@ function cfgFromMembership(m) {
 function cfgFromCafe(c) {
   return Object.assign({}, CARDS[0], {
     cafeId: c.id, name: c.name, tagline: c.tagline || "", accent: c.accent || "#171717",
+    logo: c.logo || "",
     stamps: c.stamps_required, cols: Math.max(1, Math.ceil(c.stamps_required / 2)),
     tag: `Collect ${c.stamps_required} · earn a treat`, minPurchase: c.min_purchase || 0,
   });
@@ -1113,6 +1138,7 @@ async function loadMemberships() {
         cafeName: c.cafe_name || t("WALLET_CAFE_FALLBACK"),
         tagline: c.tagline || "",
         accent: c.accent || "#171717",
+        logo: fileUrl(c, c.logo, "240x240"),
         // an in-progress card keeps the goal locked onto it when it started; an
         // empty card (no stamps yet) isn't started, so it follows the café's
         // CURRENT number — a change takes effect right away on an empty card.
