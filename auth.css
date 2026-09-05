@@ -253,6 +253,140 @@ html[dir="rtl"] .link-small { text-align: left; }
 .swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 4px 10px -4px rgba(20,20,20,0.5); transition: transform 0.12s ease; }
 .swatch:hover { transform: scale(1.08); }
 .swatch.is-on { box-shadow: 0 0 0 3px var(--ink), 0 4px 10px -4px rgba(20,20,20,0.5); }
+/* Free colour picker, last in the swatch row. Shows a colour wheel until one is
+   chosen, then the colour the card will actually use — which is the picked hue
+   deepened if it was too pale to carry the card's white text (see
+   deepenForCard() in business.js). */
+.swatch--custom {
+  position: relative; overflow: hidden; display: block;
+  background: conic-gradient(from 0deg, #f43f5e, #f59e0b, #facc15, #22c55e, #06b6d4, #3b82f6, #a855f7, #f43f5e);
+}
+.swatch--custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; border: none; cursor: pointer; }
+
+/* ---------------- Live card preview (registration) ----------------
+   A copy of the wallet's own card (app.js buildCard, plus the .card, .face,
+   .oram- and .slot rules in styles.css), scoped under .pcard so it can live on
+   this page without the wallet stylesheet. The colour tokens (--paper, --ink,
+   and the rest) are set on .pcard itself by business.js, as the wallet does, so
+   they shadow this page's :root values for the preview subtree only. */
+.pcard { --radius: 24px; margin-top: 4px; direction: ltr; }
+.pcard .card { position: relative; width: 100%; aspect-ratio: 1 / 1; }
+.pcard .face {
+  position: absolute; inset: 0;
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; flex-direction: column;
+  background:
+    linear-gradient(158deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02)),
+    linear-gradient(158deg, var(--paper), var(--paper-2));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 20px 38px -16px rgba(20, 20, 20, 0.45),
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+.pcard .face::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(130% 60% at 20% -10%, rgba(255,255,255,0.28), transparent 52%),
+    linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.08) 46%, transparent 60%);
+}
+.pcard .notch { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--cream); border-radius: 50%; transform: translateY(-50%); box-shadow: inset 0 0 0 2px rgba(0,0,0,0.07); z-index: 2; }
+.pcard .notch--l { left: -10px; }
+.pcard .notch--r { right: -10px; }
+.pcard .oram-sheen {
+  position: absolute; top: 0; left: 0; width: 55%; height: 100%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
+  transform: translateX(-170%) skewX(-12deg);
+  pointer-events: none; z-index: 3;
+  animation: pcSheen 7s ease-in-out 0.9s infinite;
+}
+@keyframes pcSheen {
+  0%   { transform: translateX(-170%) skewX(-12deg); }
+  16%  { transform: translateX(340%) skewX(-12deg); }
+  100% { transform: translateX(340%) skewX(-12deg); }
+}
+.pcard .oram-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; text-align: left; margin-bottom: 12px; position: relative; z-index: 1; }
+.pcard .oram-head__main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pcard .oram-head__id { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.pcard .oram-logo {
+  flex: 0 0 auto; width: 58px; height: 58px; border-radius: 50%;
+  object-fit: cover; display: block;
+  background: rgba(255,255,255,0.14);
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.55), 0 2px 8px -2px rgba(0,0,0,0.45);
+}
+.pcard .oram-logo[hidden] { display: none; }
+.pcard .oram-mini { flex: 0 0 auto; display: flex; align-items: baseline; gap: 2px; font-family: var(--font-heading); line-height: 1; }
+.pcard .oram-mini .count { font-weight: 700; font-size: 22px; color: var(--ink); }
+.pcard .oram-mini__sep { font-size: 16px; color: var(--ink-faint); opacity: 0.5; }
+.pcard .oram-mini > span:last-child { font-size: 16px; color: var(--ink-faint); font-weight: 700; }
+/* No nowrap/ellipsis here on purpose: the wallet's own .oram-name wraps, so a
+   long name has to wrap in the preview too — otherwise the owner is shown a
+   tidier card than the one their customers actually get. */
+.pcard .oram-name {
+  font-family: var(--font-heading); font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
+  margin: 0; color: var(--ink); text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.22);
+}
+.pcard .oram-sub { margin: 3px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.pcard .oram-sub[hidden] { display: none; }
+.pcard .grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 12px; position: relative; z-index: 1; }
+.pcard .slot {
+  position: relative; border-radius: 50%; display: grid; place-items: center;
+  aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 84px;
+  color: var(--ink-faint);
+  background: rgba(255, 255, 255, 0.3);
+  border: 1.5px dashed rgba(255, 255, 255, 0.68);
+  animation: pcSlotIn 0.5s var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 0.35s);
+}
+@keyframes pcSlotIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+.pcard .slot__num { position: absolute; font-size: 9px; font-weight: 700; bottom: 2px; left: 50%; transform: translateX(-50%); color: var(--ink-faint); }
+
+.logo-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.logo-prev {
+  flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.4); border: 2px dashed rgba(23,23,23,0.22);
+}
+.logo-prev.has-img { border-style: solid; border-color: rgba(23,23,23,0.3); }
+.logo-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.logo-prev__empty { display: flex; opacity: 0.4; }
+.logo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.logo-btn {
+  font-family: var(--font-body); font-weight: 700; font-size: 12.5px; cursor: pointer;
+  border-radius: 10px; padding: 9px 14px; border: 1px solid rgba(23,23,23,0.18);
+  background: rgba(255,255,255,0.5); color: var(--ink); transition: transform 0.12s ease, background 0.2s ease;
+}
+.logo-btn:hover { background: rgba(255,255,255,0.75); }
+.logo-btn--ghost { background: none; border-color: transparent; color: var(--ink-dim); }
+.logo-btn--ghost:hover { color: var(--bad); background: none; }
+.logo-btn--primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.logo-btn--primary:hover { background: #000000; }
+.logo-hint { flex: 1 0 100%; margin: 4px 0 0; font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+
+/* position-in-circle modal, opened after picking a logo photo */
+.crop-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10,10,10,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadeUp 0.22s ease both; }
+/* .crop-modal's own display:flex has the same specificity as the browser's
+   [hidden]{display:none} default, so the LATER rule in this stylesheet —
+   ours — would always win and the modal would show on every page load
+   regardless of the hidden attribute. This beats it back. */
+.crop-modal[hidden] { display: none; }
+.crop-modal__card { width: 100%; max-width: 340px; background: #fff; border-radius: 22px; padding: 22px 20px 20px; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5); text-align: center; }
+.crop-modal__title { margin: 0 0 4px; font-family: var(--font-heading); font-weight: 700; font-size: 17px; color: var(--ink); }
+.crop-modal__hint { margin: 0 0 16px; font-size: 12px; color: var(--ink-faint); }
+.crop-stage {
+  position: relative; width: 240px; height: 240px; margin: 0 auto; border-radius: 50%;
+  overflow: hidden; background: #ececec; cursor: grab; touch-action: none;
+  box-shadow: 0 0 0 4px #fff, 0 0 0 5px rgba(23,23,23,0.12), 0 18px 34px -18px rgba(20,20,20,0.5);
+  user-select: none;
+}
+.crop-stage:active { cursor: grabbing; }
+.crop-stage img { position: absolute; top: 0; left: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+.crop-zoom { display: block; width: 100%; margin: 18px 0 6px; accent-color: var(--ink); }
+.crop-modal__actions { display: flex; gap: 10px; margin-top: 10px; }
+.crop-modal__actions button { flex: 1; margin-top: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .bg::before, .bg::after, .stain, .auth__card::after { animation: none; }

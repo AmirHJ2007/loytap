@@ -25,11 +25,13 @@
 
     try { $("cafeName").textContent = t("OWNER_CAFE_FALLBACK"); } catch (e) {}
 
-    $("signout").onclick = () => {
-      ["loytap_token","loytap_owner","loytap_staff","loytap_role","loytap_signed_in","loytap_name","loytap_cafe"]
-        .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-      location.replace("auth.html");
-    };
+    // ---------------- bottom tab bar ----------------
+    // Analytics is already the active tab here; the other three are a
+    // different page (owner.html), which reads the hash to land on the right
+    // one of its own tabs (see setOwnerTab/initial-tab logic in owner.page.js).
+    $("tabCard").onclick = () => { location.href = "owner.html"; };
+    $("tabDiscounts").onclick = () => { location.href = "owner.html#discounts"; };
+    $("tabSettings").onclick = () => { location.href = "owner.html#settings"; };
 
     // ---- SVG donut helper (single-value ring, monochrome) ----
     function ring(pct, sub) {
@@ -46,7 +48,13 @@
     function render(d) {
       const tot = d.totals, r = d.rates;
       if (!tot.customers && !tot.issued) {
+        // Every .card starts at opacity:0 and only becomes visible once
+        // revealCards()'s IntersectionObserver adds .in to it (see below) —
+        // the full dashboard always reaches that call at the end of render(),
+        // but this early return skipped it entirely, leaving the "no data
+        // yet" message permanently invisible instead of just empty.
         $("content").innerHTML = `<div class="card glass"><p class="empty">${t("AN_EMPTY_HTML")}</p></div>`;
+        revealCards();
         return;
       }
 

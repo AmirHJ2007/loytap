@@ -494,25 +494,277 @@ $("forgotPassConfirm").addEventListener("keydown", (e) => { if (e.key === "Enter
 $("ownerPass").addEventListener("input", () => { $("ownerResetOk").hidden = true; });
 
 // ---- Owner self-registration (create a business) ----
+
+// ---- Live preview of the customer's card ----
+// The same card the wallet renders (app.js buildCard), redrawn from the form as
+// it is filled in. /owner/register always creates the café with 8 stamps, so
+// the preview's 8-slot / 4-column grid is what the owner actually gets.
+const PREV_STAMPS = 8;
+
+// Blend a hex colour toward black (amt < 0) or white (amt > 0); amt in [-1, 1].
+// Same maths as app.js shade(), so a swatch previews the exact card colours.
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const mix = (v) => (amt < 0 ? v * (1 + amt) : v + (255 - v) * amt);
+  [r, g, b] = [r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(mix(v)))));
+  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+(function buildPreviewSlots() {
+  const grid = $("cPrevGrid");
+  for (let i = 0; i < PREV_STAMPS; i++) {
+    const s = document.createElement("div");
+    s.className = "slot";
+    s.style.setProperty("--i", i);
+    s.innerHTML = `<span class="slot__num">${i + 1}</span>`;
+    grid.appendChild(s);
+  }
+})();
+
+// Card colours, set on .pcard exactly as the wallet sets them per card — the
+// tokens shadow this page's :root ones for the preview subtree only.
+function paintPreviewAccent(accent) {
+  const el = $("cPreview");
+  el.style.setProperty("--accent", accent);
+  el.style.setProperty("--paper", shade(accent, -0.08));
+  el.style.setProperty("--paper-2", shade(accent, -0.30));
+  el.style.setProperty("--ink", "#ffffff");
+  el.style.setProperty("--ink-dim", "rgba(255,255,255,0.86)");
+  el.style.setProperty("--ink-faint", "rgba(255,255,255,0.56)");
+  el.style.setProperty("--gold", "rgba(255,255,255,0.72)");
+}
+
+function refreshPreviewName() {
+  $("cPrevName").textContent = $("cCafe").value.trim() || t("WALLET_CAFE_FALLBACK");
+}
+function refreshPreviewTag() {
+  const tag = $("cPrevTag");
+  tag.textContent = cTypeSel;
+  tag.hidden = !cTypeSel;
+}
+function setPreviewLogo(dataUrl) {
+  const img = $("cPrevLogo");
+  if (dataUrl) { img.src = dataUrl; img.hidden = false; }
+  else { img.removeAttribute("src"); img.hidden = true; }
+}
+
 let cTypeSel = "Cafe";
 $("cType").addEventListener("click", (e) => {
   const b = e.target.closest(".seg__btn"); if (!b) return;
   cTypeSel = b.dataset.type;
   [...$("cType").children].forEach((c) => c.classList.toggle("is-on", c === b));
+  refreshPreviewTag();
 });
 
+$("cCafe").addEventListener("input", refreshPreviewName);
+
 const ACCENTS = ["#171717", "#1f7a4d", "#7a4a24", "#2f5aa8", "#9a2b52", "#b0862a", "#17726b", "#6b3a86"];
+
+// The card paints its name, counter and stamp numbers in white on the --paper
+// stop, so an accent can only be so pale before that text stops being readable.
+// 3.85:1 is not an arbitrary bar: #b0862a, the palest of the presets above,
+// lands at 3.89, so this is the floor the shipped palette already sets — set it
+// a touch below that one rather than above, or hand-picking the gold preset's
+// own colour would come back nudged.
+const MIN_CARD_CONTRAST = 3.85;
+
+function relLuminance(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function contrastWithWhite(hex) { return 1.05 / (relLuminance(hex) + 0.05); }
+
+// Darken an accent just far enough that the card's white text clears the floor
+// above, and no further — a colour that already passes comes back untouched, so
+// every preset stays exactly the colour it has always been.
+function deepenForCard(hex) {
+  for (let step = 0; step <= 95; step++) {
+    const candidate = step === 0 ? hex : shade(hex, -step / 100);
+    if (contrastWithWhite(shade(candidate, -0.08)) >= MIN_CARD_CONTRAST) return candidate;
+  }
+  return shade(hex, -0.95);
+}
+
 let cAccentSel = ACCENTS[0];
 (function buildSwatches() {
   const wrap = $("cAccent");
+  const custom = $("cAccentCustomWrap");
+  const clearOn = () => wrap.querySelectorAll(".swatch").forEach((s) => s.classList.remove("is-on"));
+
   ACCENTS.forEach((hex, i) => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "swatch" + (i === 0 ? " is-on" : "");
     b.style.background = hex; b.setAttribute("aria-label", hex);
-    b.onclick = () => { cAccentSel = hex; wrap.querySelectorAll(".swatch").forEach((s) => s.classList.remove("is-on")); b.classList.add("is-on"); };
-    wrap.appendChild(b);
+    b.onclick = () => {
+      cAccentSel = hex;
+      clearOn();
+      b.classList.add("is-on");
+      paintPreviewAccent(hex);
+    };
+    wrap.insertBefore(b, custom); // presets first, free picker stays last
+  });
+
+  // Any colour at all. What lands on the card is the deepened value, and the
+  // picker's own circle shows that same colour, so the swatch, the preview and
+  // what the customer ends up seeing never disagree.
+  $("cAccentCustom").addEventListener("input", (e) => {
+    const picked = deepenForCard(e.target.value.toLowerCase());
+    cAccentSel = picked;
+    clearOn();
+    custom.classList.add("is-on");
+    custom.style.background = picked;
+    paintPreviewAccent(picked);
   });
 })();
+
+paintPreviewAccent(cAccentSel);
+refreshPreviewName();
+refreshPreviewTag();
+
+// Optional café logo, picked (and positioned) here but not uploaded until the
+// business itself exists (createCafe(), after registration succeeds) — the
+// upload endpoint needs an owner auth token, which we don't have yet at pick
+// time. Same position-in-circle cropper as the owner dashboard (owner.page.js)
+// so the framing the owner picks is what actually gets uploaded, not whatever
+// object-fit:cover on the card would crop an arbitrary photo to.
+let cLogoBlob = null;
+function cLogoErr(msg) { $("cLogoErr").textContent = msg; $("cLogoErr").hidden = false; }
+function setCLogoPreview(dataUrl) {
+  const img = $("cLogoImg"), prev = $("cLogoPrev");
+  if (dataUrl) {
+    img.src = dataUrl;
+    img.hidden = false; $("cLogoEmpty").hidden = true; prev.classList.add("has-img");
+    $("cLogoRemove").hidden = false;
+  } else {
+    img.removeAttribute("src"); img.hidden = true;
+    $("cLogoEmpty").hidden = false; prev.classList.remove("has-img");
+    $("cLogoRemove").hidden = true;
+  }
+}
+
+const cropStage = $("cropStage"), cropImg = $("cropImg"), cropZoom = $("cropZoom");
+const CROP_STAGE = 240, CROP_EXPORT = 480;
+let crop = null; // { iw, ih, baseScale, s, x, y }, or null while the modal is closed
+let cropDragging = null;
+
+function clampCrop() {
+  const dw = crop.iw * crop.s, dh = crop.ih * crop.s;
+  crop.x = Math.min(0, Math.max(CROP_STAGE - dw, crop.x));
+  crop.y = Math.min(0, Math.max(CROP_STAGE - dh, crop.y));
+}
+function renderCrop() { cropImg.style.transform = `translate(${crop.x}px, ${crop.y}px) scale(${crop.s})`; }
+function setCropZoom(pct) {
+  const sNew = crop.baseScale * (pct / 100);
+  const cx = CROP_STAGE / 2, cy = CROP_STAGE / 2;
+  const ix = (cx - crop.x) / crop.s, iy = (cy - crop.y) / crop.s;
+  crop.s = sNew;
+  crop.x = cx - ix * sNew;
+  crop.y = cy - iy * sNew;
+  clampCrop();
+  renderCrop();
+}
+
+let cropFailTimer = 0;
+function closeCropper() {
+  $("cropModal").hidden = true;
+  $("cropModal").setAttribute("aria-hidden", "true");
+  crop = null;
+  clearTimeout(cropFailTimer);
+  cropImg.onload = cropImg.onerror = null;
+  cropImg.removeAttribute("src");
+  $("cLogoFile").value = "";
+}
+function cropLoadFailed() { closeCropper(); cLogoErr(t("OWNER_LOGO_ERR_LOAD_FAILED")); }
+
+function openCropper(file) {
+  // data: URL, not URL.createObjectURL() — the CSP's img-src allows 'self'
+  // and data: but not blob:
+  const reader = new FileReader();
+  reader.onerror = cropLoadFailed;
+  reader.onload = () => {
+    cropImg.onerror = cropLoadFailed;
+    cropImg.onload = () => {
+      clearTimeout(cropFailTimer);
+      const iw = cropImg.naturalWidth, ih = cropImg.naturalHeight;
+      if (!iw || !ih) { cropLoadFailed(); return; }
+      const baseScale = CROP_STAGE / Math.min(iw, ih);
+      crop = { iw, ih, baseScale, s: baseScale, x: (CROP_STAGE - iw * baseScale) / 2, y: (CROP_STAGE - ih * baseScale) / 2 };
+      cropZoom.value = 100;
+      renderCrop();
+      $("cropModal").hidden = false;
+      $("cropModal").setAttribute("aria-hidden", "false");
+    };
+    cropImg.src = reader.result;
+    clearTimeout(cropFailTimer);
+    cropFailTimer = setTimeout(cropLoadFailed, 8000);
+  };
+  reader.readAsDataURL(file);
+}
+
+$("cropModal").addEventListener("pointerdown", (e) => { if (e.target === $("cropModal")) closeCropper(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("cropModal").hidden) closeCropper(); });
+
+cropStage.addEventListener("pointerdown", (e) => {
+  if (!crop) return;
+  cropDragging = { startX: e.clientX, startY: e.clientY, x0: crop.x, y0: crop.y };
+  cropStage.setPointerCapture(e.pointerId);
+});
+cropStage.addEventListener("pointermove", (e) => {
+  if (!cropDragging || !crop) return;
+  crop.x = cropDragging.x0 + (e.clientX - cropDragging.startX);
+  crop.y = cropDragging.y0 + (e.clientY - cropDragging.startY);
+  clampCrop();
+  renderCrop();
+});
+["pointerup", "pointercancel", "pointerleave"].forEach((ev) => cropStage.addEventListener(ev, () => { cropDragging = null; }));
+cropZoom.addEventListener("input", () => { if (crop) setCropZoom(+cropZoom.value); });
+
+$("cropCancel").addEventListener("click", closeCropper);
+$("cropSave").addEventListener("click", () => {
+  if (!crop) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = CROP_EXPORT; canvas.height = CROP_EXPORT;
+  const ctx = canvas.getContext("2d");
+  const k = CROP_EXPORT / CROP_STAGE;
+  ctx.drawImage(cropImg, crop.x * k, crop.y * k, crop.iw * crop.s * k, crop.ih * crop.s * k);
+  const dataUrl = canvas.toDataURL("image/png");
+  canvas.toBlob((blob) => {
+    closeCropper();
+    if (!blob) return cLogoErr(t("OWNER_ERR_SAVE_FAILED"));
+    cLogoBlob = blob;
+    setCLogoPreview(dataUrl);
+    setPreviewLogo(dataUrl);
+  }, "image/png");
+});
+
+$("cLogoPick").addEventListener("click", () => $("cLogoFile").click());
+$("cLogoFile").addEventListener("change", () => {
+  const f = $("cLogoFile").files && $("cLogoFile").files[0];
+  if (!f) return;
+  $("cLogoErr").hidden = true;
+  // generous sanity cap on the raw pick so a huge camera photo can't hang the
+  // browser decoding it — the exported crop above is always small regardless
+  if (f.size > 15728640) { cLogoErr(t("OWNER_LOGO_ERR_TOO_BIG")); $("cLogoFile").value = ""; return; }
+  if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) { cLogoErr(t("OWNER_LOGO_ERR_TYPE")); $("cLogoFile").value = ""; return; }
+  openCropper(f);
+});
+$("cLogoRemove").addEventListener("click", () => { cLogoBlob = null; setCLogoPreview(null); setPreviewLogo(null); $("cLogoErr").hidden = true; });
+
+// Fire-and-forget: a failed logo upload shouldn't block the owner from
+// reaching their new dashboard — they can add it later from there.
+async function uploadPickedLogo(token) {
+  if (!cLogoBlob) return;
+  try {
+    const fd = new FormData();
+    fd.append("logo", cLogoBlob, "logo.png");
+    await fetch(API + "/owner/cafe/logo", { method: "POST", headers: { Authorization: token }, body: fd });
+  } catch (e) {}
+}
 
 // ---- Sign in / Register sub-tabs (shared between stepOwner and stepCreate) ----
 document.querySelectorAll(".owner-tabs .tabs__btn").forEach((btn) => {
@@ -674,6 +926,7 @@ async function createCafe() {
       localStorage.setItem("loytap_name", data.name || "");
       localStorage.setItem("loytap_cafe", data.cafe_name || "");
     } catch (_) {}
+    if (data.token) await uploadPickedLogo(data.token);
     $("stepCreateOtp").hidden = true;
     $("stepDone").hidden = false;
   } catch (e) {

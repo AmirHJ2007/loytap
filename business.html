@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=35" />
-  <script src="i18n.js?v=11"></script>
+  <link rel="stylesheet" href="auth.css?v=42" />
+  <script src="i18n.js?v=21"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -153,6 +153,31 @@
           <button class="tabs__btn" data-omode="signin" type="button" data-i18n="AUTH_TAB_SIGNIN">Sign in</button>
           <button class="tabs__btn is-on" data-omode="register" type="button" data-i18n="AUTH_TAB_REGISTER">Register</button>
         </div>
+        <!-- Live preview of the loyalty card the café's customers will see —
+             the same markup and styling as the wallet's own card (app.js
+             buildCard / styles.css), updated as the form below is filled in. -->
+        <div class="field">
+          <label data-i18n="AUTH_LABEL_PREVIEW">Your customers will see</label>
+          <div class="pcard" id="cPreview">
+            <div class="card">
+              <section class="face face--front">
+                <span class="notch notch--l"></span><span class="notch notch--r"></span>
+                <div class="oram-sheen" aria-hidden="true"></div>
+                <header class="oram-head">
+                  <div class="oram-head__main">
+                    <img class="oram-logo" id="cPrevLogo" alt="" hidden />
+                    <div class="oram-head__id">
+                      <h1 class="oram-name" id="cPrevName">Café</h1>
+                      <p class="oram-sub" id="cPrevTag">Cafe</p>
+                    </div>
+                  </div>
+                  <div class="oram-mini"><span class="count">0</span><span class="oram-mini__sep">/</span><span>8</span></div>
+                </header>
+                <div class="grid" style="--cols:4" id="cPrevGrid"></div>
+              </section>
+            </div>
+          </div>
+        </div>
         <div class="field">
           <label for="cCafe" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
           <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora" data-i18n-placeholder="AUTH_PH_BUSINESS_NAME" />
@@ -167,7 +192,34 @@
         </div>
         <div class="field">
           <label data-i18n="AUTH_LABEL_ACCENT">Card accent colour</label>
-          <div class="swatches" id="cAccent"></div>
+          <div class="swatches" id="cAccent">
+            <!-- Quick presets are built into here by business.js, ahead of this
+                 free picker, which stays last in the row. -->
+            <label class="swatch swatch--custom" id="cAccentCustomWrap" data-i18n-aria="AUTH_ACCENT_CUSTOM" aria-label="Custom colour">
+              <input type="color" id="cAccentCustom" value="#171717" />
+            </label>
+          </div>
+        </div>
+        <div class="field">
+          <label>
+            <span data-i18n="AUTH_LABEL_LOGO">Business logo</span>
+            <span class="opt" data-i18n="AUTH_OPT_OPTIONAL">(optional)</span>
+          </label>
+          <div class="logo-row">
+            <div class="logo-prev" id="cLogoPrev">
+              <img id="cLogoImg" alt="" hidden />
+              <span class="logo-prev__empty" id="cLogoEmpty">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              </span>
+            </div>
+            <div class="logo-actions">
+              <input type="file" id="cLogoFile" accept="image/jpeg,image/png,image/webp" hidden />
+              <button class="logo-btn" id="cLogoPick" type="button" data-i18n="AUTH_LOGO_BTN_UPLOAD">Upload image</button>
+              <button class="logo-btn logo-btn--ghost" id="cLogoRemove" type="button" hidden data-i18n="OWNER_LOGO_BTN_REMOVE">Remove</button>
+              <p class="logo-hint" data-i18n="OWNER_LOGO_HINT">JPG, PNG or WebP · up to 2MB · square works best</p>
+            </div>
+          </div>
+          <p class="field__err" id="cLogoErr" hidden></p>
         </div>
         <div class="field">
           <label for="cName" data-i18n="AUTH_LABEL_YOUR_NAME">Your name</label>
@@ -225,8 +277,24 @@
 
       <button class="link-btn" id="customerLink" type="button" data-i18n="BIZ_LINK_CUSTOMER">Customer sign in</button>
     </div>
+
+    <!-- Position-in-circle step: shown after picking a logo photo, before it's kept for upload -->
+    <div class="crop-modal" id="cropModal" hidden aria-hidden="true">
+      <div class="crop-modal__card">
+        <h3 class="crop-modal__title" data-i18n="OWNER_LOGO_CROP_TITLE">Position your logo</h3>
+        <p class="crop-modal__hint" data-i18n="OWNER_LOGO_CROP_HINT">Drag to move · use the slider to zoom</p>
+        <div class="crop-stage" id="cropStage">
+          <img id="cropImg" alt="" draggable="false" />
+        </div>
+        <input type="range" class="crop-zoom" id="cropZoom" min="100" max="320" value="100" step="1" aria-label="Zoom" />
+        <div class="crop-modal__actions">
+          <button class="logo-btn logo-btn--ghost" id="cropCancel" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+          <button class="logo-btn logo-btn--primary" id="cropSave" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
+        </div>
+      </div>
+    </div>
   </main>
 
-  <script src="business.js?v=6"></script>
+  <script src="business.js?v=11"></script>
 </body>
 </html>

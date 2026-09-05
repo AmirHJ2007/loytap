@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=11"></script>
+  <script src="i18n.js?v=21"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -50,7 +50,12 @@
     @keyframes orbA  { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9vmax,7vmax) scale(1.14); } }
     @keyframes orbB  { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(7vmax,-6vmax) scale(0.92); } }
 
-    .own { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 90px 20px 48px; display: flex; flex-direction: column; gap: 16px; }
+    /* bottom padding cleared for the floating tabbar, not the old 48px */
+    .own { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 90px 20px 104px; display: flex; flex-direction: column; gap: 16px; transition: padding-top 0.3s ease; }
+    /* the 90px top padding above only exists to clear #ownHeaderBlock (the café
+       name / badge / "Hello, ___" banner), which the Discounts tab hides — so
+       reclaim that space instead of leaving it blank */
+    .own.no-header { padding-top: 24px; }
 
     /* ---------------- Header: café name pinned to the top ---------------- */
     .own-head { position: absolute; top: 26px; left: 0; right: 0; text-align: center; z-index: 2; padding: 0 60px; }
@@ -71,42 +76,176 @@
       box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), inset 0 0 0 1px rgba(255,255,255,0.22);
     }
 
-    /* analytics CTA — solid black, the primary action */
-    .analytics-cta {
-      display: flex; align-items: center; gap: 14px; text-decoration: none; color: #ffffff;
-      background: #171717; border-radius: 20px; padding: 16px 18px;
-      box-shadow: 0 18px 36px -18px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.12);
-      transition: transform 0.14s ease, box-shadow 0.3s ease, background 0.2s ease;
-      animation: cardIn 0.7s var(--ease-spring) 0.2s both;
-    }
-    .analytics-cta:hover { background: #000000; }
-    .analytics-cta:active { transform: scale(0.99); }
-    .analytics-cta__icon { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 13px; display: grid; place-items: center; font-size: 22px; background: rgba(255,255,255,0.12); }
-    .analytics-cta__body { flex: 1; min-width: 0; }
-    .analytics-cta__body b { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 16px; }
-    .analytics-cta__arrow { font-size: 26px; font-weight: 700; color: rgba(255,255,255,0.5); line-height: 1; }
     @keyframes cardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    /* analytics link stays laid out like the English version — icon/arrow keep their side, only the text reads RTL */
-    .analytics-cta { direction: ltr; }
-    html[dir="rtl"] .analytics-cta__body { direction: rtl; text-align: right; }
+
+    /* ---------------- Tab panels ----------------
+       Each of Card/Discounts/Settings is one of these; the tabbar below
+       toggles which is visible. Each panel reproduces .own's own 16px gap
+       internally, since wrapping several sections in a div would otherwise
+       remove the gap .own only applies between its own direct children. */
+    .panel { display: flex; flex-direction: column; gap: 16px; }
+    /* matches the .crop-modal[hidden] specificity fix above: an attribute
+       selector of equal specificity to .panel, declared after it, so this is
+       the one that wins the tie instead of the plain-class rule leaving
+       [hidden]'s default suppressed. */
+    .panel[hidden] { display: none; }
+
+    /* ---------------- Bottom tab bar ----------------
+       Same component as the customer wallet's (index.html #tabbar / styles.css
+       .tabbar) — rebuilt here since this page doesn't load that stylesheet. */
+    .tabbar {
+      position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%); z-index: 210;
+      display: flex; padding: 7px; border-radius: 22px;
+      background: var(--glass-fill-strong);
+      backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 18px 40px -16px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi);
+      animation: tabbarIn 0.6s var(--ease-spring) 0.25s both;
+    }
+    @keyframes tabbarIn { from { opacity: 0; transform: translate(-50%, 26px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    .tabbar__ind {
+      position: absolute; top: 7px; left: 7px;
+      width: 78px; height: calc(100% - 14px);
+      border-radius: 16px; background: #171717;
+      transform: translateX(calc(var(--ti, 1) * 78px));
+      transition: transform 0.44s var(--ease-spring);
+      z-index: 0;
+    }
+    .tab {
+      position: relative; z-index: 1;
+      width: 78px; padding: 9px 0 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: none; border: 0; cursor: pointer; color: var(--dim);
+      transition: color 0.35s ease;
+    }
+    .tab.is-active { color: #ffffff; }
+    .tab__ico { position: relative; display: grid; place-items: center; height: 24px; }
+    .tab.is-active .tab__ico { animation: tabPop 0.5s var(--ease-spring); }
+    @keyframes tabPop { 0% { transform: scale(1); } 42% { transform: scale(1.3) translateY(-2px); } 100% { transform: scale(1); } }
+    .tab__ico svg { width: 22px; height: 22px; }
+    .tab__label { font-family: var(--font-heading); font-size: 10px; font-weight: 700; letter-spacing: 0.2px; }
+    html[dir="rtl"] .tabbar__ind { left: auto; right: 7px; transform: translateX(calc(var(--ti, 1) * -78px)); }
+
+    /* ---------------- Live card preview ----------------
+       A copy of the wallet's own card (app.js buildCard, plus the .card, .face,
+       .oram- and .slot rules in styles.css) — the exact same port business.html
+       uses for its registration preview (see .pcard there). Colour tokens
+       (--paper, --paper-2, --ink, …) are set on #ownPreview itself by
+       owner.page.js, exactly as the wallet sets them per card, so they shadow
+       this page's own --paper/--ink values for the preview subtree only. */
+    .ownpv-wrap { animation: cardIn 0.7s var(--ease-spring) 0.18s both; }
+    .ownpv-label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--faint); margin-bottom: 8px; }
+    .pcard { --cream: #e8e8e8; --radius: 24px; direction: ltr; }
+    .pcard .card { position: relative; width: 100%; aspect-ratio: 1 / 1; }
+    .pcard .face {
+      position: absolute; inset: 0;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex; flex-direction: column;
+      background:
+        linear-gradient(158deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02)),
+        linear-gradient(158deg, var(--paper), var(--paper-2));
+      border: 1px solid var(--glass-border);
+      box-shadow:
+        0 20px 38px -16px rgba(20, 20, 20, 0.45),
+        inset 0 1px 0 var(--glass-hi),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+      overflow: hidden;
+    }
+    .pcard .face::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(130% 60% at 20% -10%, rgba(255,255,255,0.28), transparent 52%),
+        linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.08) 46%, transparent 60%);
+    }
+    .pcard .notch { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--cream); border-radius: 50%; transform: translateY(-50%); box-shadow: inset 0 0 0 2px rgba(0,0,0,0.07); z-index: 2; }
+    .pcard .notch--l { left: -10px; }
+    .pcard .notch--r { right: -10px; }
+    .pcard .oram-sheen {
+      position: absolute; top: 0; left: 0; width: 55%; height: 100%;
+      background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
+      transform: translateX(-170%) skewX(-12deg);
+      pointer-events: none; z-index: 3;
+      animation: pcSheen 7s ease-in-out 0.9s infinite;
+    }
+    @keyframes pcSheen {
+      0%   { transform: translateX(-170%) skewX(-12deg); }
+      16%  { transform: translateX(340%) skewX(-12deg); }
+      100% { transform: translateX(340%) skewX(-12deg); }
+    }
+    .pcard .oram-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; text-align: left; margin-bottom: 12px; position: relative; z-index: 1; }
+    .pcard .oram-head__main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .pcard .oram-head__id { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+    .pcard .oram-logo {
+      flex: 0 0 auto; width: 58px; height: 58px; border-radius: 50%;
+      object-fit: cover; display: block;
+      background: rgba(255,255,255,0.14);
+      box-shadow: 0 0 0 1.5px rgba(255,255,255,0.55), 0 2px 8px -2px rgba(0,0,0,0.45);
+    }
+    .pcard .oram-logo[hidden] { display: none; }
+    .pcard .oram-mini { flex: 0 0 auto; display: flex; align-items: baseline; gap: 2px; font-family: var(--font-heading); line-height: 1; }
+    .pcard .oram-mini .count { font-weight: 700; font-size: 22px; color: var(--ink); }
+    .pcard .oram-mini__sep { font-size: 16px; color: var(--ink-faint); opacity: 0.5; }
+    .pcard .oram-mini > span:last-child { font-size: 16px; color: var(--ink-faint); font-weight: 700; }
+    /* no nowrap/ellipsis on purpose — the wallet's own .oram-name wraps, so a
+       long name has to wrap here too, or the owner sees a tidier card than the
+       one their customers actually get */
+    .pcard .oram-name {
+      font-family: var(--font-heading); font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
+      margin: 0; color: var(--ink); text-transform: uppercase;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.22);
+    }
+    .pcard .oram-sub { margin: 3px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .pcard .oram-sub[hidden] { display: none; }
+    .pcard .grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 12px; position: relative; z-index: 1; }
+    .pcard .slot {
+      position: relative; border-radius: 50%; display: grid; place-items: center;
+      aspect-ratio: 1; align-self: center; justify-self: center; width: 100%; max-width: 84px;
+      color: var(--ink-faint);
+      background: rgba(255, 255, 255, 0.3);
+      border: 1.5px dashed rgba(255, 255, 255, 0.68);
+      animation: pcSlotIn 0.5s var(--ease-spring) both;
+      animation-delay: calc(var(--i, 0) * 55ms + 0.35s);
+    }
+    @keyframes pcSlotIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+    .pcard .slot__num { position: absolute; font-size: 9px; font-weight: 700; bottom: 2px; left: 50%; transform: translateX(-50%); color: var(--ink-faint); }
+    /* optional "minimum purchase for a stamp" note — only shown when set */
+    .pcard .oram-min { margin: -8px 4px 0; font-size: 10.5px; font-weight: 700; letter-spacing: 0.2px; color: var(--ink-dim); text-align: center;
+      background: rgba(255,255,255,0.14); border: 1px dashed rgba(255,255,255,0.34); border-radius: 10px; padding: 7px 10px; }
+    .pcard .oram-min[hidden] { display: none; }
 
     /* tiles — frosted glass */
-    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
-    .tile { position: relative; overflow: hidden; border-radius: 18px; padding: 15px 16px; min-height: 116px; display: flex; flex-direction: column; transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease; }
+    /* single column now — the staff-code tile moved to Settings, leaving only stamps/reward here */
+    .tiles { display: grid; grid-template-columns: 1fr; gap: 12px; animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
+    /* shorter now that it's the only tile (staff code moved to Settings) — no
+       longer needs 116px to sit level with a neighbour it no longer has */
+    .tile { position: relative; overflow: hidden; border-radius: 18px; padding: 14px 16px; min-height: 0; display: flex; flex-direction: column; transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease; }
     .tile:hover { transform: translateY(-3px); }
-    .tile__icon { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; margin-bottom: 10px; background: rgba(20,20,20,0.06); }
+    .tile__icon { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 15px; margin-bottom: 6px; background: rgba(20,20,20,0.06); }
     .tile__k { display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); margin-bottom: 5px; }
 
     /* staff code — dark keycard, tap to copy */
-    .tile--code { cursor: pointer; color: #fff; background: linear-gradient(150deg, #2c2c2c 0%, #161616 60%, #0c0c0c 100%); box-shadow: 0 18px 34px -18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
-    .tile--code::after { content: ""; position: absolute; top: -28px; right: -28px; width: 92px; height: 92px; border-radius: 50%; background: rgba(255,255,255,0.13); filter: blur(22px); }
-    .tile--code:hover { box-shadow: 0 24px 42px -18px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.13); }
-    .tile--code:active { transform: scale(0.98); }
-    .tile--code .tile__icon { background: rgba(255,255,255,0.12); }
-    .tile--code .tile__k { color: rgba(255,255,255,0.5); }
-    .tile__code { position: relative; z-index: 1; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 700; font-size: 21px; letter-spacing: 1.5px; color: #fff; direction: ltr; unicode-bidi: isolate; }
-    .tile__hint { margin-top: auto; padding-top: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
-    .tile--code.copied .tile__hint { color: #7fdca4; }
+    /* staff code — full-width dark bar, now living in Settings instead of
+       paired with the stamps tile on the Card tab */
+    .code-bar {
+      position: relative; overflow: hidden; cursor: pointer;
+      display: flex; align-items: center; gap: 14px;
+      border-radius: 18px; padding: 16px 18px; color: #fff;
+      background: linear-gradient(150deg, #2c2c2c 0%, #161616 60%, #0c0c0c 100%);
+      box-shadow: 0 18px 34px -18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+      transition: box-shadow 0.3s ease, transform 0.14s ease;
+      animation: cardIn 0.7s var(--ease-spring) 0.23s both;
+    }
+    .code-bar::after { content: ""; position: absolute; top: -28px; right: -28px; width: 92px; height: 92px; border-radius: 50%; background: rgba(255,255,255,0.13); filter: blur(22px); }
+    .code-bar:hover { box-shadow: 0 24px 42px -18px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.13); }
+    .code-bar:active { transform: scale(0.99); }
+    .code-bar__icon { position: relative; z-index: 1; flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; background: rgba(255,255,255,0.12); }
+    .code-bar__main { position: relative; z-index: 1; flex: 1; min-width: 0; }
+    .code-bar__k { display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.5); }
+    .code-bar__hint { display: block; margin-top: 3px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px; color: rgba(255,255,255,0.45); transition: color 0.2s ease; }
+    .code-bar.copied .code-bar__hint { color: #7fdca4; }
+    .code-bar__code { position: relative; z-index: 1; flex: 0 0 auto; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: 700; font-size: 19px; letter-spacing: 1.5px; color: #fff; direction: ltr; unicode-bidi: isolate; }
 
     /* stamps / reward — glass, editable stepper */
     .tile__num { font-family: var(--font-heading); font-weight: 800; font-size: 40px; line-height: 1; color: var(--ink); margin-top: auto; }
@@ -116,17 +255,44 @@
     .step:hover { background: rgba(255,255,255,0.9); }
     .step:active { transform: scale(0.9); }
     .step:disabled { opacity: 0.35; cursor: default; }
-    .tile__unit { font-size: 11px; font-weight: 700; color: var(--faint); margin-top: 5px; transition: color 0.2s ease; }
+    .tile__unit { font-size: 11px; font-weight: 700; color: var(--faint); margin-top: 3px; transition: color 0.2s ease; }
     .tile__unit.is-ok { color: #137a43; }
 
     /* discounts box — frosted glass */
     .box { border-radius: 22px; padding: 20px 18px 22px; animation: cardIn 0.7s var(--ease-spring) 0.32s both; }
-    .box__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
     .box__title { font-family: var(--font-heading); font-weight: 700; font-size: 19px; margin: 0; }
     .box__sub { margin: 3px 0 0; font-size: 12px; color: var(--dim); }
-    .add-btn { flex: 0 0 auto; background: var(--ink); color: #fff; border: none; border-radius: 12px; font-family: var(--font-heading); font-weight: 700; font-size: 14px; padding: 10px 15px; cursor: pointer; transition: background 0.2s ease; }
-    .add-btn:hover { background: #000; }
-    .add-btn:active { transform: scale(0.97); }
+
+    /* Settings panel — read-only account rows, same component as the customer
+       wallet's settings sheet (index.html .sheet__rows / .srow, styles.css) */
+    .sheet__rows { display: flex; flex-direction: column; margin-top: 10px; }
+    .srow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 2px; border-bottom: 1px solid rgba(20,20,20,0.08); }
+    .srow:last-child { border-bottom: 0; }
+    .srow__k { font-size: 13px; font-weight: 700; color: var(--dim); flex: 0 0 auto; }
+    .srow__v { font-size: 14px; font-weight: 700; color: var(--ink); min-width: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* a phone number reads the same way regardless of UI language */
+    #setOwnerPhone { direction: ltr; unicode-bidi: isolate; }
+
+    /* Discounts panel — no outer card; the title sits straight on the page and
+       each discount below is already its own glass row (.rw). */
+    .disc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; animation: cardIn 0.7s var(--ease-spring) 0.2s both; }
+    .disc-title { font-family: var(--font-heading); font-weight: 700; font-size: 23px; margin: 0; letter-spacing: -0.3px; color: var(--ink); }
+    .disc-sub { margin: 4px 0 0; font-size: 12.5px; color: var(--dim); line-height: 1.5; max-width: 76%; }
+    /* round glassmorphism FAB — opens/closes the add-form below; the plus
+       morphs into an × while it's open instead of swapping icons */
+    .add-fab {
+      flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; margin-top: 2px;
+      display: grid; place-items: center; cursor: pointer; color: var(--ink);
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 12px 24px -14px rgba(20,20,20,0.4), inset 0 1px 0 var(--glass-hi);
+      transition: transform 0.16s var(--ease-spring), box-shadow 0.3s ease;
+    }
+    .add-fab:hover { transform: scale(1.07); }
+    .add-fab:active { transform: scale(0.92); }
+    .add-fab__icon { width: 20px; height: 20px; transition: transform 0.3s var(--ease-spring); }
+    .add-fab.is-open .add-fab__icon { transform: rotate(45deg); }
 
     .rw-list { display: flex; flex-direction: column; gap: 10px; direction: ltr; }
     html[dir="rtl"] .rw__main { direction: rtl; text-align: right; }
@@ -215,16 +381,48 @@
     .signout-cta:hover { background: linear-gradient(155deg, rgba(253,241,238,0.68), rgba(247,221,214,0.56)); box-shadow: 0 14px 30px -14px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.55); }
     .signout-cta:active { transform: translateY(1px) scale(0.99); }
 
-    /* NFC tag URL section */
-    .nfc-box { animation: cardIn 0.7s var(--ease-spring) 0.23s both; }
-    .nfc-row { display: flex; gap: 10px; margin-top: 4px; direction: ltr; }
-    /* same specificity tie as .crop-modal[hidden] above — without this, hidden
-       does nothing and an empty NFC row shows before loadCafe() populates it,
-       or permanently for a café with no active tag */
-    .nfc-row[hidden] { display: none; }
-    .nfc-row input { flex: 1; min-width: 0; font-family: var(--font-body); font-size: 13px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 12px; padding: 12px 14px; outline: none; }
-    .nfc-row .btn-solid { flex: 0 0 auto; padding: 0 20px; }
-    .nfc-empty { margin: 8px 2px 0; font-size: 12.5px; color: var(--dim); line-height: 1.5; }
+    /* ---------------- Business identity — name / type / card colour ----------------
+       Name and type feed the card's header text; accent feeds its whole colour
+       scheme. Field/segmented/swatch styling ported from auth.css (business.html
+       registration), which builds the same three controls at signup. */
+    .ident-box { animation: cardIn 0.7s var(--ease-spring) 0.23s both; }
+    .ident-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    /* small glassmorphism icon button — same visual language as .add-fab on
+       the Discounts tab, just a secondary (smaller) action here, not a CTA */
+    .ident-edit-btn {
+      flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; margin-top: 1px;
+      display: grid; place-items: center; cursor: pointer; color: var(--ink);
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 20px -12px rgba(20,20,20,0.35), inset 0 1px 0 var(--glass-hi);
+      transition: transform 0.16s var(--ease-spring);
+    }
+    .ident-edit-btn:hover { transform: scale(1.08); }
+    .ident-edit-btn:active { transform: scale(0.92); }
+    .ident-edit-btn svg { width: 16px; height: 16px; }
+    /* small colour swatch shown as the "Card colour" summary value */
+    .ident-dot { display: inline-block; width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(20,20,20,0.08); vertical-align: middle; }
+    .ident-field { margin: 14px 0 0; }
+    .ident-field > label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--faint); margin-bottom: 6px; }
+    .ident-field input[type=text] { width: 100%; font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--ink); background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6); border-radius: 11px; padding: 11px 12px; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .ident-field input[type=text]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,20,0.08); }
+    .ident-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .ident-actions .btn-solid, .ident-actions .btn-ghost { flex: 1; }
+
+    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 13px; }
+    .seg__btn { font-family: var(--font-heading); font-weight: 600; font-size: 15px; padding: 12px; border: none; border-radius: 10px; background: transparent; color: var(--dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+    .seg--3 { grid-template-columns: 1fr 1fr 1fr; }
+    .seg--3 .seg__btn { font-size: 12px; padding: 10px 4px; }
+    .seg__btn.is-on { background: #171717; color: #ffffff; box-shadow: 0 6px 16px -8px rgba(20,20,20,0.5); }
+
+    .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+    .swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 4px 10px -4px rgba(20,20,20,0.5); transition: transform 0.12s ease; }
+    .swatch:hover { transform: scale(1.08); }
+    .swatch.is-on { box-shadow: 0 0 0 3px var(--ink), 0 4px 10px -4px rgba(20,20,20,0.5); }
+    /* free colour picker, last in the row — see deepenForCard() in owner.page.js */
+    .swatch--custom { position: relative; overflow: hidden; display: block; background: conic-gradient(from 0deg, #f43f5e, #f59e0b, #facc15, #22c55e, #06b6d4, #3b82f6, #a855f7, #f43f5e); }
+    .swatch--custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; padding: 0; border: none; cursor: pointer; }
 
     /* café logo section */
     .logo-box { animation: cardIn 0.7s var(--ease-spring) 0.26s both; }
@@ -236,14 +434,15 @@
     }
     .logo-prev.has-img { border-style: solid; border-color: rgba(23,23,23,0.14); }
     .logo-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .logo-prev__empty { font-size: 28px; opacity: 0.45; line-height: 1; }
+    .logo-prev__empty { display: flex; opacity: 0.4; }
     .logo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
     .logo-actions .btn-solid, .logo-actions .btn-ghost { flex: 0 0 auto; padding: 0 18px; }
     .logo-hint { flex: 1 0 100%; margin: 0; font-size: 11.5px; color: var(--faint); line-height: 1.5; }
     .logo-box.is-busy { opacity: 0.6; pointer-events: none; }
 
     /* position-in-circle modal */
-    .crop-modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10,10,10,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadeUp 0.22s ease both; }
+    /* above the tabbar's z-index:210, so it stays covered while the modal is open */
+    .crop-modal { position: fixed; inset: 0; z-index: 220; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(10,10,10,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fadeUp 0.22s ease both; }
     /* .crop-modal's own display:flex has the same specificity as the browser's
        [hidden]{display:none} default, so the LATER rule in this stylesheet —
        ours — would always win and the modal would show on every page load
@@ -278,36 +477,66 @@
 
     @media (prefers-reduced-motion: reduce) {
       .bg::before, .bg::after, .stain { animation: none; }
-      .own-cafe, .own-badge, .own-hi, .analytics-cta, .tiles, .box, .signout-cta, .rw { animation: none; opacity: 1; transform: none; }
+      .own-cafe, .own-badge, .own-hi, .tiles, .box, .signout-cta, .rw, .disc-head, .code-bar, .ident-box, .ownpv-wrap { animation: none; opacity: 1; transform: none; }
       .add-form { transition: none; }
+      .tabbar { animation: none; }
+      .tab.is-active .tab__ico { animation: none; }
+      .tabbar__ind { transition: none; }
+      .own { transition: none; }
+      .add-fab__icon { transition: none; }
     }
   </style>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
 
-  <main class="own">
-    <header class="own-head">
-      <h1 class="own-cafe" id="cafeName">your café</h1>
-    </header>
-    <div class="own-topline">
-      <span class="own-badge" data-i18n="OWNER_BADGE">Owner Dashboard</span>
-      <p class="own-hi" id="ownHi">Hello, <b id="ownerName">Owner</b> 👋</p>
+  <main class="own no-header" id="own">
+    <!-- Shown only on the Settings tab (see setOwnerTab in owner.page.js) —
+         Card and Discounts both want the full screen, not this banner. Starts
+         hidden since Card, not Settings, is the default tab. -->
+    <div id="ownHeaderBlock" hidden>
+      <header class="own-head">
+        <h1 class="own-cafe" id="cafeName">your café</h1>
+      </header>
+      <div class="own-topline">
+        <span class="own-badge" data-i18n="OWNER_BADGE">Owner Dashboard</span>
+        <p class="own-hi" id="ownHi">Hello, <b id="ownerName">Owner</b> 👋</p>
+      </div>
     </div>
 
-    <a class="analytics-cta" href="analytics.html">
-      <span class="analytics-cta__icon">📊</span>
-      <span class="analytics-cta__body"><b data-i18n="OWNER_ANALYTICS_TITLE">View analytics</b></span>
-      <span class="analytics-cta__arrow">›</span>
-    </a>
+    <!-- ============== CARD panel — default tab: everything about how the
+         loyalty card itself looks and behaves ============== -->
+    <div class="panel" id="panelCard">
+    <!-- Live preview — the exact card design a customer sees in their wallet
+         (same markup/CSS as app.js buildCard + styles.css .card/.face/.oram-*/
+         .slot, and the same .pcard port business.html's registration preview
+         uses). Kept in sync with the identity form, the stamps stepper and the
+         logo below by owner.page.js. -->
+    <div class="ownpv-wrap">
+      <span class="ownpv-label" data-i18n="OWNER_PREVIEW_LABEL">Your customers see</span>
+      <div class="pcard" id="ownPreview">
+        <div class="card">
+          <section class="face face--front">
+            <span class="notch notch--l"></span><span class="notch notch--r"></span>
+            <div class="oram-sheen" aria-hidden="true"></div>
+            <header class="oram-head">
+              <div class="oram-head__main">
+                <img class="oram-logo" id="ownPrevLogo" alt="" hidden />
+                <div class="oram-head__id">
+                  <h1 class="oram-name" id="ownPrevName">Café</h1>
+                  <p class="oram-sub" id="ownPrevTag">Cafe</p>
+                </div>
+              </div>
+              <div class="oram-mini"><span class="count">0</span><span class="oram-mini__sep">/</span><span id="ownPrevTotal">8</span></div>
+            </header>
+            <div class="grid" style="--cols:4" id="ownPrevGrid"></div>
+            <p class="oram-min" id="ownPrevMin" hidden></p>
+          </section>
+        </div>
+      </div>
+    </div>
 
     <div class="tiles">
-      <div class="tile tile--code" id="codeTile" role="button" tabindex="0" title="Tap to copy" data-i18n-title="OWNER_TAP_TO_COPY">
-        <span class="tile__icon">🔑</span>
-        <span class="tile__k" data-i18n="OWNER_STAFF_CODE_LABEL">Staff code</span>
-        <span class="tile__code" id="staffCode">—</span>
-        <span class="tile__hint" id="codeHint" data-i18n="OWNER_TAP_TO_COPY">Tap to copy</span>
-      </div>
       <div class="tile tile--stamps glass">
         <span class="tile__icon">🎯</span>
         <span class="tile__k" data-i18n="OWNER_STAMPS_LABEL">Stamps / reward</span>
@@ -320,15 +549,53 @@
       </div>
     </div>
 
-    <section class="box glass nfc-box">
-      <h2 class="box__title" data-i18n="OWNER_NFC_TITLE">NFC tag URL</h2>
-      <p class="box__sub" data-i18n="OWNER_NFC_SUB">Write this exact link to your café's NFC tag — tapping it is what lets a customer collect a stamp.</p>
-      <div class="nfc-row" id="nfcRow" hidden>
-        <input type="text" id="nfcUrl" readonly />
-        <button class="btn-solid" id="nfcCopy" type="button" data-i18n="OWNER_NFC_BTN_COPY">Copy</button>
+    <section class="box glass ident-box">
+      <div class="ident-head">
+        <div>
+          <h2 class="box__title" data-i18n="OWNER_IDENTITY_TITLE">Business identity</h2>
+          <p class="box__sub" data-i18n="OWNER_IDENTITY_SUB">Shown at the top of every customer's card.</p>
+        </div>
+        <button class="ident-edit-btn" id="identityEditBtn" type="button" aria-label="Edit" data-i18n-aria="OWNER_BTN_EDIT">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
       </div>
-      <p class="nfc-empty" id="nfcEmpty" hidden data-i18n="OWNER_NFC_EMPTY">No NFC tag is linked to your café yet — contact support to get one set up.</p>
-      <p class="minp__ok" id="nfcOk" hidden data-i18n="OWNER_COPIED">Copied ✓</p>
+
+      <!-- summary — shown by default -->
+      <div class="sheet__rows" id="identitySummary">
+        <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</span><span class="srow__v" id="identSummaryName">—</span></div>
+        <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_BUSINESS_TYPE">Business type</span><span class="srow__v" id="identSummaryType">—</span></div>
+        <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_ACCENT">Card colour</span><span class="srow__v"><span class="ident-dot" id="identSummaryDot"></span></span></div>
+      </div>
+
+      <!-- edit form — hidden until "Edit" is pressed -->
+      <div id="identityForm" hidden>
+        <div class="ident-field">
+          <label for="fCafeName" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
+          <input type="text" id="fCafeName" maxlength="40" />
+        </div>
+        <div class="ident-field">
+          <label data-i18n="AUTH_LABEL_BUSINESS_TYPE">Business type</label>
+          <div class="seg seg--3" id="fType" role="tablist" aria-label="Business type">
+            <button class="seg__btn" data-type="Cafe" type="button"><span data-i18n="AUTH_TYPE_CAFE">Cafe</span></button>
+            <button class="seg__btn" data-type="Restaurant" type="button"><span data-i18n="AUTH_TYPE_RESTAURANT">Restaurant</span></button>
+            <button class="seg__btn" data-type="Cafe &amp; Restaurant" type="button"><span data-i18n="AUTH_TYPE_BOTH">Cafe &amp; Restaurant</span></button>
+          </div>
+        </div>
+        <div class="ident-field">
+          <label data-i18n="AUTH_LABEL_ACCENT">Card accent colour</label>
+          <div class="swatches" id="fAccent">
+            <label class="swatch swatch--custom" id="fAccentCustomWrap" data-i18n-aria="AUTH_ACCENT_CUSTOM" aria-label="Custom colour">
+              <input type="color" id="fAccentCustom" value="#171717" />
+            </label>
+          </div>
+        </div>
+        <div class="ident-actions">
+          <button class="btn-ghost" id="identityCancel" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+          <button class="btn-solid" id="identitySave" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
+        </div>
+        <p class="add-err" id="identityErr" hidden></p>
+      </div>
+      <p class="minp__ok" id="identityOk" hidden data-i18n="OWNER_SAVED">Saved ✓</p>
     </section>
 
     <section class="box glass logo-box">
@@ -337,7 +604,9 @@
       <div class="logo-row">
         <div class="logo-prev" id="logoPrev">
           <img id="logoImg" alt="" hidden />
-          <span class="logo-prev__empty" id="logoEmpty">🏪</span>
+          <span class="logo-prev__empty" id="logoEmpty">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </span>
         </div>
         <div class="logo-actions">
           <input type="file" id="logoFile" accept="image/jpeg,image/png,image/webp" hidden />
@@ -349,22 +618,6 @@
       <p class="add-err" id="logoErr" hidden></p>
       <p class="minp__ok" id="logoOk" hidden data-i18n="OWNER_SAVED">Saved ✓</p>
     </section>
-
-    <!-- Position-in-circle step: shown after picking a file, before it's uploaded -->
-    <div class="crop-modal" id="cropModal" hidden aria-hidden="true">
-      <div class="crop-modal__card">
-        <h3 class="crop-modal__title" data-i18n="OWNER_LOGO_CROP_TITLE">Position your logo</h3>
-        <p class="crop-modal__hint" data-i18n="OWNER_LOGO_CROP_HINT">Drag to move · use the slider to zoom</p>
-        <div class="crop-stage" id="cropStage">
-          <img id="cropImg" alt="" draggable="false" />
-        </div>
-        <input type="range" class="crop-zoom" id="cropZoom" min="100" max="320" value="100" step="1" aria-label="Zoom" />
-        <div class="crop-modal__actions">
-          <button class="btn-ghost" id="cropCancel" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
-          <button class="btn-solid" id="cropSave" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
-        </div>
-      </div>
-    </div>
 
     <section class="box glass minp">
       <h2 class="box__title" data-i18n="OWNER_MINP_TITLE">Minimum purchase for a stamp</h2>
@@ -380,14 +633,18 @@
       <p class="add-err" id="minErr" hidden></p>
       <p class="minp__ok" id="minOk" hidden data-i18n="OWNER_SAVED">Saved ✓</p>
     </section>
+    </div><!-- /panelCard -->
 
-    <section class="box glass">
-      <div class="box__head">
+    <!-- ============== DISCOUNTS panel ============== -->
+    <div class="panel" id="panelDiscounts" hidden>
+      <div class="disc-head">
         <div>
-          <h2 class="box__title" data-i18n="OWNER_DISCOUNTS_TITLE">Discounts you offer</h2>
-          <p class="box__sub" data-i18n="OWNER_DISCOUNTS_SUB">Filling a card wins one of these at random — all equally likely</p>
+          <h2 class="disc-title" data-i18n="OWNER_DISCOUNTS_TITLE">Discounts you offer</h2>
+          <p class="disc-sub" data-i18n="OWNER_DISCOUNTS_SUB">Filling a card wins one of these at random — all equally likely</p>
         </div>
-        <button class="add-btn" id="addBtn" type="button" data-i18n="OWNER_BTN_ADD">+ Add</button>
+        <button class="add-fab" id="addBtn" type="button" aria-label="Add a discount" data-i18n-aria="OWNER_ARIA_ADD_DISCOUNT">
+          <svg class="add-fab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
 
       <div class="add-form" id="addForm">
@@ -437,7 +694,28 @@
       </div>
 
       <div class="rw-list" id="rewardList"></div>
+    </div><!-- /panelDiscounts -->
+
+    <!-- ============== SETTINGS panel ============== -->
+    <div class="panel" id="panelSettings" hidden>
+    <section class="box glass">
+      <h2 class="box__title" data-i18n="WALLET_SETTINGS_TITLE">Settings</h2>
+      <div class="sheet__rows">
+        <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_NAME">Name</span><span class="srow__v" id="setOwnerName">—</span></div>
+        <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_PHONE">Phone</span><span class="srow__v" id="setOwnerPhone">—</span></div>
+        <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_EMAIL">Email</span><span class="srow__v" id="setOwnerEmail">—</span></div>
+        <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</span><span class="srow__v" id="setCafeName">—</span></div>
+      </div>
     </section>
+
+    <div class="code-bar" id="codeTile" role="button" tabindex="0" title="Tap to copy" data-i18n-title="OWNER_TAP_TO_COPY">
+      <span class="code-bar__icon">🔑</span>
+      <div class="code-bar__main">
+        <span class="code-bar__k" data-i18n="OWNER_STAFF_CODE_LABEL">Staff code</span>
+        <span class="code-bar__hint" id="codeHint" data-i18n="OWNER_TAP_TO_COPY">Tap to copy</span>
+      </div>
+      <span class="code-bar__code" id="staffCode">—</span>
+    </div>
 
     <button class="signout-cta" id="signout" type="button">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -445,8 +723,58 @@
       </svg>
       <span data-i18n="WALLET_SIGNOUT">Sign out</span>
     </button>
+    </div><!-- /panelSettings -->
   </main>
 
-  <script src="owner.page.js?v=6"></script>
+  <!-- Position-in-circle step: shown after picking a logo file. Lives outside
+       every panel — it is fixed-position, but display:none on an ancestor
+       (a hidden .panel) would hide it too if it were nested inside one. -->
+  <div class="crop-modal" id="cropModal" hidden aria-hidden="true">
+    <div class="crop-modal__card">
+      <h3 class="crop-modal__title" data-i18n="OWNER_LOGO_CROP_TITLE">Position your logo</h3>
+      <p class="crop-modal__hint" data-i18n="OWNER_LOGO_CROP_HINT">Drag to move · use the slider to zoom</p>
+      <div class="crop-stage" id="cropStage">
+        <img id="cropImg" alt="" draggable="false" />
+      </div>
+      <input type="range" class="crop-zoom" id="cropZoom" min="100" max="320" value="100" step="1" aria-label="Zoom" />
+      <div class="crop-modal__actions">
+        <button class="btn-ghost" id="cropCancel" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+        <button class="btn-solid" id="cropSave" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glassy bottom navigation — same component as the customer wallet's
+       (index.html #tabbar / styles.css .tabbar), rebuilt here since this page
+       doesn't load the wallet stylesheet. -->
+  <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
+    <span class="tabbar__ind" aria-hidden="true"></span>
+    <button class="tab" id="tabAnalytics" type="button" aria-label="Analytics" data-i18n-aria="OWNER_TAB_ANALYTICS">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 20.5V13M10 20.5V7.5M15.5 20.5v-9M21 20.5V4"/></svg>
+      </span>
+      <span class="tab__label" data-i18n="OWNER_TAB_ANALYTICS">Analytics</span>
+    </button>
+    <button class="tab is-active" id="tabCard" type="button" aria-label="Card" data-i18n-aria="OWNER_TAB_CARD">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><circle cx="8" cy="12" r="2.3"/><path d="M13.5 9.5h4M13.5 12h4M13.5 14.5h2.6"/></svg>
+      </span>
+      <span class="tab__label" data-i18n="OWNER_TAB_CARD">Card</span>
+    </button>
+    <button class="tab" id="tabDiscounts" type="button" aria-label="Discounts" data-i18n-aria="WALLET_TAB_DISCOUNTS">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-8-8V3.6a1 1 0 0 1 1-1H12l8.6 8.6a2 2 0 0 1 0 2.2z"/><circle cx="7.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg>
+      </span>
+      <span class="tab__label" data-i18n="WALLET_TAB_DISCOUNTS">Discounts</span>
+    </button>
+    <button class="tab" id="tabSettings" type="button" aria-label="Settings" data-i18n-aria="WALLET_SETTINGS_TITLE">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.1" fill="none"/><circle cx="15" cy="12" r="2.1" fill="none"/><circle cx="8" cy="17" r="2.1" fill="none"/></svg>
+      </span>
+      <span class="tab__label" data-i18n="WALLET_SETTINGS_TITLE">Settings</span>
+    </button>
+  </nav>
+
+  <script src="owner.page.js?v=18"></script>
 </body>
 </html>

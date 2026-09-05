@@ -941,7 +941,7 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
 
 // The owner's own café config — resolved from the auth token, never a client-
 // supplied id, so one owner can never read/target another café's settings.
-//   GET /owner/cafe  (admin auth) -> { id, cafe_name, staff_code, stamps_required, reward_expiry_days }
+//   GET /owner/cafe  (admin auth) -> { id, cafe_name, staff_code, stamps_required, reward_expiry_days, name, phone, email }
 routerAdd("GET", "/owner/cafe", (e) => {
   const u = e.auth;
   if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
@@ -975,6 +975,10 @@ routerAdd("GET", "/owner/cafe", (e) => {
     // filename only — the dashboard builds the URL itself, same as the wallet does
     logo: card.getString("logo"),
     collection_id: card.collection().id,
+    // owner's own account fields — shown read-only in the dashboard's Settings panel
+    name: u.getString("name"),
+    phone: u.getString("phone"),
+    email: u.getString("email"),
   });
 }, $apis.requireAuth());
 
