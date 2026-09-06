@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <title>Reloy · Business Terms</title>
+  <link rel="stylesheet" href="fonts.css" />
+  <style>
+    :root {
+      --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
+      --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+      --glass-fill: rgba(255,255,255,0.34); --glass-fill-strong: rgba(255,255,255,0.55);
+      --glass-border: rgba(255,255,255,0.7); --glass-hi: rgba(255,255,255,0.9);
+      --glass-shadow: 0 34px 70px -28px rgba(20,20,20,0.5);
+      --f-heading: "Quicksand", sans-serif;
+      --f-body: "Nunito", system-ui, sans-serif;
+    }
+    html[dir="rtl"] { --f-heading: "Vazirmatn", sans-serif; --f-body: "Vazirmatn", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--f-body); color: var(--ink);
+      background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
+      min-height: 100dvh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+    .bg::before, .bg::after { content: ""; position: absolute; border-radius: 50%; filter: blur(72px); opacity: 0.55; will-change: transform; }
+    .bg::before { width: 52vmax; height: 52vmax; top: -16vmax; right: -12vmax; background: radial-gradient(circle at 50% 50%, #c4c4c4, transparent 66%); animation: orbA 34s ease-in-out infinite; }
+    .bg::after { width: 46vmax; height: 46vmax; bottom: -18vmax; left: -14vmax; background: radial-gradient(circle at 50% 50%, #3a3a3a, transparent 64%); animation: orbB 40s ease-in-out infinite; }
+    @keyframes orbA  { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-9vmax,7vmax) scale(1.14); } }
+    @keyframes orbB  { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(7vmax,-6vmax) scale(0.92); } }
+
+    .wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 20px 18px 60px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    html[dir="rtl"] .topbar { direction: ltr; }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px; text-decoration: none; cursor: pointer;
+      color: var(--dim); font-family: var(--f-heading); font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px;
+      background: rgba(255,255,255,0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5);
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    .back:hover { color: var(--ink); background: rgba(255,255,255,0.6); }
+    .lang-switch { display: inline-flex; gap: 6px; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; padding: 4px; backdrop-filter: blur(8px); }
+    .lang-switch__btn { font-family: var(--f-heading); font-weight: 700; font-size: 12px; padding: 6px 13px; border: none; border-radius: 16px; background: none; color: var(--dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease; }
+    .lang-switch__btn.is-on { background: #171717; color: #fff; }
+
+    .doc {
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(20px) saturate(165%); -webkit-backdrop-filter: blur(20px) saturate(165%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), inset 0 0 0 1px rgba(255,255,255,0.22);
+      border-radius: 24px; padding: 30px 26px 34px;
+    }
+    .doc[hidden] { display: none; }
+    .doc h1 { font-family: var(--f-heading); font-weight: 700; font-size: 27px; letter-spacing: -0.4px; margin: 0 0 4px; }
+    html[dir="rtl"] .doc h1 { letter-spacing: 0; }
+    .doc__eff { font-size: 12.5px; color: var(--faint); font-weight: 700; margin: 0 0 22px; }
+    .doc h2 { font-family: var(--f-heading); font-weight: 700; font-size: 17px; margin: 26px 0 8px; }
+    .doc h2 .n { color: var(--faint); margin-right: 6px; }
+    html[dir="rtl"] .doc h2 .n { margin-right: 0; margin-left: 6px; }
+    .doc p, .doc li { font-size: 14px; line-height: 1.65; color: #333333; }
+    html[dir="rtl"] .doc p, html[dir="rtl"] .doc li { line-height: 1.9; }
+    .doc p { margin: 0 0 10px; }
+    .doc ul { margin: 0 0 10px; padding-left: 20px; }
+    html[dir="rtl"] .doc ul { padding-left: 0; padding-right: 20px; }
+    .doc li { margin-bottom: 5px; }
+    .doc b { color: var(--ink); }
+    .doc a { color: var(--ink); }
+    .hr { height: 1px; background: rgba(20,20,20,0.1); margin: 34px 0 6px; }
+    .lead {
+      font-size: 13.5px; line-height: 1.6; color: var(--dim);
+      background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 14px; padding: 14px 16px; margin: 0 0 8px;
+    }
+    html[dir="rtl"] .lead { line-height: 1.9; }
+    .switch {
+      font-size: 12.5px; line-height: 1.6; color: var(--dim);
+      background: rgba(255,255,255,0.3); border: 1px dashed rgba(20,20,20,0.18);
+      border-radius: 12px; padding: 10px 14px; margin: 0 0 18px;
+    }
+    html[dir="rtl"] .switch { line-height: 1.9; }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <main class="wrap">
+    <div class="topbar">
+      <a class="back" href="for-business.html" id="backLink">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span id="backLabel">Back</span>
+      </a>
+      <div class="lang-switch" role="tablist" aria-label="Language">
+        <button class="lang-switch__btn" data-lang="en" type="button">English</button>
+        <button class="lang-switch__btn" data-lang="fa" type="button">فارسی</button>
+      </div>
+    </div>
+
+    <div class="doc" id="docEn">
+      <h1>Business Terms of Service</h1>
+      <p class="doc__eff">Last updated: 2026 · Applies to café and restaurant accounts on Reloy</p>
+
+      <p class="switch">This page covers the paid subscription between Reloy and the business running a loyalty program. Looking for the terms your own customers agree to when they use their loyalty card? See our <a href="terms.html">Customer Terms &amp; Privacy Policy</a> instead.</p>
+
+      <p class="lead">Reloy sells café and restaurant owners a digital stamp-card platform: a dashboard to run your loyalty program, and an NFC tag your staff use to stamp a customer's card. This document is the contract between Reloy and your business for that subscription — separate from, and in addition to, the Customer Terms that govern your customers' own use of the app.</p>
+
+      <h2><span class="n">1.</span>Who this applies to &amp; what Reloy provides</h2>
+      <p>These terms apply to you if you register a business account on Reloy — as an owner, or as someone authorised to act for the business. Reloy provides: the owner dashboard, the staff scanner, an NFC tag for your counter, and the loyalty card your customers see. Reloy does <b>not</b> set, fund, or fulfil the rewards you offer — those are entirely your own, and any cost of honouring them is yours.</p>
+
+      <h2><span class="n">2.</span>Your account</h2>
+      <ul>
+        <li>You must be authorised to act for the business you register, and to provide accurate information about it (name, contact details, and anything else we ask for at signup).</li>
+        <li>You're responsible for your staff code and who you share it with — anyone with it can stamp cards and act as your staff in the dashboard.</li>
+        <li>You're responsible for the accuracy of what you configure: your business name, card colour, logo, stamps required, minimum purchase, and the rewards you offer.</li>
+      </ul>
+
+      <h2><span class="n">3.</span>Free trial</h2>
+      <p>New businesses get a <b>30-day free trial</b>, counted from the day your NFC tag actually goes live at your counter — not the day you sign up. If you don't continue past the trial, your account and card simply stop working; nothing is owed either way.</p>
+
+      <h2><span class="n">4.</span>Fees &amp; billing</h2>
+      <ul>
+        <li>Pricing is the flat, per-café rate shown on our pricing page at the time you subscribe, billed either monthly or yearly depending on what you choose.</li>
+        <li>Fees are billed in Iranian Toman, by bank transfer, invoice, or any online payment method we make available to you.</li>
+        <li>If we change our prices, it will not affect a period you've already paid for — we'll give you at least <b>30 days' notice</b> before a new price applies to your next renewal.</li>
+        <li>Multiple locations are billed as separate cafés, one subscription each.</li>
+      </ul>
+
+      <h2><span class="n">5.</span>Cancellation &amp; refunds</h2>
+      <ul>
+        <li>You can cancel at any time; there's no minimum contract and no cancellation fee.</li>
+        <li>Cancelling stops future billing. The period you've already paid for is <b>not refunded</b>, but your dashboard and card keep working until that period ends.</li>
+        <li>We may suspend or close your account for non-payment, fraud, or a serious breach of these terms — where practical, we'll tell you why first.</li>
+      </ul>
+
+      <h2><span class="n">6.</span>The NFC tag</h2>
+      <ul>
+        <li>We ship you an NFC tag as part of setup. It's yours to keep — there's nothing to return if you cancel.</li>
+        <li>If it arrives faulty, tell us within 14 days for a free replacement.</li>
+        <li>Once your subscription ends, the tag simply stops registering new stamps. A lost or damaged tag can be replaced, possibly for a fee to cover shipping and hardware.</li>
+      </ul>
+
+      <h2><span class="n">7.</span>Setup &amp; onboarding</h2>
+      <p>We aim to have you live — tag delivered, card configured, staff shown how it works — in about a week from signup. That's an estimate, not a guarantee; delays (shipping, scheduling, information we're waiting on from you) can push it out, and your trial only starts once you're actually live, not before.</p>
+
+      <h2><span class="n">8.</span>Your responsibilities</h2>
+      <ul>
+        <li>You're responsible for actually honouring the rewards you configure when a customer's card is redeemed — Reloy only records that a reward was won, it isn't a party to fulfilling it.</li>
+        <li>You must comply with applicable Iranian law in how you run your program and describe your offers, including any consumer-protection or advertising rules that apply to your own business.</li>
+        <li>You won't use Reloy to defraud your own customers, stamp cards without a genuine purchase or visit as your program describes, or otherwise misuse the platform.</li>
+      </ul>
+
+      <h2><span class="n">9.</span>Your customers' data</h2>
+      <ul>
+        <li>Your customers' stamps and reward history are visible to you for the cafés you run, so you can see your own program's activity — that data belongs to your business relationship with Reloy, not to any individual staff member.</li>
+        <li>If you cancel, we keep that data for <b>90 days</b> in case you resubscribe or want an export, then delete it. You can request an export at any point during that window.</li>
+        <li>Reloy handles the underlying personal data (customers' phone numbers, names) under the terms described in our <a href="terms.html">Customer Terms &amp; Privacy Policy</a> — you don't get direct access to a customer's phone number through Reloy.</li>
+      </ul>
+
+      <h2><span class="n">10.</span>Your brand, our software</h2>
+      <p>You keep all rights to your business name, logo, and colours — you're only giving us permission to display them on your card and dashboard for as long as your account is active. Reloy keeps all rights to its own software, design, and brand; nothing here transfers any of that to you.</p>
+
+      <h2><span class="n">11.</span>Confidentiality</h2>
+      <p>Anything non-public we learn about each other's business while setting up or running your account — pricing you're offered, how your program performs, anything marked confidential — stays between us, used only to provide and improve the service.</p>
+
+      <h2><span class="n">12.</span>Service "as is" &amp; availability</h2>
+      <p>Reloy is provided <b>"as is" and "as available"</b>, without warranties of any kind, to the fullest extent permitted by law. We do not guarantee the service will be uninterrupted or error-free, and we may change, suspend, or discontinue features over time — we'll try to give notice for anything that meaningfully affects how your program works.</p>
+
+      <h2><span class="n">13.</span>Limitation of liability</h2>
+      <p>To the maximum extent permitted by applicable law, Reloy shall not be liable for any indirect, incidental, or consequential loss — including lost profits, lost customers, or lost data — arising from your use of the service. Reloy's total liability for any claim arising from these terms is limited to the fees you paid us in the 3 months before the claim arose. Nothing here excludes any liability that cannot be excluded under applicable law.</p>
+
+      <h2><span class="n">14.</span>Term &amp; termination</h2>
+      <p>These terms apply for as long as you have an active subscription. Either of us may end it at any time as described in section 5. On termination, your dashboard access ends and your card stops collecting new stamps; customer data is handled as described in section 9.</p>
+
+      <h2><span class="n">15.</span>Changes to these terms</h2>
+      <p>We may update these terms from time to time. The latest version is always available at this page. Continuing to use Reloy after a change means you accept the updated terms.</p>
+
+      <h2><span class="n">16.</span>Governing law</h2>
+      <p>These terms are governed by the laws of the Islamic Republic of Iran, and any dispute shall be subject to the competent courts of Iran.</p>
+
+      <h2><span class="n">17.</span>Contact</h2>
+      <p>Questions about your subscription or these terms? Contact us at <a href="mailto:reloy.ir@gmail.com">reloy.ir@gmail.com</a>.</p>
+
+      <div class="hr"></div>
+      <p style="font-size:12px;color:var(--faint);margin-top:14px;">By creating or continuing to use a business account you confirm that you have read and agree to these Business Terms of Service.</p>
+    </div>
+
+    <div class="doc" id="docFa" dir="rtl" hidden>
+      <h1>شرایط خدمات کسب‌وکارها</h1>
+      <p class="doc__eff">آخرین به‌روزرسانی: ۲۰۲۶ · مربوط به حساب‌های کافه و رستوران در Reloy</p>
+
+      <p class="switch">این صفحه مربوط به اشتراک پولی بین Reloy و کسب‌وکاری است که برنامه وفاداری را اجرا می‌کند. به‌دنبال شرایطی هستید که مشتریان شما هنگام استفاده از کارت وفاداری می‌پذیرند؟ به‌جای این صفحه، <a href="terms.html">شرایط خدمات و حریم خصوصی مشتریان</a> را ببینید.</p>
+
+      <p class="lead">Reloy به صاحبان کافه و رستوران یک پلتفرم کارت‌مهر دیجیتال می‌فروشد: یک داشبورد برای اجرای برنامه وفاداری شما، و یک تگ NFC که کارکنان شما برای مهر زدن به کارت مشتری استفاده می‌کنند. این سند قرارداد بین Reloy و کسب‌وکار شما برای همان اشتراک است — جدا از شرایط مشتریان که استفاده خود مشتریان از اپلیکیشن را تنظیم می‌کند، و علاوه بر آن.</p>
+
+      <h2><span class="n">۱.</span>این شرایط برای چه کسانی است و Reloy چه چیزی ارائه می‌دهد</h2>
+      <p>این شرایط در صورتی برای شما اعمال می‌شود که یک حساب کسب‌وکاری در Reloy ثبت کنید — به‌عنوان مالک، یا فردی که مجاز به عمل از طرف کسب‌وکار است. Reloy این موارد را ارائه می‌دهد: داشبورد مالک، اسکنر کارکنان، یک تگ NFC برای پیشخوان شما و کارت وفاداری‌ای که مشتریان شما می‌بینند. Reloy جوایزی که ارائه می‌دهید را <b>تعیین، تأمین مالی یا اجرا نمی‌کند</b> — آن‌ها کاملاً متعلق به خود شما هستند و هر هزینه‌ای برای اجرای آن‌ها بر عهده شماست.</p>
+
+      <h2><span class="n">۲.</span>حساب کاربری شما</h2>
+      <ul>
+        <li>باید مجاز به عمل از طرف کسب‌وکاری باشید که ثبت می‌کنید و اطلاعات دقیقی درباره آن ارائه دهید (نام، اطلاعات تماس و هر چیز دیگری که هنگام ثبت‌نام از شما می‌خواهیم).</li>
+        <li>شما مسئول کد کارکنان خود و افرادی هستید که آن را با آن‌ها به اشتراک می‌گذارید — هر کسی که آن را داشته باشد می‌تواند کارت‌ها را مهر بزند و به‌عنوان کارمند شما در داشبورد عمل کند.</li>
+        <li>شما مسئول دقت آنچه پیکربندی می‌کنید هستید: نام کسب‌وکار، رنگ کارت، لوگو، تعداد مهرهای موردنیاز، حداقل خرید و جوایزی که ارائه می‌دهید.</li>
+      </ul>
+
+      <h2><span class="n">۳.</span>دوره آزمایشی رایگان</h2>
+      <p>کسب‌وکارهای جدید یک <b>دوره آزمایشی رایگان ۳۰ روزه</b> دریافت می‌کنند که از روزی که تگ NFC شما واقعاً در پیشخوانتان فعال می‌شود شمارش می‌شود — نه روزی که ثبت‌نام می‌کنید. اگر پس از دوره آزمایشی ادامه ندهید، حساب و کارت شما به‌سادگی کار نمی‌کند؛ در هیچ حالتی چیزی بدهکار نخواهید بود.</p>
+
+      <h2><span class="n">۴.</span>هزینه‌ها و صورتحساب</h2>
+      <ul>
+        <li>قیمت‌گذاری همان نرخ ثابت و به‌ازای هر کافه است که در زمان اشتراک شما در صفحه قیمت‌گذاری نشان داده می‌شود و بسته به انتخاب شما به‌صورت ماهانه یا سالانه صورتحساب می‌شود.</li>
+        <li>هزینه‌ها به تومان ایران، از طریق انتقال بانکی، فاکتور یا هر روش پرداخت آنلاینی که در دسترس شما قرار می‌دهیم، دریافت می‌شود.</li>
+        <li>اگر قیمت‌های خود را تغییر دهیم، بر دوره‌ای که قبلاً پرداخت کرده‌اید تأثیری نخواهد داشت — حداقل <b>۳۰ روز پیش از تمدید بعدی</b> شما، اطلاع خواهیم داد.</li>
+        <li>چند شعبه به‌عنوان کافه‌های جداگانه، هر کدام با یک اشتراک مستقل، صورتحساب می‌شوند.</li>
+      </ul>
+
+      <h2><span class="n">۵.</span>لغو اشتراک و بازگشت وجه</h2>
+      <ul>
+        <li>می‌توانید در هر زمانی لغو کنید؛ هیچ حداقل قرارداد یا هزینه لغوی وجود ندارد.</li>
+        <li>لغو اشتراک، صورتحساب‌های آینده را متوقف می‌کند. دوره‌ای که قبلاً پرداخت کرده‌اید <b>بازگشت داده نمی‌شود</b>، اما داشبورد و کارت شما تا پایان آن دوره به کار خود ادامه می‌دهند.</li>
+        <li>ممکن است حساب شما را به دلیل عدم پرداخت، تقلب یا نقض جدی این شرایط تعلیق یا مسدود کنیم — در صورت امکان، ابتدا دلیل آن را به شما اطلاع می‌دهیم.</li>
+      </ul>
+
+      <h2><span class="n">۶.</span>تگ NFC</h2>
+      <ul>
+        <li>ما به‌عنوان بخشی از راه‌اندازی، یک تگ NFC برای شما ارسال می‌کنیم. این تگ متعلق به شماست — اگر لغو کنید، نیازی به بازگرداندن آن نیست.</li>
+        <li>اگر معیوب برسد، ظرف ۱۴ روز به ما اطلاع دهید تا جایگزین رایگان دریافت کنید.</li>
+        <li>پس از پایان اشتراک شما، تگ به‌سادگی دیگر مهر جدید ثبت نمی‌کند. یک تگ گم‌شده یا آسیب‌دیده را می‌توان جایگزین کرد، احتمالاً با هزینه‌ای برای پوشش ارسال و سخت‌افزار.</li>
+      </ul>
+
+      <h2><span class="n">۷.</span>راه‌اندازی و شروع به کار</h2>
+      <p>هدف ما این است که ظرف حدود یک هفته از ثبت‌نام — تگ تحویل‌داده‌شده، کارت پیکربندی‌شده، کارکنان آموزش‌دیده — شما را فعال کنیم. این یک تخمین است، نه یک تضمین؛ تأخیرها (ارسال، زمان‌بندی، اطلاعاتی که منتظر آن از شما هستیم) می‌توانند آن را به تعویق بیندازند، و دوره آزمایشی شما تنها زمانی شروع می‌شود که واقعاً فعال شده باشید، نه قبل از آن.</p>
+
+      <h2><span class="n">۸.</span>مسئولیت‌های شما</h2>
+      <ul>
+        <li>شما مسئول اجرای واقعی جوایزی هستید که هنگام استفاده مشتری از کارتش پیکربندی کرده‌اید — Reloy فقط ثبت می‌کند که جایزه‌ای برده شده، و طرف اجرای آن نیست.</li>
+        <li>باید در نحوه اجرای برنامه و توصیف پیشنهادهای خود، از قوانین ایران — از جمله هر قانون حمایت از مصرف‌کننده یا تبلیغات که برای کسب‌وکار شما اعمال می‌شود — پیروی کنید.</li>
+        <li>از Reloy برای کلاهبرداری از مشتریان خود، مهر زدن به کارت‌ها بدون خرید یا بازدید واقعی طبق توضیحات برنامه‌تان یا هرگونه سوءاستفاده دیگر از پلتفرم استفاده نخواهید کرد.</li>
+      </ul>
+
+      <h2><span class="n">۹.</span>داده‌های مشتریان شما</h2>
+      <ul>
+        <li>مهرها و سابقه جوایز مشتریان شما برای کافه‌هایی که اداره می‌کنید در دسترس شماست تا فعالیت برنامه خودتان را ببینید — این داده‌ها متعلق به رابطه کسب‌وکاری شما با Reloy است، نه یک کارمند خاص.</li>
+        <li>اگر لغو کنید، این داده‌ها را به مدت <b>۹۰ روز</b> نگه می‌داریم تا اگر دوباره مشترک شدید یا خروجی خواستید در دسترس باشد، سپس آن را حذف می‌کنیم. می‌توانید در هر زمان در این بازه درخواست خروجی داده‌ها را بدهید.</li>
+        <li>Reloy داده‌های شخصی زیربنایی (شماره تلفن و نام مشتریان) را طبق شرایط توضیح‌داده‌شده در <a href="terms.html">شرایط خدمات و حریم خصوصی مشتریان</a> مدیریت می‌کند — شما از طریق Reloy دسترسی مستقیمی به شماره تلفن مشتری ندارید.</li>
+      </ul>
+
+      <h2><span class="n">۱۰.</span>برند شما، نرم‌افزار ما</h2>
+      <p>شما تمام حقوق نام کسب‌وکار، لوگو و رنگ‌های خود را حفظ می‌کنید — فقط به ما اجازه می‌دهید تا زمانی که حساب شما فعال است، آن‌ها را روی کارت و داشبوردتان نمایش دهیم. Reloy تمام حقوق نرم‌افزار، طراحی و برند خود را حفظ می‌کند؛ هیچ‌چیز در این‌جا هیچ‌کدام از آن‌ها را به شما منتقل نمی‌کند.</p>
+
+      <h2><span class="n">۱۱.</span>محرمانگی</h2>
+      <p>هر چیز غیرعلنی که هنگام راه‌اندازی یا اداره حساب شما درباره کسب‌وکار یکدیگر می‌آموزیم — قیمتی که به شما پیشنهاد می‌شود، عملکرد برنامه شما، هر چیزی که محرمانه علامت‌گذاری شده — بین ما باقی می‌ماند و فقط برای ارائه و بهبود سرویس استفاده می‌شود.</p>
+
+      <h2><span class="n">۱۲.</span>سرویس «همان‌گونه که هست» و در دسترس بودن</h2>
+      <p>Reloy «همان‌گونه که هست» و «همان‌گونه که در دسترس است» ارائه می‌شود، بدون هیچ‌گونه ضمانتی، تا حداکثر میزان مجاز طبق قانون. ما تضمین نمی‌کنیم سرویس بدون وقفه یا بدون خطا باشد، و ممکن است ویژگی‌ها را در طول زمان تغییر، تعلیق یا متوقف کنیم — سعی می‌کنیم برای هر چیزی که به‌طور معناداری بر نحوه کارکرد برنامه شما تأثیر می‌گذارد، اطلاع‌رسانی کنیم.</p>
+
+      <h2><span class="n">۱۳.</span>محدودیت مسئولیت</h2>
+      <p>تا حداکثر میزان مجاز طبق قانون قابل‌اجرا، Reloy مسئول هیچ‌گونه خسارت غیرمستقیم، تصادفی یا تبعی — از جمله از دست دادن سود، مشتریان یا داده‌ها — ناشی از استفاده شما از سرویس نیست. کل مسئولیت Reloy برای هر ادعای ناشی از این شرایط، محدود به هزینه‌هایی است که در ۳ ماه پیش از بروز آن ادعا به ما پرداخته‌اید. هیچ‌چیز در این‌جا مسئولیتی را که طبق قانون قابل‌اجرا قابل حذف نیست، حذف نمی‌کند.</p>
+
+      <h2><span class="n">۱۴.</span>مدت و خاتمه</h2>
+      <p>این شرایط تا زمانی که اشتراک فعالی داشته باشید اعمال می‌شود. هر یک از ما می‌توانیم طبق آنچه در بخش ۵ توضیح داده شد، در هر زمان آن را پایان دهیم. با خاتمه، دسترسی شما به داشبورد پایان می‌یابد و کارت شما دیگر مهر جدید جمع نمی‌کند؛ داده‌های مشتریان طبق آنچه در بخش ۹ توضیح داده شد مدیریت می‌شود.</p>
+
+      <h2><span class="n">۱۵.</span>تغییرات در این شرایط</h2>
+      <p>ما ممکن است این شرایط را هر از چند گاهی به‌روزرسانی کنیم. آخرین نسخه همیشه در این صفحه در دسترس است. ادامه استفاده از Reloy پس از یک تغییر، به معنای پذیرش شرایط به‌روزشده است.</p>
+
+      <h2><span class="n">۱۶.</span>قانون حاکم</h2>
+      <p>این شرایط تابع قوانین جمهوری اسلامی ایران است و هرگونه اختلاف در صلاحیت دادگاه‌های صالح ایران خواهد بود.</p>
+
+      <h2><span class="n">۱۷.</span>تماس</h2>
+      <p>سوالی درباره اشتراک خود یا این شرایط دارید؟ با ما در <a href="mailto:reloy.ir@gmail.com" dir="ltr">reloy.ir@gmail.com</a> تماس بگیرید.</p>
+
+      <div class="hr"></div>
+      <p style="font-size:12px;color:var(--faint);margin-top:14px;">با ایجاد یا ادامه استفاده از یک حساب کسب‌وکاری، تأیید می‌کنید که این شرایط خدمات کسب‌وکارها را خوانده و پذیرفته‌اید.</p>
+    </div>
+  </main>
+
+  <script src="legal-lang.js?v=1"></script>
+</body>
+</html>

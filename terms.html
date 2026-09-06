@@ -13,11 +13,14 @@
       --glass-fill: rgba(255,255,255,0.34); --glass-fill-strong: rgba(255,255,255,0.55);
       --glass-border: rgba(255,255,255,0.7); --glass-hi: rgba(255,255,255,0.9);
       --glass-shadow: 0 34px 70px -28px rgba(20,20,20,0.5);
+      --f-heading: "Quicksand", sans-serif;
+      --f-body: "Nunito", system-ui, sans-serif;
     }
+    html[dir="rtl"] { --f-heading: "Vazirmatn", sans-serif; --f-body: "Vazirmatn", system-ui, sans-serif; }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
     body {
-      font-family: "Nunito", system-ui, sans-serif; color: var(--ink);
+      font-family: var(--f-body); color: var(--ink);
       background: linear-gradient(165deg, #f5f5f5 0%, #e6e6e6 46%, #d2d2d2 100%);
       min-height: 100dvh; -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
@@ -30,13 +33,18 @@
 
     .wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 20px 18px 60px; }
 
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    html[dir="rtl"] .topbar { direction: ltr; }
     .back {
       display: inline-flex; align-items: center; gap: 6px; text-decoration: none; cursor: pointer;
-      color: var(--dim); font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px; margin-bottom: 14px;
+      color: var(--dim); font-family: var(--f-heading); font-weight: 700; font-size: 13px; border-radius: 12px; padding: 8px 13px;
       background: rgba(255,255,255,0.4); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.5);
       transition: color 0.2s ease, background 0.2s ease;
     }
     .back:hover { color: var(--ink); background: rgba(255,255,255,0.6); }
+    .lang-switch { display: inline-flex; gap: 6px; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; padding: 4px; backdrop-filter: blur(8px); }
+    .lang-switch__btn { font-family: var(--f-heading); font-weight: 700; font-size: 12px; padding: 6px 13px; border: none; border-radius: 16px; background: none; color: var(--dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease; }
+    .lang-switch__btn.is-on { background: #171717; color: #fff; }
 
     .doc {
       background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
@@ -45,13 +53,18 @@
       box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi), inset 0 0 0 1px rgba(255,255,255,0.22);
       border-radius: 24px; padding: 30px 26px 34px;
     }
-    .doc h1 { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 27px; letter-spacing: -0.4px; margin: 0 0 4px; }
+    .doc[hidden] { display: none; }
+    .doc h1 { font-family: var(--f-heading); font-weight: 700; font-size: 27px; letter-spacing: -0.4px; margin: 0 0 4px; }
+    html[dir="rtl"] .doc h1 { letter-spacing: 0; }
     .doc__eff { font-size: 12.5px; color: var(--faint); font-weight: 700; margin: 0 0 22px; }
-    .doc h2 { font-family: "Quicksand", sans-serif; font-weight: 700; font-size: 17px; margin: 26px 0 8px; }
+    .doc h2 { font-family: var(--f-heading); font-weight: 700; font-size: 17px; margin: 26px 0 8px; }
     .doc h2 .n { color: var(--faint); margin-right: 6px; }
+    html[dir="rtl"] .doc h2 .n { margin-right: 0; margin-left: 6px; }
     .doc p, .doc li { font-size: 14px; line-height: 1.65; color: #333333; }
+    html[dir="rtl"] .doc p, html[dir="rtl"] .doc li { line-height: 1.9; }
     .doc p { margin: 0 0 10px; }
     .doc ul { margin: 0 0 10px; padding-left: 20px; }
+    html[dir="rtl"] .doc ul { padding-left: 0; padding-right: 20px; }
     .doc li { margin-bottom: 5px; }
     .doc b { color: var(--ink); }
     .doc a { color: var(--ink); }
@@ -61,19 +74,34 @@
       background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5);
       border-radius: 14px; padding: 14px 16px; margin: 0 0 8px;
     }
+    html[dir="rtl"] .lead { line-height: 1.9; }
+    .switch {
+      font-size: 12.5px; line-height: 1.6; color: var(--dim);
+      background: rgba(255,255,255,0.3); border: 1px dashed rgba(20,20,20,0.18);
+      border-radius: 12px; padding: 10px 14px; margin: 0 0 18px;
+    }
+    html[dir="rtl"] .switch { line-height: 1.9; }
   </style>
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
   <main class="wrap">
-    <a class="back" href="auth.html">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      Back
-    </a>
+    <div class="topbar">
+      <a class="back" href="auth.html" id="backLink">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span id="backLabel">Back</span>
+      </a>
+      <div class="lang-switch" role="tablist" aria-label="Language">
+        <button class="lang-switch__btn" data-lang="en" type="button">English</button>
+        <button class="lang-switch__btn" data-lang="fa" type="button">فارسی</button>
+      </div>
+    </div>
 
-    <div class="doc">
+    <div class="doc" id="docEn">
       <h1>Terms of Service &amp; Privacy Policy</h1>
-      <p class="doc__eff">Last updated: 2026 · Applies to the Reloy loyalty service</p>
+      <p class="doc__eff">Last updated: 2026 · Applies to customers using the Reloy loyalty wallet app</p>
+
+      <p class="switch">Are you a café or restaurant owner? This page covers your customers' use of the loyalty card. Your own subscription is covered by our <a href="business-terms.html">Business Terms of Service</a> instead.</p>
 
       <p class="lead">Reloy is a digital loyalty card. You collect stamps at a participating café, and when a card is full you may earn a reward offered by that café. Please read these terms — by creating an account or using Reloy you agree to them.</p>
 
@@ -134,11 +162,84 @@
       <p>These terms are governed by the laws of the Islamic Republic of Iran, and any dispute shall be subject to the competent courts of Iran.</p>
 
       <h2><span class="n">11.</span>Contact</h2>
-      <p>Questions about these terms or your data? Contact us at <a href="mailto:support@reloy.ir">support@reloy.ir</a>.</p>
+      <p>Questions about these terms or your data? Contact us at <a href="mailto:reloy.ir@gmail.com">reloy.ir@gmail.com</a>.</p>
 
       <div class="hr"></div>
       <p style="font-size:12px;color:var(--faint);margin-top:14px;">By using Reloy you confirm that you have read and agree to these Terms of Service and Privacy Policy.</p>
     </div>
+
+    <div class="doc" id="docFa" dir="rtl" hidden>
+      <h1>شرایط خدمات و حریم خصوصی</h1>
+      <p class="doc__eff">آخرین به‌روزرسانی: ۲۰۲۶ · مربوط به مشتریانی که از کیف پول وفاداری Reloy استفاده می‌کنند</p>
+
+      <p class="switch">صاحب کافه یا رستوران هستید؟ این صفحه مربوط به استفاده مشتریان شما از کارت وفاداری است. اشتراک خودتان تحت پوشش <a href="business-terms.html">شرایط کسب‌وکارها</a> است.</p>
+
+      <p class="lead">Reloy یک کارت وفاداری دیجیتال است. شما در کافه‌های عضو مهر جمع می‌کنید و وقتی کارتی پر شود، ممکن است جایزه‌ای را که آن کافه ارائه می‌دهد دریافت کنید. لطفاً این شرایط را بخوانید — با ایجاد حساب کاربری یا استفاده از Reloy، آن‌ها را می‌پذیرید.</p>
+
+      <h2><span class="n">۱.</span>ما چه کسی هستیم و Reloy چیست</h2>
+      <p>Reloy («Reloy»، «ما») نرم‌افزار و پلتفرمی را ارائه می‌دهد که به یک کافه امکان می‌دهد برنامه وفاداری کارت‌مهر دیجیتال خود را اجرا کند. Reloy <b>تنها یک سرویس فناوری</b> است. جوایز، تخفیف‌ها، محصولات و خدماتی که دریافت می‌کنید توسط <b>کافه مستقلی</b> که از آن بازدید می‌کنید ارائه، قیمت‌گذاری، تأمین و اجرا می‌شود — نه توسط Reloy. رابطه شما برای هر جایزه یا خریدی، با همان کافه است.</p>
+
+      <h2><span class="n">۲.</span>شرایط استفاده و حساب کاربری شما</h2>
+      <ul>
+        <li>باید از نظر قانونی توانایی ورود به یک قرارداد برای استفاده از Reloy را داشته باشید. اگر خردسال هستید، Reloy را تنها با رضایت والدین یا سرپرست قانونی استفاده کنید.</li>
+        <li>با شماره موبایل خود ثبت‌نام می‌کنید و آن را با یک کد یک‌بارمصرف (OTP) تأیید می‌کنید. شما مسئول حفظ امنیت دسترسی به شماره و دستگاه خود هستید.</li>
+        <li>هر فرد فقط یک حساب کاربری دارد. شما موافقت می‌کنید اطلاعات دقیق ارائه دهید و جای شخص دیگری را نگیرید.</li>
+        <li>شما مسئول تمام فعالیت‌هایی هستید که تحت حساب کاربری شما انجام می‌شود.</li>
+      </ul>
+
+      <h2><span class="n">۳.</span>مهرها و جوایز</h2>
+      <ul>
+        <li>مهرها با ضربه‌زدن به کارت کافه یا اسکن در کافه جمع‌آوری می‌شوند. وقتی کارتی تکمیل شود، جایزه‌ای به‌صورت تصادفی از میان جوایزی که آن کافه در حال حاضر ارائه می‌دهد، اعطا می‌شود.</li>
+        <li>جوایز و تخفیف‌ها <b>هیچ ارزش نقدی</b> ندارند، قابل تبدیل به پول نیستند و <b>غیرقابل انتقال</b> و غیرقابل فروش مجدد هستند.</li>
+        <li>جوایز ممکن است <b>منقضی</b> شوند. هر جایزه تاریخ انقضای خود را نشان می‌دهد؛ جوایز منقضی‌شده، استفاده‌شده یا مطالبه‌نشده از بین می‌روند.</li>
+        <li>کافه می‌تواند در هر زمان، با یا بدون اطلاع قبلی، هر جایزه، تعداد مهرهای موردنیاز یا کل برنامه را <b>اضافه، تغییر، محدود یا لغو</b> کند.</li>
+        <li>Reloy تضمین نمی‌کند که هر جایزه‌ای در دسترس، معتبر یا مناسب هدف خاصی باشد. هرگونه اختلاف درباره یک جایزه، کیفیت آن یا یک خرید، بین شما و کافه است.</li>
+      </ul>
+
+      <h2><span class="n">۴.</span>استفاده مجاز</h2>
+      <p>شما موافقت می‌کنید که:</p>
+      <ul>
+        <li>مهر یا جایزه تقلبی ایجاد نکنید، از چند حساب یا حساب‌های خودکار استفاده نکنید و به هیچ شکلی برنامه وفاداری را دستکاری یا از آن کلاهبرداری نکنید.</li>
+        <li>لینک‌ها، کدها یا کدهای QR ضربه‌زدن را برای دریافت مهر یا جایزه‌ای که به‌طور مشروع کسب نکرده‌اید، کپی، اشتراک‌گذاری، فروش یا استفاده مجدد نکنید.</li>
+        <li>در سرویس، امنیت آن یا حساب‌های سایر کاربران دخالت، کاوش یا تلاش برای دسترسی غیرمجاز نکنید.</li>
+        <li>از Reloy برای هیچ هدف غیرقانونی استفاده نکنید.</li>
+      </ul>
+      <p>اگر به‌طور منطقی معتقد باشیم حسابی این قوانین را نقض کرده، ما یا کافه می‌توانیم آن را تعلیق یا مسدود کرده و هر مهر یا جایزه مرتبط را لغو کنیم.</p>
+
+      <h2><span class="n">۵.</span>سرویس «همان‌گونه که هست» و در دسترس بودن</h2>
+      <p>Reloy «همان‌گونه که هست» و «همان‌گونه که در دسترس است» ارائه می‌شود، بدون هیچ‌گونه ضمانتی، صریح یا ضمنی، تا حداکثر میزان مجاز طبق قانون. ما تضمین نمی‌کنیم که سرویس بدون وقفه، بدون خطا یا همیشه در دسترس باشد. ما ممکن است هر بخشی از سرویس — از جمله برنامه یک کافه — را در هر زمان تغییر، تعلیق یا متوقف کنیم.</p>
+
+      <h2><span class="n">۶.</span>محدودیت مسئولیت</h2>
+      <p>تا حداکثر میزان مجاز طبق قانون قابل‌اجرا، Reloy و اپراتورهای آن مسئول هیچ‌گونه خسارت غیرمستقیم، تصادفی یا تبعی، یا از دست رفتن جوایز، تخفیف‌ها، داده‌ها، سود یا اعتبار ناشی از یا مرتبط با استفاده شما از سرویس (یا ناتوانی در استفاده از آن) نیستند. Reloy مسئول اقدامات، کوتاهی‌ها، محصولات یا خدمات هیچ کافه‌ای نیست. هیچ‌چیز در این شرایط، مسئولیتی را که طبق قانون قابل‌اجرا قابل حذف نیست، حذف نمی‌کند.</p>
+
+      <h2><span class="n">۷.</span>حریم خصوصی</h2>
+      <p>ما فقط آنچه را که سرویس وفاداری برای کارکردن نیاز دارد جمع‌آوری و پردازش می‌کنیم:</p>
+      <ul>
+        <li><b>چه چیزی جمع‌آوری می‌کنیم:</b> شماره موبایل شما، نامی که انتخاب می‌کنید و فعالیت وفاداری شما (مهرها، کارت‌های تکمیل‌شده، جوایز کسب‌شده و استفاده‌شده).</li>
+        <li><b>چرا:</b> برای تأیید هویت شما از طریق OTP، اجرای کارت وفاداری شما، نمایش جوایز شما و ارائه آمار کلی برنامه به کافه.</li>
+        <li><b>پیامک:</b> با ثبت‌نام، شما با دریافت یک کد تأیید یک‌بارمصرف از طریق پیامک موافقت می‌کنید. ما بدون رضایت شما پیامک تبلیغاتی ارسال نمی‌کنیم.</li>
+        <li><b>اشتراک‌گذاری:</b> ما اطلاعات شخصی شما را نمی‌فروشیم. فعالیت وفاداری شما برای کافه‌ای که استفاده می‌کنید قابل مشاهده است. ما از ارائه‌دهندگان خدمات (مانند ارائه‌دهنده پیامک و میزبانی) فقط برای اجرای سرویس استفاده می‌کنیم.</li>
+        <li><b>نگهداری و امنیت:</b> ما داده‌های شما را تا زمانی که حساب شما فعال است و طبق نیاز برای سوابق کافه نگه می‌داریم و اقدامات معقولی برای محافظت از آن انجام می‌دهیم. هیچ سیستمی کاملاً امن نیست.</li>
+        <li><b>انتخاب‌های شما:</b> می‌توانید در هر زمان استفاده از Reloy را متوقف کرده و با تماس با ما، درخواست بستن حساب خود را بدهید.</li>
+      </ul>
+
+      <h2><span class="n">۸.</span>خاتمه</h2>
+      <p>شما می‌توانید در هر زمان استفاده از Reloy را متوقف کرده و درخواست بستن حساب کاربری بدهید. ما ممکن است در صورت نقض این شرایط یا توقف ارائه سرویس، دسترسی شما را تعلیق یا پایان دهیم.</p>
+
+      <h2><span class="n">۹.</span>تغییرات در این شرایط</h2>
+      <p>ما ممکن است این شرایط را هر از چند گاهی به‌روزرسانی کنیم. آخرین نسخه همیشه در اپلیکیشن در دسترس خواهد بود. ادامه استفاده از Reloy پس از یک تغییر، به معنای پذیرش شرایط به‌روزشده است.</p>
+
+      <h2><span class="n">۱۰.</span>قانون حاکم</h2>
+      <p>این شرایط تابع قوانین جمهوری اسلامی ایران است و هرگونه اختلاف در صلاحیت دادگاه‌های صالح ایران خواهد بود.</p>
+
+      <h2><span class="n">۱۱.</span>تماس</h2>
+      <p>سوالی درباره این شرایط یا داده‌های خود دارید؟ با ما در <a href="mailto:reloy.ir@gmail.com" dir="ltr">reloy.ir@gmail.com</a> تماس بگیرید.</p>
+
+      <div class="hr"></div>
+      <p style="font-size:12px;color:var(--faint);margin-top:14px;">با استفاده از Reloy تأیید می‌کنید که این شرایط خدمات و حریم خصوصی را خوانده و پذیرفته‌اید.</p>
+    </div>
   </main>
+
+  <script src="legal-lang.js?v=1"></script>
 </body>
 </html>

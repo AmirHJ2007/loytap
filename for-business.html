@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Reloy for Cafés · Turn taps into regulars</title>
+  <meta name="description" content="Reloy is a digital stamp card for cafés and restaurants. Your cashier presses one NFC stamp to the customer's phone — no app store, no download, no password — and their card fills itself." />
+  <meta name="theme-color" content="#08080a" />
+  <link rel="icon" href="reloy-icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
+  <meta property="og:title" content="Reloy for Cafés · Turn taps into regulars" />
+  <meta property="og:description" content="A digital stamp card your cashier presses onto the customer's phone. No app store, no download, no password." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="reloy-icon-512.png" />
+
+  <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="for-business.css?v=30" />
+  <script src="for-business.js?v=16" defer></script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- The Reloy mark and wordmark, traced from the brand artwork so they can be
+     recoloured and animated. Defined once, used wherever the logo appears. -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2f3f4f" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#2f3f4f" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <symbol id="logoMark" viewBox="0 0 100 113.562"><path d="M51.778 0.06C52.24 -0.02 52.592 0.08 52.984 0.181C53.376 0.281 52.07 -1.286 54.129 0.663C56.188 2.612 63.331 9.695 65.341 11.875C67.35 14.055 66.074 13.161 66.184 13.743C66.295 14.326 66.144 14.878 66.004 15.371C65.863 15.863 67.29 14.667 65.341 16.697C63.392 18.726 56.369 25.628 54.31 27.547C52.25 29.466 53.476 28.099 52.984 28.21C52.491 28.32 51.818 28.29 51.356 28.21C50.894 28.129 50.553 27.959 50.211 27.728C49.869 27.496 49.538 27.135 49.307 26.823C49.076 26.512 48.935 26.291 48.825 25.859C48.714 25.427 48.533 24.814 48.644 24.231C48.754 23.649 48.724 23.257 49.488 22.363C50.251 21.469 52.522 19.55 53.225 18.867C53.928 18.184 53.657 18.395 53.707 18.264C53.757 18.133 54.732 18.083 53.526 18.083C52.321 18.083 48.825 18.023 46.474 18.264C44.123 18.505 41.712 18.927 39.421 19.53C37.131 20.133 34.79 20.987 32.731 21.881C30.671 22.775 28.581 24 27.064 24.895C25.548 25.789 24.864 26.281 23.629 27.245C22.393 28.21 21.067 29.234 19.65 30.681C18.234 32.128 16.275 34.448 15.13 35.925C13.984 37.402 13.582 38.115 12.779 39.542C11.975 40.968 11.111 42.455 10.307 44.485C9.504 46.514 8.499 49.458 7.957 51.718C7.414 53.978 7.203 56.058 7.052 58.047C6.902 60.036 6.962 61.965 7.052 63.653C7.143 65.341 7.324 66.637 7.595 68.174C7.866 69.711 8.198 71.278 8.68 72.875C9.162 74.473 9.865 76.301 10.488 77.758C11.111 79.214 11.674 80.309 12.417 81.615C13.161 82.921 14.045 84.328 14.949 85.594C15.853 86.86 16.817 88.095 17.842 89.21C18.867 90.325 20.042 91.38 21.097 92.285C22.152 93.189 23.016 93.892 24.171 94.635C25.327 95.379 27.024 96.273 28.029 96.745C29.034 97.217 29.174 97.318 30.199 97.468C31.224 97.619 33.032 97.74 34.177 97.649C35.322 97.559 35.945 97.398 37.071 96.926C38.196 96.454 39.723 95.63 40.928 94.816C42.134 94.002 43.55 92.365 44.304 92.043C45.057 91.722 44.676 92.094 45.449 92.887C46.223 93.681 48.764 95.76 48.945 96.805C49.126 97.85 47.298 98.493 46.534 99.156C45.771 99.819 45.489 100.1 44.364 100.784C43.239 101.467 41.36 102.632 39.783 103.255C38.206 103.878 36.227 104.28 34.901 104.521C33.574 104.762 32.761 104.732 31.826 104.702C30.892 104.671 30.229 104.551 29.295 104.34C28.36 104.129 27.436 103.938 26.221 103.436C25.005 102.933 23.639 102.341 22.001 101.326C20.364 100.311 18.023 98.674 16.395 97.348C14.768 96.022 13.261 94.424 12.236 93.369C11.212 92.315 11.242 92.405 10.247 91.019C9.253 89.632 7.494 87.261 6.269 85.051C5.043 82.841 3.667 79.636 2.893 77.758C2.12 75.879 2.049 75.407 1.627 73.779C1.206 72.152 0.633 69.59 0.362 67.993C0.09 66.395 0.06 65.943 0 64.195C-0.06 62.447 -0.151 59.735 0 57.505C0.151 55.274 0.332 53.285 0.904 50.814C1.477 48.342 2.692 44.736 3.436 42.676C4.179 40.617 4.682 39.793 5.365 38.457C6.048 37.121 6.781 35.865 7.535 34.659C8.288 33.454 9.042 32.339 9.885 31.224C10.729 30.108 11.573 29.084 12.598 27.969C13.623 26.854 14.798 25.648 16.034 24.533C17.269 23.418 18.174 22.544 20.012 21.278C21.851 20.012 25.216 17.983 27.064 16.938C28.913 15.893 29.677 15.602 31.103 15.009C32.53 14.416 33.514 13.954 35.624 13.382C37.734 12.809 41.501 11.965 43.761 11.573C46.022 11.181 47.388 11.131 49.186 11.031C50.985 10.93 54.531 11.865 54.551 10.97C54.571 10.076 50.261 6.711 49.307 5.666C48.352 4.621 48.935 5.073 48.825 4.702C48.714 4.33 48.563 3.958 48.644 3.436C48.724 2.913 49.046 2.029 49.307 1.567C49.568 1.105 49.799 0.914 50.211 0.663C50.623 0.412 51.316 0.141 51.778 0.06ZM71.127 16.335C71.65 16.255 71.549 15.933 72.694 16.456C73.84 16.978 76.211 18.274 77.999 19.47C79.787 20.665 81.826 22.242 83.424 23.629C85.021 25.015 86.317 26.371 87.583 27.788C88.849 29.204 90.024 30.741 91.019 32.128C92.013 33.514 92.777 34.77 93.55 36.106C94.324 37.442 94.977 38.628 95.66 40.145C96.343 41.662 97.137 43.731 97.649 45.208C98.162 46.685 98.403 47.559 98.734 49.005C99.066 50.452 99.427 52.441 99.638 53.888C99.849 55.335 99.94 56.028 100 57.685C100.06 59.343 100.09 61.965 100 63.834C99.91 65.702 99.668 67.48 99.458 68.897C99.247 70.313 99.186 70.705 98.734 72.333C98.282 73.96 97.398 76.904 96.745 78.662C96.092 80.42 95.469 81.575 94.816 82.881C94.163 84.187 93.641 85.202 92.827 86.498C92.013 87.794 91.35 88.969 89.934 90.657C88.517 92.345 86.287 94.876 84.328 96.624C82.369 98.373 79.847 100.07 78.18 101.145C76.512 102.22 75.507 102.572 74.322 103.074C73.136 103.576 72.182 103.888 71.067 104.159C69.952 104.43 68.807 104.641 67.631 104.702C66.456 104.762 65.28 104.732 64.014 104.521C62.749 104.31 61.222 103.878 60.036 103.436C58.851 102.994 58.087 102.612 56.902 101.869C55.716 101.125 55.013 100.924 52.923 98.975C50.834 97.026 46.223 91.812 44.364 90.175C42.506 88.537 42.506 89.291 41.772 89.15C41.039 89.009 40.577 89.13 39.964 89.331C39.351 89.532 38.638 89.753 38.095 90.356C37.553 90.958 36.92 92.074 36.709 92.948C36.498 93.822 37.312 95.027 36.829 95.6C36.347 96.172 34.71 96.253 33.816 96.383C32.921 96.514 32.118 96.454 31.465 96.383C30.812 96.313 30.199 96.534 29.898 95.961C29.596 95.389 29.606 93.902 29.656 92.948C29.707 91.993 29.938 91.059 30.199 90.235C30.46 89.411 30.842 88.678 31.224 88.005C31.605 87.332 31.947 86.799 32.489 86.197C33.032 85.594 33.775 84.89 34.479 84.388C35.182 83.886 35.825 83.534 36.709 83.183C37.593 82.831 38.788 82.429 39.783 82.278C40.778 82.128 41.742 82.158 42.676 82.278C43.611 82.399 44.414 82.59 45.389 83.002C46.363 83.414 46.393 82.841 48.523 84.75C50.653 86.659 56.138 92.566 58.168 94.454C60.197 96.343 59.875 95.64 60.699 96.082C61.523 96.524 62.558 97.237 63.11 97.107C63.663 96.976 63.834 95.992 64.014 95.298C64.195 94.605 64.396 93.771 64.195 92.948C63.994 92.124 63.351 90.958 62.809 90.356C62.266 89.753 61.613 89.532 60.94 89.331C60.267 89.13 59.584 88.939 58.77 89.15C57.957 89.361 57.294 91.169 56.058 90.597C54.822 90.024 51.788 86.809 51.356 85.714C50.924 84.619 52.773 84.479 53.466 84.027C54.159 83.574 54.722 83.293 55.515 83.002C56.309 82.71 57.324 82.399 58.228 82.278C59.132 82.158 60.006 82.158 60.94 82.278C61.875 82.399 63.01 82.71 63.834 83.002C64.657 83.293 65.331 83.705 65.883 84.027C66.436 84.348 66.576 84.388 67.149 84.931C67.722 85.473 68.756 86.488 69.319 87.281C69.881 88.075 70.233 88.989 70.524 89.693C70.816 90.396 70.946 90.567 71.067 91.501C71.187 92.435 71.278 94.424 71.248 95.298C71.218 96.172 70.886 96.474 70.886 96.745C70.886 97.016 70.334 97.368 71.248 96.926C72.162 96.484 74.613 95.349 76.371 94.093C78.129 92.837 80.319 90.868 81.796 89.391C83.273 87.914 84.087 86.89 85.232 85.232C86.377 83.574 87.864 80.932 88.668 79.445C89.472 77.959 89.582 77.557 90.054 76.311C90.526 75.065 91.109 73.357 91.501 71.971C91.893 70.585 92.164 69.349 92.405 67.993C92.646 66.637 92.857 65.612 92.948 63.834C93.038 62.055 93.189 59.735 92.948 57.324C92.706 54.913 91.983 51.417 91.501 49.367C91.019 47.318 90.557 46.333 90.054 45.027C89.552 43.721 89.14 42.807 88.487 41.531C87.834 40.255 86.95 38.638 86.136 37.372C85.322 36.106 85.051 35.533 83.605 33.936C82.158 32.339 79.144 29.295 77.456 27.788C75.769 26.281 74.794 25.748 73.478 24.895C72.162 24.041 70.334 23.157 69.56 22.664C68.786 22.172 69.068 22.343 68.837 21.941C68.606 21.539 68.224 20.896 68.174 20.253C68.123 19.61 68.304 18.636 68.535 18.083C68.766 17.531 69.128 17.229 69.56 16.938C69.992 16.647 70.605 16.416 71.127 16.335ZM42.194 103.496C42.837 103.275 42.244 103.225 42.737 103.556C43.229 103.888 44.254 104.993 45.148 105.485C46.042 105.977 47.097 106.339 48.101 106.51C49.106 106.681 50.332 106.6 51.175 106.51C52.019 106.42 52.491 106.229 53.165 105.967C53.838 105.706 54.551 105.365 55.214 104.943C55.877 104.521 56.188 103.416 57.143 103.436C58.097 103.456 59.745 104.651 60.94 105.063C62.136 105.475 64.396 105.114 64.316 105.907C64.235 106.701 61.804 108.76 60.458 109.825C59.112 110.89 57.273 111.764 56.239 112.297C55.204 112.829 55.033 112.809 54.25 113.02C53.466 113.231 52.592 113.472 51.537 113.562C50.482 113.653 49.156 113.713 47.92 113.562C46.685 113.412 45.158 113.01 44.123 112.658C43.088 112.307 42.566 111.955 41.712 111.453C40.858 110.95 39.964 110.488 38.999 109.644C38.035 108.8 36.488 107.032 35.925 106.389C35.363 105.746 35.644 105.917 35.624 105.787C35.604 105.656 35.262 105.756 35.805 105.606C36.347 105.455 37.814 105.234 38.879 104.882C39.944 104.531 41.551 103.717 42.194 103.496Z"/></symbol>
+  <symbol id="logoWord" viewBox="0 0 100 36.842"><path d="M1.582 0.115C3.902 0.091 12.329 0.077 14.84 0.173C17.352 0.268 16.072 0.465 16.652 0.69C17.232 0.916 17.812 1.213 18.32 1.524C18.828 1.836 19.269 2.157 19.701 2.56C20.132 2.962 20.525 3.36 20.909 3.94C21.292 4.52 21.748 5.345 22.002 6.04C22.256 6.735 22.376 7.406 22.433 8.11C22.491 8.815 22.462 9.577 22.347 10.267C22.232 10.958 22.026 11.614 21.743 12.252C21.46 12.889 21.062 13.556 20.65 14.093C20.238 14.629 19.658 15.128 19.269 15.473C18.881 15.818 18.728 15.924 18.32 16.163C17.913 16.403 17.304 16.715 16.825 16.911C16.346 17.108 14.606 15.952 15.444 17.343C16.283 18.733 20.736 23.756 21.858 25.252C22.98 26.747 22.136 26.067 22.174 26.316C22.213 26.565 22.184 26.541 22.088 26.747C21.992 26.953 21.858 27.337 21.599 27.552C21.34 27.768 20.799 27.96 20.535 28.041C20.271 28.123 20.238 28.094 20.017 28.041C19.797 27.989 20.722 29.465 19.212 27.725C17.702 25.985 13.508 19.284 10.958 17.601C8.408 15.919 5.091 16.178 3.911 17.63C2.732 19.083 3.916 24.768 3.883 26.316C3.849 27.864 3.849 26.685 3.71 26.92C3.571 27.155 3.293 27.538 3.049 27.725C2.804 27.912 2.536 28.003 2.243 28.041C1.951 28.08 1.529 28.008 1.294 27.955C1.059 27.902 0.997 27.85 0.834 27.725C0.671 27.6 0.455 27.442 0.316 27.207C0.177 26.972 0.053 30.563 0 26.316C-0.053 22.069 -0.067 5.987 0 1.726C0.067 -2.536 0.249 0.983 0.403 0.748C0.556 0.513 0.724 0.422 0.92 0.316C1.117 0.211 -0.738 0.139 1.582 0.115ZM66.897 7.19C67.573 7.118 67.994 7.094 68.68 7.161C69.365 7.228 70.257 7.367 71.009 7.593C71.762 7.818 72.515 8.144 73.195 8.513C73.876 8.882 74.518 9.318 75.093 9.807C75.669 10.296 76.244 10.958 76.647 11.447C77.049 11.936 77.198 12.118 77.509 12.741C77.821 13.364 78.291 14.419 78.516 15.186C78.741 15.952 78.818 16.638 78.861 17.343C78.904 18.047 78.875 18.737 78.775 19.413C78.674 20.089 78.526 20.703 78.257 21.398C77.989 22.093 77.533 22.975 77.164 23.584C76.795 24.192 76.531 24.547 76.043 25.05C75.554 25.554 74.825 26.177 74.231 26.603C73.636 27.03 73.042 27.342 72.476 27.61C71.911 27.878 71.498 28.041 70.837 28.214C70.175 28.387 69.154 28.573 68.507 28.645C67.86 28.717 67.601 28.717 66.954 28.645C66.307 28.573 65.214 28.358 64.625 28.214C64.035 28.07 63.896 27.993 63.417 27.783C62.937 27.572 62.242 27.246 61.749 26.949C61.255 26.651 60.886 26.373 60.454 25.999C60.023 25.626 59.563 25.194 59.16 24.705C58.758 24.216 58.379 23.689 58.039 23.066C57.698 22.443 57.343 21.676 57.118 20.966C56.893 20.257 56.744 19.586 56.687 18.809C56.629 18.033 56.687 17.012 56.773 16.307C56.859 15.603 56.994 15.176 57.204 14.582C57.415 13.987 57.684 13.35 58.039 12.741C58.393 12.132 58.815 11.504 59.333 10.929C59.85 10.354 60.522 9.745 61.145 9.29C61.768 8.834 62.492 8.48 63.072 8.197C63.652 7.914 63.987 7.761 64.625 7.593C65.262 7.425 66.221 7.262 66.897 7.19ZM35.49 7.19C36.238 7.161 36.833 7.238 37.446 7.334C38.06 7.43 38.448 7.483 39.172 7.765C39.896 8.048 41.079 8.604 41.789 9.031C42.498 9.457 42.896 9.779 43.428 10.325C43.96 10.871 44.583 11.701 44.981 12.309C45.379 12.918 45.576 13.34 45.815 13.978C46.055 14.615 46.304 15.516 46.419 16.135C46.534 16.753 46.53 17.309 46.506 17.688C46.482 18.066 46.386 18.201 46.276 18.407C46.165 18.613 46.093 18.771 45.844 18.924C45.595 19.078 46.956 19.274 44.78 19.327C42.604 19.38 35.5 19.236 32.787 19.241C30.074 19.246 29.163 19.111 28.502 19.356C27.84 19.6 28.597 20.19 28.818 20.708C29.038 21.225 29.513 22.026 29.825 22.462C30.136 22.898 30.371 23.066 30.687 23.325C31.004 23.584 31.373 23.818 31.723 24.015C32.073 24.211 32.408 24.365 32.787 24.504C33.166 24.643 33.42 24.777 33.995 24.849C34.57 24.921 35.519 25.007 36.238 24.935C36.957 24.863 37.772 24.6 38.309 24.418C38.846 24.235 39.124 24.039 39.459 23.842C39.795 23.646 40.015 23.507 40.322 23.238C40.629 22.97 40.988 22.467 41.3 22.232C41.612 21.997 41.899 21.882 42.192 21.829C42.484 21.776 42.776 21.82 43.054 21.915C43.332 22.011 43.658 22.189 43.86 22.404C44.061 22.62 44.21 22.917 44.262 23.21C44.315 23.502 44.229 23.924 44.176 24.159C44.123 24.394 44.315 24.24 43.946 24.619C43.577 24.998 42.45 26.028 41.961 26.431C41.473 26.833 41.506 26.781 41.012 27.035C40.519 27.289 39.709 27.715 38.999 27.955C38.29 28.195 37.374 28.372 36.756 28.473C36.137 28.573 35.907 28.588 35.289 28.559C34.671 28.53 33.808 28.473 33.046 28.3C32.284 28.128 31.411 27.835 30.716 27.524C30.021 27.212 29.441 26.843 28.875 26.431C28.31 26.019 27.739 25.482 27.322 25.05C26.905 24.619 26.647 24.245 26.373 23.842C26.1 23.44 25.923 23.171 25.683 22.634C25.443 22.098 25.103 21.216 24.935 20.621C24.768 20.027 24.72 19.73 24.676 19.068C24.633 18.407 24.633 17.285 24.676 16.652C24.72 16.02 24.82 15.718 24.935 15.272C25.05 14.826 25.17 14.443 25.367 13.978C25.563 13.513 25.803 12.99 26.114 12.482C26.426 11.974 26.92 11.317 27.236 10.929C27.552 10.541 27.682 10.44 28.013 10.152C28.343 9.865 28.655 9.558 29.221 9.203C29.786 8.849 30.783 8.307 31.406 8.024C32.03 7.741 32.279 7.645 32.959 7.506C33.64 7.367 34.743 7.219 35.49 7.19ZM82.514 7.449C82.749 7.411 83.089 7.372 83.348 7.42C83.607 7.468 83.875 7.612 84.067 7.737C84.258 7.861 84.374 7.962 84.498 8.168C84.623 8.374 84.762 7.027 84.814 8.973C84.867 10.919 84.771 17.817 84.814 19.845C84.858 21.872 84.92 20.703 85.073 21.139C85.227 21.575 85.481 22.083 85.735 22.462C85.989 22.841 86.305 23.157 86.598 23.411C86.89 23.665 87.053 23.804 87.489 23.986C87.925 24.168 88.712 24.418 89.215 24.504C89.718 24.59 89.977 24.59 90.509 24.504C91.041 24.418 91.813 24.24 92.407 23.986C93.002 23.732 93.625 23.32 94.075 22.98C94.526 22.639 94.799 22.366 95.111 21.944C95.422 21.522 95.763 20.87 95.945 20.449C96.127 20.027 96.146 21.398 96.204 19.413C96.261 17.429 96.208 10.459 96.29 8.542C96.371 6.624 96.568 8.058 96.693 7.909C96.817 7.761 96.875 7.732 97.038 7.65C97.201 7.569 97.421 7.459 97.67 7.42C97.92 7.382 98.27 7.367 98.533 7.42C98.797 7.473 99.075 7.626 99.252 7.737C99.43 7.847 99.487 7.919 99.597 8.082C99.708 8.245 99.847 5.719 99.914 8.714C99.981 11.71 100 22.821 100 26.057C100 29.292 99.957 27.624 99.914 28.128C99.871 28.631 99.885 28.573 99.741 29.077C99.597 29.58 99.406 30.424 99.051 31.148C98.696 31.871 98.155 32.768 97.613 33.42C97.071 34.072 96.482 34.589 95.801 35.059C95.12 35.529 94.31 35.941 93.529 36.238C92.748 36.535 91.933 36.741 91.113 36.842C90.293 36.943 89.359 36.914 88.611 36.842C87.863 36.77 87.293 36.636 86.626 36.411C85.96 36.185 85.164 35.788 84.613 35.49C84.062 35.193 83.75 34.973 83.319 34.628C82.888 34.282 82.379 33.827 82.025 33.42C81.67 33.012 81.344 32.533 81.191 32.183C81.037 31.833 81.066 31.598 81.104 31.32C81.143 31.042 81.296 30.721 81.421 30.515C81.545 30.309 81.704 30.194 81.852 30.083C82.001 29.973 82.092 29.906 82.312 29.853C82.533 29.801 82.864 29.705 83.175 29.767C83.487 29.829 83.928 30.035 84.182 30.227C84.436 30.419 84.441 30.644 84.699 30.917C84.958 31.191 85.284 31.555 85.735 31.867C86.185 32.178 86.823 32.562 87.403 32.787C87.983 33.012 88.683 33.146 89.215 33.218C89.747 33.29 90.207 33.247 90.595 33.218C90.984 33.19 91.079 33.213 91.544 33.046C92.009 32.878 92.834 32.566 93.385 32.212C93.936 31.857 94.454 31.397 94.852 30.917C95.25 30.438 95.547 29.93 95.772 29.336C95.998 28.741 96.146 27.97 96.204 27.351C96.261 26.733 96.4 25.707 96.117 25.626C95.835 25.544 95.111 26.503 94.507 26.862C93.903 27.222 93.102 27.572 92.494 27.783C91.885 27.993 91.573 28.085 90.854 28.128C90.135 28.171 88.855 28.113 88.179 28.041C87.504 27.97 87.293 27.878 86.799 27.696C86.305 27.514 85.682 27.217 85.217 26.949C84.752 26.68 84.426 26.46 84.009 26.086C83.592 25.712 83.098 25.242 82.715 24.705C82.332 24.168 81.948 23.387 81.708 22.865C81.469 22.342 81.392 22.102 81.277 21.57C81.162 21.038 81.061 21.757 81.018 19.672C80.975 17.587 80.937 11.006 81.018 9.06C81.1 7.113 81.354 8.23 81.507 7.995C81.66 7.761 81.771 7.741 81.938 7.65C82.106 7.559 82.279 7.487 82.514 7.449ZM67.041 10.785C66.465 10.871 65.535 11.106 64.97 11.303C64.404 11.499 64.155 11.595 63.647 11.964C63.139 12.333 62.295 13.129 61.921 13.517C61.547 13.906 61.614 13.886 61.404 14.294C61.193 14.701 60.824 15.454 60.656 15.962C60.488 16.47 60.44 16.897 60.397 17.343C60.354 17.788 60.368 18.263 60.397 18.637C60.426 19.011 60.445 19.164 60.569 19.586C60.694 20.008 60.948 20.746 61.145 21.168C61.341 21.589 61.461 21.757 61.749 22.117C62.036 22.476 62.511 23.008 62.87 23.325C63.23 23.641 63.441 23.775 63.906 24.015C64.371 24.255 65.138 24.595 65.66 24.763C66.183 24.93 66.58 24.978 67.041 25.022C67.501 25.065 67.961 25.065 68.421 25.022C68.881 24.978 69.25 24.945 69.802 24.763C70.353 24.581 71.278 24.154 71.729 23.929C72.179 23.703 72.203 23.67 72.505 23.411C72.807 23.152 73.171 22.884 73.54 22.376C73.91 21.868 74.466 20.928 74.72 20.362C74.974 19.797 74.993 19.456 75.065 18.982C75.137 18.507 75.165 17.975 75.151 17.515C75.137 17.055 75.079 16.638 74.978 16.221C74.878 15.804 74.729 15.406 74.547 15.013C74.365 14.62 74.168 14.256 73.886 13.863C73.603 13.469 73.253 13.014 72.85 12.655C72.448 12.295 71.963 11.974 71.47 11.705C70.976 11.437 70.396 11.197 69.888 11.044C69.38 10.891 68.896 10.828 68.421 10.785C67.947 10.742 67.616 10.699 67.041 10.785ZM3.969 3.71C2.272 4.386 3.806 6.059 3.796 7.765C3.787 9.472 2.128 12.928 3.911 13.949C5.695 14.97 12.516 13.973 14.495 13.891C16.475 13.81 15.44 13.613 15.789 13.46C16.139 13.306 16.317 13.182 16.595 12.971C16.873 12.76 17.213 12.468 17.458 12.194C17.702 11.921 17.865 11.753 18.062 11.332C18.258 10.91 18.555 10.287 18.637 9.664C18.718 9.04 18.733 8.273 18.55 7.593C18.368 6.912 17.956 6.116 17.544 5.58C17.132 5.043 16.571 4.669 16.077 4.372C15.583 4.074 14.931 3.907 14.582 3.796C14.232 3.686 15.746 3.724 13.978 3.71C12.209 3.696 5.666 3.034 3.969 3.71ZM50.848 0.029C51.126 -0.038 51.496 -0.048 51.769 0C52.042 0.048 52.296 0.192 52.488 0.316C52.68 0.441 52.795 0.556 52.919 0.748C53.044 0.94 53.183 -2.852 53.236 1.467C53.288 5.786 53.288 22.342 53.236 26.661C53.183 30.98 53.044 27.188 52.919 27.38C52.795 27.572 52.737 27.672 52.488 27.811C52.239 27.95 51.702 28.161 51.424 28.214C51.146 28.267 51.04 28.209 50.82 28.128C50.599 28.046 50.316 27.941 50.101 27.725C49.885 27.509 49.636 27.068 49.525 26.833C49.415 26.599 49.439 30.572 49.439 26.316C49.439 22.059 49.415 5.613 49.525 1.294C49.636 -3.025 49.88 0.614 50.101 0.403C50.321 0.192 50.57 0.096 50.848 0.029ZM34.944 10.785C34.369 10.871 33.482 11.02 32.787 11.303C32.092 11.586 31.325 12.041 30.774 12.482C30.222 12.923 29.791 13.527 29.479 13.949C29.168 14.371 29.048 14.658 28.904 15.013C28.76 15.368 26.34 15.9 28.617 16.077C30.893 16.254 40.274 16.226 42.565 16.077C44.857 15.928 42.479 15.497 42.364 15.186C42.249 14.874 42.057 14.514 41.875 14.208C41.693 13.901 41.588 13.69 41.271 13.345C40.955 13 40.413 12.463 39.977 12.137C39.541 11.811 39.033 11.571 38.654 11.389C38.275 11.207 38.108 11.145 37.705 11.044C37.302 10.943 36.698 10.828 36.238 10.785C35.778 10.742 35.519 10.699 34.944 10.785Z"/></symbol>
+</svg>
+
+<!-- decorative field: two drifting orbs, film grain, and a light that follows
+     the pointer. Fixed, pointer-events:none, hidden from assistive tech. -->
+<div class="fx" aria-hidden="true">
+  <span class="fx__orb fx__orb--a"></span>
+  <span class="fx__orb fx__orb--b"></span>
+  <span class="fx__spot" id="spot"></span>
+  <span class="fx__grain"></span>
+</div>
+
+<div class="page">
+
+  <header class="nav" id="nav">
+    <div class="wrap nav__in">
+      <a class="logo" href="#main" aria-label="Reloy, home">
+        <svg class="logo__mark" viewBox="0 0 100 113.562" aria-hidden="true">
+          <use href="#logoMark" />
+          <circle class="spark" cx="49.91" cy="57.5" r="46.29" pathLength="100" stroke-dasharray="14 86" />
+        </svg>
+        <svg class="logo__word" viewBox="0 0 100 36.842" aria-hidden="true"><use href="#logoWord" /></svg>
+      </a>
+      <nav class="nav__links" aria-label="Sections">
+        <a href="#how" data-i18n="FB_NAV_HOW">How it works</a>
+        <a href="#insights" data-i18n="FB_NAV_INSIGHTS">What you get</a>
+        <a href="#pricing" data-i18n="FB_NAV_PRICING">Pricing</a>
+        <a href="#faq" data-i18n="FB_NAV_FAQ">FAQ</a>
+      </nav>
+      <div class="lang-switch" id="langSwitch" role="tablist" aria-label="Language">
+        <button class="lang-switch__btn" data-lang="en" type="button">EN</button>
+        <button class="lang-switch__btn" data-lang="fa" type="button">فا</button>
+      </div>
+      <a class="btn btn--primary nav__cta" href="#signup"><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <span class="nav__prog" id="prog" aria-hidden="true"></span>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ================================================================= hero -->
+    <section class="hero">
+      <span class="hero__glow" aria-hidden="true"></span>
+      <svg class="hero__ghost" viewBox="0 0 100 113.562" aria-hidden="true"><use href="#logoMark" /></svg>
+      <div class="wrap hero__grid">
+        <div class="hero__copy">
+          <p class="eyebrow rv" data-i18n="FB_HERO_EYEBROW">For cafés &amp; restaurants</p>
+          <h1 class="hero__title" id="heroTitle" data-i18n-html="FB_HERO_TITLE_HTML"><span class="line"><span class="w" style="--d:60ms">Turn</span> <span class="w" style="--d:115ms">every</span> <span class="w" style="--d:170ms">tap</span></span><span class="line"><span class="w" style="--d:225ms">into</span> <span class="w" style="--d:280ms">a</span> <span class="w" style="--d:335ms">customer</span></span><span class="line"><span class="w" style="--d:400ms">who</span> <span class="w hero__accent" style="--d:455ms">comes back.<svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 8.6C40 3.2 96 2 197 5.8"/></svg></span></span></h1>
+          <p class="hero__lede rv" style="--rv-delay:520ms" data-i18n="FB_HERO_LEDE">
+            Reloy is a digital stamp card for your counter. Your cashier presses one NFC
+            stamp to the customer's phone, no app store, no download, no password, and
+            their card fills itself. You finally see who keeps coming back, and when.
+          </p>
+          <div class="hero__cta rv" style="--rv-delay:620ms">
+            <a class="btn btn--primary btn--lg" href="#signup" data-magnetic><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <a class="btn btn--ghost btn--lg" href="#how" data-i18n="FB_HERO_SEE_HOW">See how it works</a>
+          </div>
+          <p class="hero__note rv" style="--rv-delay:700ms">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> <span data-i18n="FB_HERO_NOTE">NFC tag, staff training and setup included — live in about a week.</span>
+          </p>
+        </div>
+
+        <!-- the product demos itself: the exact wallet card design, copied
+             from the app (styles.css / app.js), hardcoded with four sample
+             cafés instead of built from live data -->
+        <div class="demo rv" style="--rv-delay:300ms">
+          <div class="demo__scene">
+
+            <!-- the same rubber stamp the app slams onto a card when a tap
+                 registers (index.html #stamper) — copied here, not reused,
+                 since this page never loads the wallet's own markup -->
+            <div class="seal" aria-hidden="true">
+              <span class="seal__impact"></span>
+              <svg class="seal__tool" viewBox="0 0 120 150">
+                <defs>
+                  <linearGradient id="fbWood" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#a9713f"/><stop offset="0.5" stop-color="#8a5628"/><stop offset="1" stop-color="#6e401d"/>
+                  </linearGradient>
+                  <linearGradient id="fbWoodDark" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#7d4c24"/><stop offset="1" stop-color="#5c3417"/>
+                  </linearGradient>
+                  <linearGradient id="fbRubber" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#4a2f20"/><stop offset="1" stop-color="#2c1a10"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="60" cy="24" rx="30" ry="18" fill="url(#fbWood)"/>
+                <ellipse cx="52" cy="19" rx="12" ry="6" fill="rgba(255,240,220,0.35)"/>
+                <rect x="49" y="34" width="22" height="20" rx="6" fill="url(#fbWoodDark)"/>
+                <rect x="24" y="50" width="72" height="24" rx="9" fill="url(#fbWood)"/>
+                <rect x="24" y="50" width="72" height="8" rx="4" fill="rgba(255,240,220,0.22)"/>
+                <rect x="18" y="72" width="84" height="46" rx="12" fill="url(#fbRubber)"/>
+                <!-- this page's own stamp face reads NFC, not the app's star —
+                     the app's #stamper in index.html is untouched -->
+                <text x="60" y="101" text-anchor="middle" class="seal__mark">NFC</text>
+              </svg>
+            </div>
+
+            <div class="demo__stack" aria-hidden="true">
+
+            <div class="wcard" style="--paper:#a86f3a; --paper-2:#7f552c;">
+              <div class="card"><div class="face">
+                <span class="notch notch--l"></span><span class="notch notch--r"></span>
+                <span class="oram-sheen"></span>
+                <header class="oram-head">
+                  <div class="oram-head__main"><div class="oram-head__id">
+                    <h3 class="oram-name">Filo</h3>
+                    <p class="oram-sub">Café &amp; Roastery</p>
+                  </div></div>
+                  <div class="oram-mini"><span class="count">3</span><span class="oram-mini__sep">/</span><span>8</span></div>
+                </header>
+                <div class="grid" style="--cols:4">
+                  <span class="slot is-on" style="--i:0"><span class="slot__num">1</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:1"><span class="slot__num">2</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:2"><span class="slot__num">3</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:3"><span class="slot__num">4</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:4"><span class="slot__num">5</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:5"><span class="slot__num">6</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:6"><span class="slot__num">7</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:7"><span class="slot__num">8</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                </div>
+              </div></div>
+            </div>
+
+            <div class="wcard" style="--paper:#3a5462; --paper-2:#2c404b;">
+              <div class="card"><div class="face">
+                <span class="notch notch--l"></span><span class="notch notch--r"></span>
+                <span class="oram-sheen"></span>
+                <header class="oram-head">
+                  <div class="oram-head__main"><div class="oram-head__id">
+                    <h3 class="oram-name">Ramouz</h3>
+                    <p class="oram-sub">Coffee House</p>
+                  </div></div>
+                  <div class="oram-mini"><span class="count">2</span><span class="oram-mini__sep">/</span><span>6</span></div>
+                </header>
+                <div class="grid" style="--cols:3">
+                  <span class="slot is-on" style="--i:0"><span class="slot__num">1</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:1"><span class="slot__num">2</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:2"><span class="slot__num">3</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:3"><span class="slot__num">4</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:4"><span class="slot__num">5</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:5"><span class="slot__num">6</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                </div>
+              </div></div>
+            </div>
+
+            <div class="wcard" style="--paper:#496240; --paper-2:#374b31;">
+              <div class="card"><div class="face">
+                <span class="notch notch--l"></span><span class="notch notch--r"></span>
+                <span class="oram-sheen"></span>
+                <header class="oram-head">
+                  <div class="oram-head__main"><div class="oram-head__id">
+                    <h3 class="oram-name">Kohan</h3>
+                    <p class="oram-sub">Bakery &amp; Café</p>
+                  </div></div>
+                  <div class="oram-mini"><span class="count">7</span><span class="oram-mini__sep">/</span><span>8</span></div>
+                </header>
+                <div class="grid" style="--cols:4">
+                  <span class="slot is-on" style="--i:0"><span class="slot__num">1</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:1"><span class="slot__num">2</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:2"><span class="slot__num">3</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:3"><span class="slot__num">4</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:4"><span class="slot__num">5</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:5"><span class="slot__num">6</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:6"><span class="slot__num">7</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot" style="--i:7"><span class="slot__num">8</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                </div>
+              </div></div>
+            </div>
+
+            <div class="wcard" style="--paper:#703a54; --paper-2:#552c40;">
+              <div class="card"><div class="face">
+                <span class="notch notch--l"></span><span class="notch notch--r"></span>
+                <span class="oram-sheen"></span>
+                <header class="oram-head">
+                  <div class="oram-head__main"><div class="oram-head__id">
+                    <h3 class="oram-name">Noor</h3>
+                    <p class="oram-sub">Espresso Bar</p>
+                  </div></div>
+                  <!-- the digits roll with the stamps landing below (see .count__roll) -->
+                  <div class="oram-mini"><span class="count"><span class="count__roll"><i>0</i><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i></span></span><span class="oram-mini__sep">/</span><span>8</span></div>
+                </header>
+                <div class="grid" style="--cols:4">
+                  <span class="slot is-on" style="--i:0"><span class="slot__num">1</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:1"><span class="slot__num">2</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:2"><span class="slot__num">3</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:3"><span class="slot__num">4</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:4"><span class="slot__num">5</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:5"><span class="slot__num">6</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:6"><span class="slot__num">7</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                  <span class="slot is-on" style="--i:7"><span class="slot__num">8</span><span class="stamp"><img src="knot-stamp.png?v=1" alt="" /></span></span>
+                </div>
+                <!-- the whole face flashes gold the instant the card completes -->
+                <span class="face__complete"></span>
+              </div></div>
+            </div>
+
+            </div>
+
+            <!-- and what those stamps add up to: the app's own reward ticket -->
+            <div class="prize" aria-hidden="true">
+              <span class="prize__glow"></span>
+              <div class="prize__card">
+                <span class="prize__sweep"></span>
+                <p class="prize__head"><span class="prize__pop">🎉</span><span class="prize__title" data-i18n="FB_PRIZE_TITLE">Congratulation!</span></p>
+                <span class="prize__rule"></span>
+                <p class="prize__pct">30%</p>
+                <p class="prize__off" data-i18n="FB_PRIZE_OFF">off your next order</p>
+                <span class="prize__rule"></span>
+                <p class="prize__code">RLY-4K92</p>
+                <p class="prize__hint" data-i18n="FB_PRIZE_HINT">Show this to the staff</p>
+              </div>
+            </div>
+
+          </div>
+          <p class="demo__caption" data-i18n="FB_DEMO_CAPTION">The exact card your customers keep on their phone</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== why -->
+    <section id="why" class="band alt">
+      <div class="wrap">
+        <div class="sec-head rv">
+          <p class="eyebrow" data-i18n="FB_WHY_EYEBROW">Why cafés choose Reloy</p>
+          <h2 data-i18n="FB_WHY_H2">It has to survive the morning rush, or it is useless.</h2>
+        </div>
+        <div class="why__list" id="whyList" data-i18n-html="FB_WHY_LIST_HTML"><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><h3>It does not slow the queue down</h3><p>A press takes about as long as a card payment. The customer holds out their own phone, your cashier presses the stamp to it, and nobody types anything, just one tap to confirm on the panel already open behind the counter.</p></div><span class="why__stat">~2 seconds</span></div><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M7 16h10v5H7z"/></svg></span><div><h3>No more printing paper cards</h3><p>No reprints when the design changes, no boxes of cards behind the counter, no stamp pad drying out.</p></div><span class="why__stat">Zero print cost</span></div><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="7" r="3.5"/><path d="M16 11l2 2 4-4"/></svg></span><div><h3>Almost nothing asked of the customer</h3><p>A name and a mobile number, once. No app store visit, no password to invent, no email to verify, no storage used on their phone.</p></div><span class="why__stat">2 fields, once</span></div><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9h18l-1.6-5H4.6L3 9Z"/><path d="M5 9v11h14V9"/><path d="M9.5 20v-6h5v6"/></svg></span><div><h3>Your caf&eacute; stays front and centre</h3><p>Your colours, your logo and your name are on every screen a customer sees. Reloy stays behind the scenes.</p></div><span class="why__stat">Your brand</span></div><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 7h7v7"/></svg></span><div><h3>See when your regulars return</h3><p>Compare 7 or 30 days of real stamp data to spot your busiest days, your strongest hours, and whether repeat visits are growing.</p></div><span class="why__stat">7 or 30 days</span></div><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3h5v3.5a3 3 0 0 0 .9 2.1L16.5 10h-9l1.1-1.4a3 3 0 0 0 .9-2.1Z"/><rect x="4" y="13" width="16" height="4" rx="1.5"/><path d="M5.5 21h13"/></svg></span><div><h3>It still feels like a stamp</h3><p>The tag we send you is a classic stamp with the chip inside. Your staff press it onto the phone the way they always pressed paper, the same ritual your counter already had, without the ink pad.</p></div><span class="why__stat">Still a stamp</span></div><div class="why__row rv"><span class="why__ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><div><h3>We set it up, not you</h3><p>We send the NFC tag, get your card and reward configured, and show your staff how it works on the floor. You are running in about a week.</p></div><span class="why__stat">~1 week</span></div></div>
+      </div>
+    </section>
+
+    <!-- ================================================================== how -->
+    <section id="how" class="band">
+      <div class="wrap">
+        <div class="sec-head rv">
+          <p class="eyebrow" data-i18n="FB_HOW_EYEBROW">How Reloy works</p>
+          <h2 data-i18n="FB_HOW_H2">Two moments. Five steps each.</h2>
+        </div>
+
+        <div class="how__tabs rv" role="tablist" aria-label="Which moment to see">
+          <button type="button" class="how__tab is-on" role="tab" aria-selected="true" aria-controls="howPanelGain" id="howTabGain" data-panel="gain" data-i18n="FB_HOW_TAB_GAIN">Gaining a reward</button>
+          <button type="button" class="how__tab" role="tab" aria-selected="false" aria-controls="howPanelUse" id="howTabUse" data-panel="use" tabindex="-1" data-i18n="FB_HOW_TAB_USE">Using a reward</button>
+        </div>
+
+        <!-- ---------------------------------------------------- gaining a reward -->
+        <div class="how__grid" id="howPanelGain" role="tabpanel" aria-labelledby="howTabGain">
+          <ol class="steps" aria-label="How a customer earns a reward, step by step">
+            <li><button type="button" class="step is-on" aria-pressed="true" data-step="1"><span class="step__n" aria-hidden="true">01</span><span><h3 data-i18n="FB_HOW_G1_H">Stamp their phone at checkout</h3><p data-i18n="FB_HOW_G1_P">The Reloy stamp stays on your side of the counter. The customer holds out their own phone and your cashier presses the stamp to it — that is their whole side of it.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+            <li class="steps__group">
+              <p class="steps__grouplabel" aria-hidden="true" data-i18n="FB_HOW_GROUP_LABEL">First time only</p>
+              <ol class="steps__sub">
+                <li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_G2_H">First time? Name and mobile number</h3><p data-i18n="FB_HOW_G2_P">Two fields. The account is created instantly — no app store, no password, no email confirmation, nothing to install.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+                <li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_G3_H">They add it to their home screen</h3><p data-i18n="FB_HOW_G3_P">It looks and opens like an app icon, but there is nothing to download and nothing to update. It is a web page that behaves like an app.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+              </ol>
+            </li>
+            <li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_G4_H">Staff confirm the tap on their panel</h3><p data-i18n="FB_HOW_G4_P">The request shows up live on the staff panel. A stamp is only added once staff approve it — that is what stops anyone claiming a free one.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+            <li><button type="button" class="step" aria-pressed="false" data-step="5"><span class="step__n" aria-hidden="true">05</span><span><h3 data-i18n="FB_HOW_G5_H">Every visit after that is one tap</h3><p data-i18n="FB_HOW_G5_P">Tap, stamp added, card updated. No card to carry, no card to lose, no app to open first — fill the card and the reward is theirs.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+          </ol>
+          <div class="phone rv" aria-hidden="true">
+            <div class="phone__frame">
+              <div class="phone__screen">
+                <span class="phone__notch"></span>
+                <div class="scene is-on" data-scene="1">
+                  <div>
+                    <div class="scene__art"><span class="tag"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8a10 10 0 0 1 0 8M9 6.5a14 14 0 0 1 0 11"/><circle cx="15" cy="12" r="2.4"/></svg></span></div>
+                    <h4 data-i18n="FB_SCENE_G1_H">Tap to collect</h4>
+                    <p data-i18n="FB_SCENE_G1_P">Hold it out — your cashier presses the stamp to it.</p>
+                  </div>
+                </div>
+                <div class="scene scene--shot" data-scene="2">
+                  <img class="scene__shot" src="shot-register.jpg?v=1" alt="" loading="lazy" />
+                  <div class="scene__cap">
+                    <h4 data-i18n="FB_SCENE_G2_H">Two fields, once</h4>
+                    <p data-i18n="FB_SCENE_G2_P">Name and mobile number. No password.</p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="3">
+                  <div>
+                    <div class="scene__art"><span class="home-icon"><svg viewBox="0 0 100 113.562"><use href="#logoMark" /></svg></span></div>
+                    <h4 data-i18n="FB_SCENE_G3_H">On the home screen</h4>
+                    <p data-i18n="FB_SCENE_G3_P">Opens like an app. Nothing installed.</p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="4">
+                  <div>
+                    <div class="scene__art"><div class="req-card">
+                      <p class="req-card__name">Sara</p>
+                      <p class="req-card__sub" data-i18n="FB_REQCARD_SUB">wants a stamp</p>
+                      <div class="req-card__btns">
+                        <span class="req-card__btn req-card__btn--ok"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+                        <span class="req-card__btn req-card__btn--no"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+                      </div>
+                    </div></div>
+                    <h4 data-i18n="FB_SCENE_G4_H">Staff sees it live</h4>
+                    <p data-i18n="FB_SCENE_G4_P">They confirm — no confirm, no stamp.</p>
+                  </div>
+                </div>
+                <div class="scene scene--shot" data-scene="5">
+                  <img class="scene__shot" src="shot-card.jpg?v=1" alt="" loading="lazy" />
+                  <div class="scene__cap">
+                    <h4 data-i18n="FB_SCENE_G5_H">Two of eight</h4>
+                    <p data-i18n="FB_SCENE_G5_P">The stamp lands the moment your staff confirm.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ------------------------------------------------------ using a reward -->
+        <div class="how__grid" id="howPanelUse" role="tabpanel" aria-labelledby="howTabUse" hidden>
+          <ol class="steps" aria-label="How a customer redeems a reward, step by step"><li><button type="button" class="step is-on" aria-pressed="true" data-step="1"><span class="step__n" aria-hidden="true">01</span><span><h3 data-i18n="FB_HOW_U1_H">They bring up their card</h3><p data-i18n="FB_HOW_U1_P">A completed card turns into a ticket — a QR code and a short backup code, ready to show at the counter.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_U2_H">Staff scan it, or type the code</h3><p data-i18n="FB_HOW_U2_P">The staff scanner reads the QR in a beat. Mid-rush and awkward to scan? Staff can type the short code by hand instead.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_U3_H">Checked before anything is given</h3><p data-i18n="FB_HOW_U3_P">It is verified against our server instantly — an expired or already-used code is caught right there, before any discount is handed out.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_U4_H">Redeemed — apply the discount</h3><p data-i18n="FB_HOW_U4_P">The screen turns to "Redeemed ✓." Staff apply it on the customer's bill right there at the register.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="5"><span class="step__n" aria-hidden="true">05</span><span><h3 data-i18n="FB_HOW_U5_H">Used once, then it is gone</h3><p data-i18n="FB_HOW_U5_P">The same code cannot be scanned twice. No reused screenshots, no double discounts — every reward is spent exactly once.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li></ol>
+          <div class="phone rv" aria-hidden="true">
+            <div class="phone__frame">
+              <div class="phone__screen">
+                <span class="phone__notch"></span>
+                <div class="scene is-on" data-scene="1">
+                  <div>
+                    <div class="scene__art"><span class="qr-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+                    <h4 data-i18n="FB_SCENE_U1_H">Their ticket, on screen</h4>
+                    <p data-i18n="FB_SCENE_U1_P">A QR code and a short backup code.</p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="2">
+                  <div>
+                    <div class="scene__art"><span class="scan-frame"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i><i class="scan-line"></i></span></div>
+                    <h4 data-i18n="FB_SCENE_U2_H">One scan, or one code</h4>
+                    <p data-i18n="FB_SCENE_U2_P">Camera busy? Type it in by hand.</p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="3">
+                  <div>
+                    <div class="scene__art"><span class="check-ring"></span></div>
+                    <h4 data-i18n="FB_SCENE_U3_H">Checking…</h4>
+                    <p data-i18n="FB_SCENE_U3_P">Verified against our server, live.</p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="4">
+                  <div>
+                    <div class="scene__art"><span class="redeem-badge"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span></div>
+                    <h4 data-i18n="FB_SCENE_U4_H">Redeemed ✓</h4>
+                    <p data-i18n="FB_SCENE_U4_P">Applied — give the customer their discount.</p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="5">
+                  <div>
+                    <div class="scene__art"><span class="used-stamp" data-i18n="FB_USED_BADGE">Used</span></div>
+                    <h4 data-i18n="FB_SCENE_U5_H">Spent once, for good</h4>
+                    <p data-i18n="FB_SCENE_U5_P">That exact code will never work again.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= insights -->
+    <section id="insights" class="band band--paper">
+      <div class="wrap">
+        <div class="sec-head rv">
+          <p class="eyebrow" data-i18n="FB_INS_EYEBROW">What you get</p>
+          <h2 data-i18n="FB_INS_H2">Who is coming back, in real time, without a spreadsheet.</h2>
+          <p class="lede" data-i18n="FB_INS_LEDE">
+            Every tap is a data point you never had before. This is the owner dashboard,
+            with sample figures from a café doing a few hundred stamps a month.
+          </p>
+        </div>
+        <div class="insights__rows">
+          <div class="ins  rv">
+            <div class="ins__viz"><div class="heat" aria-hidden="true"><span></span><span class="heat__d" data-i18n="FB_HEAT_SAT">Sat</span><span class="heat__d" data-i18n="FB_HEAT_SUN">Sun</span><span class="heat__d" data-i18n="FB_HEAT_MON">Mon</span><span class="heat__d" data-i18n="FB_HEAT_TUE">Tue</span><span class="heat__d" data-i18n="FB_HEAT_WED">Wed</span><span class="heat__d" data-i18n="FB_HEAT_THU">Thu</span><span class="heat__d" data-i18n="FB_HEAT_FRI">Fri</span><span class="heat__h">08</span><span class="heat__c" style="--v:0.55;--d:1"></span><span class="heat__c" style="--v:0.60;--d:2"></span><span class="heat__c" style="--v:0.62;--d:3"></span><span class="heat__c" style="--v:0.58;--d:4"></span><span class="heat__c" style="--v:0.60;--d:5"></span><span class="heat__c" style="--v:0.70;--d:6"></span><span class="heat__c" style="--v:0.30;--d:7"></span><span class="heat__h">10</span><span class="heat__c" style="--v:0.70;--d:8"></span><span class="heat__c" style="--v:0.72;--d:9"></span><span class="heat__c" style="--v:0.75;--d:10"></span><span class="heat__c" style="--v:0.70;--d:11"></span><span class="heat__c" style="--v:0.74;--d:12"></span><span class="heat__c" style="--v:0.85;--d:13">85</span><span class="heat__c" style="--v:0.45;--d:14"></span><span class="heat__h">12</span><span class="heat__c" style="--v:0.50;--d:15"></span><span class="heat__c" style="--v:0.48;--d:16"></span><span class="heat__c" style="--v:0.52;--d:17"></span><span class="heat__c" style="--v:0.50;--d:18"></span><span class="heat__c" style="--v:0.55;--d:19"></span><span class="heat__c" style="--v:0.62;--d:20"></span><span class="heat__c" style="--v:0.40;--d:21"></span><span class="heat__h">14</span><span class="heat__c" style="--v:0.35;--d:22"></span><span class="heat__c" style="--v:0.32;--d:23"></span><span class="heat__c" style="--v:0.34;--d:24"></span><span class="heat__c" style="--v:0.30;--d:25"></span><span class="heat__c" style="--v:0.36;--d:26"></span><span class="heat__c" style="--v:0.50;--d:27"></span><span class="heat__c" style="--v:0.55;--d:28"></span><span class="heat__h">16</span><span class="heat__c" style="--v:0.60;--d:29"></span><span class="heat__c" style="--v:0.58;--d:30"></span><span class="heat__c" style="--v:0.62;--d:31"></span><span class="heat__c" style="--v:0.60;--d:32"></span><span class="heat__c" style="--v:0.68;--d:33"></span><span class="heat__c" style="--v:0.90;--d:34" data-peak>90</span><span class="heat__c" style="--v:0.80;--d:35">80</span><span class="heat__h">18</span><span class="heat__c" style="--v:0.72;--d:36"></span><span class="heat__c" style="--v:0.70;--d:37"></span><span class="heat__c" style="--v:0.74;--d:38"></span><span class="heat__c" style="--v:0.72;--d:39"></span><span class="heat__c" style="--v:0.80;--d:40">80</span><span class="heat__c" style="--v:1.00;--d:41" data-peak>100</span><span class="heat__c" style="--v:0.92;--d:42" data-peak>92</span></div></div>
+            <div class="ins__say">
+              <p class="ins__eyebrow" data-i18n="FB_INS1_EYEBROW">When they come</p>
+              <h3 data-i18n="FB_INS1_H3">Your week has a shape, and now you can see it</h3>
+              <p class="ins__body" data-i18n-html="FB_INS1_BODY">Every stamp is time-stamped, so the grid fills in on its own. Thursday evening is this caf&eacute;&rsquo;s peak &mdash; nearly four times a Friday morning.</p>
+              <p class="ins__use" data-i18n-html="FB_INS1_USE"><span class="ins__use-tag">Use it to</span> put your strongest staff on the Thursday rush, stop paying for a quiet Monday morning, and time your bake and prep to the hours that actually earn.</p>
+            </div>
+          </div>
+          <div class="ins ins--flip rv">
+            <div class="ins__viz"><div class="ins__pair">
+                <div class="ins__stat"><p class="ins__stat-big"><i data-to="43" data-suffix="%">43%</i></p><p class="ins__stat-cap" data-i18n="FB_INS2_CAP1">of first-timers came back at least once</p></div>
+                <div class="ins__stat"><div class="split" style="--w-new:38%;--w-loyal:62%" role="img"
+                 aria-label="Customer mix: 38 percent new customers, 62 percent loyal returning customers.">
+              <i class="new">38%</i><i class="loyal">62%</i>
+            </div><p class="ins__stat-cap" data-i18n-html="FB_INS2_CAP2"><b>38%</b> new this month &middot; <b>62%</b> returning</p></div>
+              </div></div>
+            <div class="ins__say">
+              <p class="ins__eyebrow" data-i18n="FB_INS2_EYEBROW">Whether they come back</p>
+              <h3 data-i18n="FB_INS2_H3">Are you building regulars, or serving strangers?</h3>
+              <p class="ins__body" data-i18n="FB_INS2_BODY">One counts every first-timer you have ever served and asks how many came back even once. The other splits this month between faces your staff had seen before and faces they had not.</p>
+              <p class="ins__use" data-i18n-html="FB_INS2_USE"><span class="ins__use-tag">Use it to</span> see whether you are adding regulars or only replacing the ones you lose. A café can look busy all month and still be serving a different room every week.</p>
+            </div>
+          </div>
+          <div class="ins  rv">
+            <div class="ins__viz"><div class="ins__pair">
+                <div class="ins__stat"><p class="ins__stat-big"><i data-to="4.2" data-dec="1">4.2</i> <em data-i18n="FB_DAYS_UNIT">days</em></p><div class="rhythm" role="img" aria-label="Distribution of days between visits. Most customers return after four days; the average gap is 4.2 days.">
+              <i style="--h:18%;--d:0"></i><i style="--h:34%;--d:1"></i><i style="--h:58%;--d:2"></i>
+              <i class="pk" style="--h:100%;--d:3"></i><i style="--h:70%;--d:4"></i><i style="--h:42%;--d:5"></i>
+              <i style="--h:26%;--d:6"></i><i style="--h:15%;--d:7"></i>
+            </div><p class="ins__stat-cap" data-i18n="FB_INS3_CAP1">typical gap between one customer&rsquo;s visits</p></div>
+                <div class="ins__stat"><div class="donut" style="--pct:71">
+              <svg viewBox="0 0 44 44" aria-hidden="true">
+                <circle class="track" cx="22" cy="22" r="15.9" />
+                <circle class="val" cx="22" cy="22" r="15.9" pathLength="100" />
+              </svg>
+              <div>
+                <p class="tile__big"><span data-to="71" data-suffix="%">71%</span></p>
+                <p class="tile__foot" style="margin-top:4px" data-i18n="FB_INS3_CAP2">of issued rewards actually claimed</p>
+              </div>
+            </div></div>
+              </div></div>
+            <div class="ins__say">
+              <p class="ins__eyebrow" data-i18n="FB_INS3_EYEBROW">Whether the reward works</p>
+              <h3 data-i18n="FB_INS3_H3">Is the prize pulling its weight?</h3>
+              <p class="ins__body" data-i18n-html="FB_INS3_BODY">Rewards issued against rewards actually redeemed, next to the normal gap between one customer&rsquo;s visits &mdash; the median, so one person wandering back after three months does not distort it.</p>
+              <p class="ins__use" data-i18n-html="FB_INS3_USE"><span class="ins__use-tag">Use it to</span> fix a prize that gets earned but never claimed. And once you know the normal gap is four days, someone at twenty days has clearly drifted.</p>
+            </div>
+          </div>
+        </div>
+        <div class="next rv"><span class="next__sweep" aria-hidden="true"></span>
+            <p class="next__label" data-i18n-html="FB_NEXT_LABEL"><span class="next__dot" aria-hidden="true"></span>In development</p>
+            <div class="next__grid">
+              <div class="next__item"><span class="next__ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div><h3 data-i18n="FB_NEXT1_H3">Targeted messages, in the card they kept</h3><p data-i18n-html="FB_NEXT1_P">Reach the customers who have drifted past their usual rhythm &mdash; inside the card already on their home screen, not in the message app where they hear from family.</p></div></div>
+              <div class="next__item"><span class="next__ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.3 13.3 20.6a2 2 0 0 1-2.8 0l-7.1-7.1a2 2 0 0 1-.6-1.4V4.4A1.4 1.4 0 0 1 4.4 3h7.7a2 2 0 0 1 1.4.6l7.1 7.1a2 2 0 0 1 0 2.6Z"/><circle cx="7.6" cy="7.6" r="1.2"/></svg></span><div><h3 data-i18n="FB_NEXT2_H3">Offers aimed at the people they would move</h3><p data-i18n="FB_NEXT2_P">Send a reward to the customers it would actually bring back, instead of discounting everyone who was already on their way in.</p></div></div>
+            </div>
+          </div>
+            </div>
+    </section>
+
+    <!-- ============================================================== pricing -->
+    <section id="pricing" class="band band--paper">
+      <div class="wrap">
+        <div class="sec-head rv">
+          <p class="eyebrow" data-i18n="FB_PRICING_EYEBROW">Pricing</p>
+          <h2 data-i18n-html="FB_PRICING_H2">Grow your regulars.<br />Not your software bill.</h2>
+          <p class="lede" data-i18n="FB_PRICING_LEDE">Every feature, unlimited customers and unlimited stamps for one flat price.</p>
+        </div>
+        <div class="pricing__grid">
+          <div class="plan glass plan--hero rv" id="planCard">
+            <div class="plan__top">
+              <span class="trial-badge" data-trial>Free trial</span>
+              <div class="billing" role="group" aria-label="Billing period">
+                <span class="billing__glider" aria-hidden="true"></span>
+                <button type="button" class="billing__btn is-on" data-billing="monthly" aria-pressed="true" data-i18n="FB_BILLING_MONTHLY">Monthly</button>
+                <button type="button" class="billing__btn" data-billing="yearly" aria-pressed="false"><span data-i18n="FB_BILLING_YEARLY">Yearly</span><span class="billing__save" id="billingSave">2 months free</span></button>
+              </div>
+            </div>
+            <div class="plan__price">
+              <span class="plan__was" id="planWas" hidden></span>
+              <span class="plan__figure"><span class="plan__amount" id="planAmount">6,000,000</span><span class="plan__unit" data-i18n="FB_TOMAN">Toman</span></span>
+              <span class="plan__per" id="planPer">per month, per café</span>
+              <p class="plan__day" id="planDay"></p>
+              <p class="plan__equiv" id="planEquiv" hidden></p>
+            </div>
+            <button type="button" class="plan__nudge" id="planNudge" hidden></button>
+            <a class="btn btn--primary plan__cta" href="#signup"><span id="ctaLabel">Start your free trial</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <ul class="plan__trust">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_1">No card needed</span></li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_2">No contract</span></li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_3">Live in about a week</span></li>
+            </ul>
+            <p class="plan__foot" data-i18n-html="FB_PLAN_FOOT">Your trial starts the day your tag goes live at your counter — not the day you sign up. By starting a trial you agree to our <a href="business-terms.html">Business Terms</a>.</p>
+          </div>
+          <div class="plan glass plan--features rv" style="--rv-delay:90ms">
+            <h3 data-i18n="FB_FEATURES_H3">Everything included</h3>
+            <p class="plan__sub" data-i18n="FB_FEATURES_SUB">One price. No tier above this one, and nothing held back for it.</p>
+            <ul class="plan__list"><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_1">Your NFC tag, delivered and ready to use</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_2">Staff walked through it on your floor</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_3">Your own card design, logo and reward</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_4">Unlimited customers, unlimited stamps</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_5">The full owner dashboard — visits, regulars, trends</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_6">Staff scanner with real-time stamp confirmation</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_7">Change your reward whenever you want</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_8">No commission on anything you sell</span></li></ul>
+            <p class="plan__note" data-i18n="FB_PLAN_NOTE">No setup fee, no per-tap charge, no per-member fee. The number on the left is the whole bill.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================ about -->
+    <section id="about" class="band">
+      <div class="wrap">
+        <div class="about glass rv">
+          <span class="about__seal" aria-hidden="true"><svg viewBox="0 0 100 113.562"><use href="#logoMark" /></svg></span>
+          <div>
+            <p class="eyebrow" data-i18n="FB_ABOUT_EYEBROW">About Reloy</p>
+            <p data-i18n="FB_ABOUT_P1">Reloy was built for the cafés we actually go to. We kept watching good places hand out paper stamp cards that customers lost within a week, while the loyalty apps on offer wanted a download, a password, and a fee that only makes sense at twenty branches.</p>
+            <p data-i18n="FB_ABOUT_P2">So we built the version a single café can live with: one stamp behind the counter, two fields for the customer, and a dashboard that finally answers “are people coming back?” — a question most owners have only ever been able to guess at.</p>
+            <p data-i18n-html="FB_ABOUT_P3"><strong>We are a small team from Mashhad.</strong> We met at Hasheminejad 2 and most of us never left, which is why getting you set up means one of us walking into your café — not a courier and a PDF.</p>
+            <div class="about__team">
+              <div class="about__person">
+                <span class="about__ini" aria-hidden="true">AJ</span>
+                <div>
+                  <b>Amir Hossein Javadi</b>
+                  <span data-i18n="FB_TEAM_1">Founder. Builds it. Reading computer science at UCL, on Reloy year-round.</span>
+                </div>
+              </div>
+              <div class="about__person">
+                <span class="about__ini" aria-hidden="true">PS</span>
+                <div>
+                  <b>Pooya Salarimanesh</b>
+                  <span data-i18n="FB_TEAM_2">Co-founder. Reading computer engineering in Mashhad — and the one who turns up at your counter.</span>
+                </div>
+              </div>
+            </div>
+            <p data-i18n-html="FB_ABOUT_P4"><strong>We are early, and we are not hiding it.</strong> Reloy is live in its first cafés right now, which is exactly why joining now is worth it: you get our full attention and a direct line to the person building it. If it does not work for you, you walk away — there is no contract and nothing installed on your machines.</p>
+            <div class="about__contact">
+              <p class="about__contact-h" data-i18n="FB_CONTACT_H">Contact</p>
+              <ul class="about__contact-list">
+                <li>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  <a href="tel:+989306289746" dir="ltr">+98 930 628 9746</a>
+                </li>
+                <li>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6c0-1.1-.9-2-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6Z"/><path d="m2 7 8.97 6.28a2 2 0 0 0 2.06 0L22 7"/></svg>
+                  <a data-email href="#">reloy.ir@gmail.com</a>
+                </li>
+                <li>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span data-i18n="FB_ADDR">Karimi 5, Aghdasie 15, Mashhad, Iran</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== faq -->
+    <section id="faq" class="band alt">
+      <div class="wrap">
+        <div class="sec-head rv">
+          <p class="eyebrow" data-i18n="FB_FAQ_EYEBROW">Questions</p>
+          <h2 data-i18n="FB_FAQ_H2">The things owners ask us first.</h2>
+        </div>
+        <div class="faq__list">
+          <div class="faq__cat rv"><h3 data-i18n="FB_FAQ_CAT1">How it works</h3><span class="faq__cat-rule" aria-hidden="true"></span></div>
+          <details class="qa rv" open><summary><span data-i18n="FB_FAQ_Q1">Does my customer have to download an app?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A1">No — and this is the part that makes the difference at the counter. Reloy is a web page. One press of the stamp opens it instantly, with nothing from the App Store or Play Store, nothing to install, and no storage used. They can add it to their home screen so it opens like an app, but that is a shortcut, not a download.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q2">What if my payment terminal does not support NFC?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A2">It does not matter. The Reloy stamp is a completely separate object that lives behind your counter — it has nothing to do with your card machine, your till, or your payment provider, and it needs no power, no wiring and no internet connection of its own.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q3">Can I require a minimum purchase before a stamp counts?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A3">You can set one, and it shows right on the customer's card so they know the threshold going in. We are not connected to your till or accounting system, so we cannot check the bill ourselves. It is your cashier's call to only press the stamp once the purchase clears it. Leave it at zero, the default, and there is nothing to enforce at all.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q4">Can I change the reward later?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A4">Yes, whenever you like, from your dashboard. You control both the discount and how many stamps it takes to earn it. Existing cards pick up the change automatically — nobody has to be issued a new card.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q5">What happens if a customer changes their phone?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A5">Nothing is lost. Their card lives on our server against their mobile number, not on the handset. Your cashier stamps the new phone, they confirm their number, and every stamp they have collected is already there.</p></div></details>
+
+          <div class="faq__cat rv"><h3 data-i18n="FB_FAQ_CAT2">Money &amp; the business case</h3><span class="faq__cat-rule" aria-hidden="true"></span></div>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q6">Will this actually increase my sales?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A6">Cafés running loyalty programmes overseas do see more repeat visits, so the pattern is real. But nobody can promise you an exact number sight unseen, because every café, menu and neighbourhood is different, and no honest answer skips that. That is exactly what the free trial is for: run it at your own counter, watch your own dashboard, and decide for yourself whether it is actually bringing your customers back before you pay anything.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q7">How long is the free trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqTrial">The trial runs from the day your NFC tag goes live at your counter, not the day you sign up. Ask us for the current pilot length.</span></p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q8">What does it cost after the trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqPrice">A flat monthly fee per café — no per-tap charges and no commission on what you sell. We are finalising the number with our pilot cafés, so ask us and you will get the pilot rate.</span></p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q9">What if I have more than one location?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A9">Multi-location is in development. The plan is one dashboard for your whole brand with a sub-dashboard underneath it for each branch, every branch connected under the same account, and one bill for the brand rather than one per branch. Today a subscription covers a single café. Ask us where multi-location stands if it matters for your decision to start now.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q10">Do unclaimed rewards expire?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A10">Yes. Every reward carries an expiry date, 30 days from when it is earned by default. Change that number for your whole café from your dashboard, or set a different one on an individual reward. It is also why the 71% claimed rate on this page means something: it only counts rewards that got redeemed before the clock ran out.</p></div></details>
+
+          <div class="faq__cat rv"><h3 data-i18n="FB_FAQ_CAT3">Privacy &amp; your customers</h3><span class="faq__cat-rule" aria-hidden="true"></span></div>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q11">What information does the customer give up?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A11">A name and a mobile number. That is everything. No email, no password, no address, no payment details, no location, and no access to their contacts or photos.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q12">Is my customers' data secure?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A12">Yes. Everything travels over HTTPS and is stored on our own server — we do not sell, share or rent your customer list to anyone, and no other café using Reloy can see it. Your customers' data belongs to your café, and you can ask us to delete it at any time.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q13">Can I get my customers' phone numbers?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A13">No, and that is on purpose. If tapping the tag meant a café could call or text customers directly, people would think twice before tapping it, and the tap is the whole product. We keep phone numbers on our own server for exactly that reason, so customers trust the tap and keep using it. Reaching people who have drifted is a feature we are building, and it will work by sending a message inside the card already on their home screen, not by handing their number to anyone.</p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q14">Can I target specific customers with messages or discounts?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A14">Not yet, but it is in development for an upcoming version. The plan is to let you reach customers who have drifted past their usual rhythm with a message inside the card already on their home screen, and send an offer to the people it would actually bring back instead of discounting everyone who was already on their way in. Ask us where it stands if it matters for your decision to start now.</p></div></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================================== signup -->
+    <section id="signup" class="band">
+      <div class="wrap">
+        <div class="signup glass rv">
+          <div class="signup__grid">
+            <div>
+              <p class="eyebrow" data-i18n="FB_SIGNUP_EYEBROW">Get early access</p>
+              <h2 data-i18n="FB_SIGNUP_H2">Let's get a tag on your counter.</h2>
+              <p class="lede" data-i18n="FB_SIGNUP_LEDE">Tell us where you are and we will get back to you. We will set up your NFC kit within about a week.</p>
+              <div class="signup__aside"><ul><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_1">We send the tag and set your card up for you.</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_2">We show your staff how it works, on your floor.</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_3">Your trial only starts once it is actually live.</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_4">No contract. Stop whenever you want.</span></li></ul></div>
+            </div>
+            <div>
+              <form class="form" id="signupForm" novalidate>
+                <div class="form__summary" id="formSummary" tabindex="-1" role="alert" hidden>
+                  <h3 data-i18n="FB_FORM_SUMMARY_H3">Please check these before sending</h3>
+                  <ul id="formSummaryList"></ul>
+                </div>
+                <div class="field">
+                  <label for="f-cafe" data-i18n="FB_FIELD_CAFE_LABEL">Café or restaurant name</label>
+                  <input id="f-cafe" name="cafe" type="text" autocomplete="organization" placeholder="Filo" aria-describedby="err-cafe" data-i18n-placeholder="FB_FIELD_CAFE_PH" />
+                  <span class="field__err" id="err-cafe"></span>
+                </div>
+                <div class="field">
+                  <label for="f-person" data-i18n="FB_FIELD_PERSON_LABEL">Who should we talk to?</label>
+                  <input id="f-person" name="person" type="text" autocomplete="name" placeholder="Your name" aria-describedby="err-person" data-i18n-placeholder="FB_FIELD_PERSON_PH" />
+                  <span class="field__err" id="err-person"></span>
+                </div>
+                <div class="form__row">
+                  <div class="field">
+                    <label for="f-contact" data-i18n="FB_FIELD_CONTACT_LABEL">Phone or email</label>
+                    <input id="f-contact" name="contact" type="text" autocomplete="tel" placeholder="0915 000 0000" aria-describedby="err-contact hint-contact" />
+                    <span class="field__hint" id="hint-contact" data-i18n="FB_FIELD_CONTACT_HINT">Whichever you would rather we used.</span>
+                    <span class="field__err" id="err-contact"></span>
+                  </div>
+                  <div class="field">
+                    <label for="f-city" data-i18n="FB_FIELD_CITY_LABEL">City</label>
+                    <input id="f-city" name="city" type="text" autocomplete="address-level2" placeholder="Mashhad" aria-describedby="err-city" data-i18n-placeholder="FB_FIELD_CITY_PH" />
+                    <span class="field__err" id="err-city"></span>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn--primary btn--lg" data-magnetic><span data-i18n="FB_FORM_SUBMIT">Request early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                <p class="field__hint" data-i18n="FB_FORM_PRIVACY_HINT">We will only use your details to talk to you about Reloy.</p>
+              </form>
+              <div class="form__done" id="formDone" tabindex="-1" hidden>
+                <span class="tick" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <h3 data-i18n="FB_DONE_H3">Thanks — your email is ready to send</h3>
+                <p class="lede" style="margin-inline:auto" data-i18n-html="FB_DONE_P">
+                  We have opened a prefilled message for <strong id="doneCafe"></strong>.
+                  Press send in your mail app and we will come back to you within a day.
+                  If nothing opened, write to <a data-email href="#">reloy.ir@gmail.com</a> directly.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span class="foot__glow" aria-hidden="true"></span>
+    <!-- the wordmark, oversized and nearly invisible, cropped by the footer's
+         own bottom edge — a sign-off rather than a second logo -->
+    <svg class="foot__watermark" viewBox="0 0 100 36.842" aria-hidden="true"><use href="#logoWord" /></svg>
+
+    <div class="wrap foot__in">
+      <div class="foot__brand">
+        <a class="logo" href="#main" aria-label="Reloy, back to top">
+          <svg class="logo__mark" viewBox="0 0 100 113.562" aria-hidden="true">
+            <use href="#logoMark" />
+            <circle class="spark" cx="49.91" cy="57.5" r="46.29" pathLength="100" stroke-dasharray="14 86" />
+          </svg>
+          <svg class="logo__word" viewBox="0 0 100 36.842" aria-hidden="true"><use href="#logoWord" /></svg>
+        </a>
+        <p class="foot__pitch" data-i18n="FB_FOOT_PITCH">
+          A digital stamp card that lives on your customer's home screen.
+          One stamp behind the counter, one press at checkout.
+        </p>
+        <ul class="foot__social">
+          <li id="footTelegram" hidden>
+            <a class="social" href="#" target="_blank" rel="noopener noreferrer">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21.9 4.3 3.1 11.2c-.9.3-.9 1.6 0 1.9l4.6 1.5 1.7 5.3c.3.8 1.3 1 1.9.4l2.5-2.6 4.5 3.3c.7.5 1.7.1 1.9-.7l3-14.9c.2-.9-.7-1.6-1.3-1.1Z" />
+                <path d="m7.7 14.6 10.9-8-8.6 9.3" />
+              </svg>
+              <span>Telegram</span>
+            </a>
+          </li>
+          <li id="footInstagram" hidden>
+            <a class="social" href="#" target="_blank" rel="noopener noreferrer">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2.5" y="2.5" width="19" height="19" rx="5.4" />
+                <circle cx="12" cy="12" r="4.1" />
+                <circle cx="17.4" cy="6.6" r="1.15" fill="currentColor" stroke="none" />
+              </svg>
+              <span>Instagram</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <nav class="foot__nav" aria-label="Footer">
+        <div class="foot__col">
+          <h2 class="foot__h" data-i18n="FB_FOOT_COL1_H">The product</h2>
+          <ul>
+            <li><a href="#how" data-i18n="FB_HOW_TAB_HOW_LINK">How it works</a></li>
+            <li><a href="#insights" data-i18n="FB_INS_EYEBROW">What you get</a></li>
+            <li><a href="#pricing" data-i18n="FB_PRICING_EYEBROW">Pricing</a></li>
+            <li><a href="#faq" data-i18n="FB_FAQ_EYEBROW">Questions</a></li>
+          </ul>
+        </div>
+        <div class="foot__col">
+          <h2 class="foot__h" data-i18n="FB_FOOT_COL2_H">Get in touch</h2>
+          <ul>
+            <li><a href="#signup" data-i18n="FB_SIGNUP_EYEBROW">Get early access</a></li>
+            <li><a data-email href="#">reloy.ir@gmail.com</a></li>
+            <li id="footPhone" hidden><a href="#">&mdash;</a></li>
+            <li class="foot__addr" data-i18n="FB_ADDR">Karimi 5, Aghdasie 15, Mashhad, Iran</li>
+          </ul>
+        </div>
+        <div class="foot__col">
+          <h2 class="foot__h" data-i18n="FB_FOOT_COL3_H">Small print</h2>
+          <ul>
+            <li><a href="business-terms.html" data-i18n="FB_FOOT_BIZ_TERMS">Business terms</a></li>
+            <li><a href="terms.html" data-i18n="FB_FOOT_CUST_TERMS">Customer terms &amp; privacy</a></li>
+            <li><a href="https://app.reloy.ir/" data-i18n="FB_FOOT_APP_LINK">The customer app</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="wrap foot__bar">
+      <p class="foot__legal" data-i18n-html="FB_FOOT_LEGAL">&copy; <span id="footYear">2026</span> Reloy. All rights reserved. Digital stamp cards for cafés and restaurants.</p>
+      <a class="foot__top" href="#main">
+        <span data-i18n="FB_BACK_TOP">Back to top</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+      </a>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>
