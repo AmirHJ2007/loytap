@@ -13,17 +13,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=12" />
-  <script src="i18n.js?v=22"></script>
+  <link rel="stylesheet" href="staff.css?v=13" />
+  <script src="i18n.js?v=23"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span><span class="grain"></span></div>
+
+  <button class="staff-signout" id="signoutBtn" type="button" aria-label="Sign out" title="Sign out" data-i18n-aria="WALLET_SIGNOUT" data-i18n-title="WALLET_SIGNOUT">
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <path d="M16 17l5-5-5-5"/>
+      <path d="M21 12H9"/>
+    </svg>
+  </button>
 
   <main class="staff">
     <header class="staff-head">
       <h1 class="staff-title" id="cafeName">Oram Cafe &amp; Restaurant</h1>
     </header>
-    <span class="staff-badge" data-i18n="STAFF_BADGE">Staff Scanner</span>
 
     <!-- Incoming stamp-tap requests — real-time, no refresh -->
     <div class="request-queue" id="requestQueue" aria-live="polite"></div>
@@ -67,13 +74,6 @@
         </form>
       </div>
     </div>
-
-    <button class="signout-cta" id="signoutBtn" type="button">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
-      </svg>
-      <span data-i18n="WALLET_SIGNOUT">Sign out</span>
-    </button>
   </main>
 
   <!-- Result modal -->

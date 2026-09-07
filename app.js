@@ -625,7 +625,6 @@ const pocketBtn = document.getElementById("pocketBtn");
 const pocketBadge = document.getElementById("pocketBadge");
 const scrim = document.getElementById("scrim");
 const drawer = document.getElementById("drawer");
-const drawerClose = document.getElementById("drawerClose");
 const drawerBack = document.getElementById("drawerBack");
 const drawerTitle = document.getElementById("drawerTitle");
 const drawerList = document.getElementById("drawerList");
@@ -736,10 +735,11 @@ function activeCoupon(d) {
     <p class="coupon-card__desc">${escapeHtml(d.desc)}</p>
     <span class="coupon-card__notch"></span>
     <p class="coupon-card__exp${urgent ? " is-urgent" : ""}">${urgent ? '<span class="coupon-card__dot"></span>' : ""}${escapeHtml(expText)}</p>`;
-  c.addEventListener("click", () => {
-    closeDrawer();
-    setTimeout(() => showCongrats(d), 180);
-  });
+  // .congrats is its own full-screen overlay (position:fixed, above the
+  // tabbar) regardless of which tab panel is underneath, so it can just show
+  // directly — no need to switch back to the wallet tab first the way the
+  // old bottom-sheet drawer had to.
+  c.addEventListener("click", () => showCongrats(d));
   return c;
 }
 
@@ -824,7 +824,8 @@ function renderDrawer() {
   else renderCafeList();
 }
 
-// ---- shared scrim + bottom-nav overlays ----
+// ---- tab panels (wallet/discounts) + the settings sheet on top of them ----
+const stage = document.getElementById("stage");
 const settingsSheet = document.getElementById("settings");
 const tabbarEl = document.getElementById("tabbar");
 const tabBtns = {
@@ -834,24 +835,36 @@ const tabBtns = {
 };
 const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 
+// Wallet and Discounts are real, mutually-exclusive full panels (#stage /
+// #drawer) now — swapped directly, the same way owner.page.js's
+// setOwnerTab toggles its .panel elements, rather than the old bottom-sheet
+// drawer that overlaid the wallet. Settings stays a separate floating sheet
+// on top of whichever of the two is showing underneath, same as before.
+function showPanel(name) {
+  stage.hidden = name !== "wallet";
+  drawer.hidden = name !== "discounts";
+  if (name === "discounts") {
+    drawerCafeId = null; // always start at the café list
+    renderDrawer();
+    loadDiscounts();
+  }
+}
 function setTab(name) {
   if (tabbarEl) tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
   for (const k in tabBtns) if (tabBtns[k]) tabBtns[k].classList.toggle("is-active", k === name);
 }
-function showScrim(hideTabbar) {
+function goToTab(name) {
+  closeSettings(true);
+  showPanel(name);
+  setTab(name);
+}
+function showScrim() {
   scrim.hidden = false;
   requestAnimationFrame(() => scrim.classList.add("show"));
-  // the full-height drawer overlaps the toolbar's spot, so it hides it while open;
-  // the settings sheet sits higher up and leaves the toolbar clear, so it stays put
-  // and stays tappable — switching straight to another tab from Settings.
-  if (hideTabbar && tabbarEl) tabbarEl.classList.add("is-hidden");
 }
-function maybeHideScrim() {
-  const anyOpen = drawer.classList.contains("open") || (settingsSheet && settingsSheet.classList.contains("open"));
-  if (!anyOpen) {
-    scrim.classList.remove("show"); setTimeout(() => { scrim.hidden = true; }, 320);
-    if (tabbarEl) tabbarEl.classList.remove("is-hidden");
-  }
+function hideScrim() {
+  scrim.classList.remove("show");
+  setTimeout(() => { scrim.hidden = true; }, 320);
 }
 
 async function loadDiscounts() {
@@ -863,25 +876,9 @@ async function loadDiscounts() {
   updateBadges();
   renderDrawer();
 }
-async function openDrawer() {
-  if (settingsSheet) closeSettings(true);
-  showScrim(true);
-  drawer.classList.add("open");
-  drawer.setAttribute("aria-hidden", "false");
-  setTab("discounts");
-  drawerCafeId = null; // always start at the café list
-  renderDrawer();
-  loadDiscounts();
-}
-function closeDrawer(keepTab) {
-  drawer.classList.remove("open");
-  drawer.setAttribute("aria-hidden", "true");
-  maybeHideScrim();
-  if (!keepTab) setTab("wallet");
-}
 
 function openSettings() {
-  closeDrawer(true);
+  showPanel("wallet"); // whatever's behind the sheet reads as the wallet, not Discounts
   try {
     const nm = (localStorage.getItem("loytap_name") || "").trim();
     const nEl = document.getElementById("setName"); if (nEl) nEl.textContent = nm || "—";
@@ -896,7 +893,7 @@ function closeSettings(keepTab) {
   if (!settingsSheet) return;
   settingsSheet.classList.remove("open");
   settingsSheet.setAttribute("aria-hidden", "true");
-  maybeHideScrim();
+  hideScrim();
   if (!keepTab) setTab("wallet");
 }
 
@@ -906,18 +903,13 @@ function doSignout() {
   location.replace("auth.html");
 }
 
-pocketBtn.addEventListener("click", openDrawer);
-drawerClose.addEventListener("click", () => closeDrawer());
+pocketBtn.addEventListener("click", () => goToTab("discounts"));
 if (drawerBack) drawerBack.addEventListener("click", () => { drawerCafeId = null; renderDrawer(); });
-scrim.addEventListener("click", () => { closeDrawer(); closeSettings(); });
-// tapping empty space inside the drawer/sheet (not a row, card, or button) also
-// goes back to the wallet — only fires when the click lands on the container
-// itself, never on a descendant that already handles its own click.
-drawer.addEventListener("click", (e) => { if (e.target === drawer || e.target === drawerList) closeDrawer(); });
+scrim.addEventListener("click", () => closeSettings());
 if (settingsSheet) settingsSheet.addEventListener("click", (e) => { if (e.target === settingsSheet) closeSettings(); });
 
-if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => { drawer.classList.contains("open") ? closeDrawer() : openDrawer(); });
-if (tabBtns.wallet) tabBtns.wallet.addEventListener("click", () => { closeDrawer(true); closeSettings(true); setTab("wallet"); });
+if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => goToTab("discounts"));
+if (tabBtns.wallet) tabBtns.wallet.addEventListener("click", () => goToTab("wallet"));
 if (tabBtns.settings) tabBtns.settings.addEventListener("click", () => { settingsSheet.classList.contains("open") ? closeSettings() : openSettings(); });
 
 const setSignout = document.getElementById("setSignout");
@@ -1089,7 +1081,7 @@ if (walletCloseBtn) walletCloseBtn.addEventListener("click", deselectCard);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!congrats.hidden) hideCongrats();
-  else if (drawer.classList.contains("open")) closeDrawer();
+  else if (settingsSheet && settingsSheet.classList.contains("open")) closeSettings();
   else if (selectedIndex != null) deselectCard();
 });
 
@@ -1249,7 +1241,7 @@ async function init() {
 
   if (params.get("debugopen") === "discounts") {
     setTimeout(() => {
-      openDrawer();
+      goToTab("discounts");
       if (params.get("autocafe") && memberships[0]) {
         setTimeout(() => { drawerCafeId = memberships[0].cafeId; renderDrawer(); }, 500);
       }

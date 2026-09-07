@@ -82,6 +82,11 @@ body {
   padding: calc(30px + env(safe-area-inset-top, 0px)) 20px 28px;
   gap: 22px;
 }
+/* same specificity-vs-UA-stylesheet issue as .panel[hidden] elsewhere in the
+   app (see owner.html) — without this, toggling the `hidden` attribute from
+   setTab() wouldn't actually hide #stage while the Discounts tab panel
+   (#drawer) is showing. */
+.stage[hidden] { display: none; }
 .greeting { margin-top: 6px; }
 
 /* detail-view close button (top-left) + focus state */
@@ -224,7 +229,9 @@ body {
 .oram-mini__sep { font-size: 16px; color: var(--ink-faint); opacity: 0.5; }
 .oram-mini > span:last-child { font-size: 16px; color: var(--ink-faint); font-weight: 700; }
 .oram-name {
-  font-family: var(--font-heading); font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
+  /* the café's own name — always in the English-version look, even in Persian UI,
+     since café names are typically Latin branding and Vazirmatn's uppercase+tracking looks off */
+  font-family: "Quicksand", "Vazirmatn", "Nunito", sans-serif; font-weight: 700; font-size: 21px; letter-spacing: 2.5px;
   margin: 0; color: var(--ink); text-transform: uppercase;
   text-shadow: 0 1px 3px rgba(0,0,0,0.22);
   opacity: 0; transform-origin: 0% 50%;
@@ -399,27 +406,25 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
 .scrim { position: fixed; inset: 0; z-index: 190; background: rgba(30,30,30,0.34); opacity: 0; transition: opacity 0.3s ease; }
 .scrim.show { opacity: 1; }
 
+/* A persistent tab panel now (swapped with #stage by setTab in app.js), not
+   a bottom-sheet overlay — same full-height treatment as .stage, just its
+   own light background instead of the wallet's. See .tabbar below for the
+   tab buttons themselves; there's no scrim or close button here any more,
+   matching how the owner dashboard's own tabs work. */
 .drawer {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 215;
-  width: 100%; max-height: min(86vh, 720px);
+  position: relative; z-index: 1;
+  min-height: 100%;
   background: linear-gradient(160deg, #ececec, #e2e2e2);
-  box-shadow: 0 -18px 50px -20px rgba(40,40,40,0.6);
-  border-radius: 26px 26px 0 0;
-  transform: translateY(100%);
-  transition: transform 0.42s var(--ease-spring);
   display: flex; flex-direction: column;
-  padding: 12px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: calc(30px + env(safe-area-inset-top, 0px)) 20px 28px;
 }
-.drawer.open { transform: translateY(0); }
-.drawer__grip { width: 42px; height: 4px; border-radius: 3px; background: rgba(20,20,20,0.18); margin: 2px auto 14px; }
+.drawer[hidden] { display: none; }
 .drawer__head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .drawer__title { flex: 1; min-width: 0; font-family: var(--font-heading); font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drawer__close { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 15px; cursor: pointer; display: grid; place-items: center; }
-.drawer__close:hover { color: #171717; }
 .drawer__back { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
 .drawer__back:hover { color: #171717; }
 .drawer__back[hidden] { display: none; }
-.drawer__list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.drawer__list { flex: 1; display: flex; flex-direction: column; gap: 12px; }
 .drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #9a9a9a; }
 
 /* avatar/name/chevron order stays like the English version regardless of UI
@@ -879,8 +884,8 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 /* discounts now live in the tab bar; retire the top-corner buttons */
 .pocket-btn { display: none; }
 .signout-btn { display: none; }
-/* keep the card clear of the floating bar */
-.stage { padding-bottom: 104px; }
+/* keep content clear of the floating bar, on either tab panel */
+.stage, .drawer { padding-bottom: 104px; }
 /* dev-only Stamp button sits above the bar */
 .stampbar.dev-on { bottom: 88px; }
 

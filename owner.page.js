@@ -631,3 +631,25 @@
     setOwnerTab(initialTab);
 
     loadCafe().then(loadRewards);
+
+    // First-visit welcome tip — the flag business.js sets right after a
+    // self-serve registration succeeds. Consumed (and cleared) here so it
+    // only ever shows once, the moment the owner actually reaches their new
+    // dashboard, rather than on every later sign-in.
+    (function () {
+      let seen = false;
+      try { seen = localStorage.getItem("loytap_owner_first_visit") === "1"; } catch (e) {}
+      if (!seen) return;
+      try { localStorage.removeItem("loytap_owner_first_visit"); } catch (e) {}
+      const tip = $("firstVisitTip");
+      tip.hidden = false;
+      tip.setAttribute("aria-hidden", "false");
+      function closeTip() {
+        tip.hidden = true;
+        tip.setAttribute("aria-hidden", "true");
+      }
+      $("firstVisitTipClose").addEventListener("click", closeTip);
+      // same dismiss pattern as #cropModal above: click the backdrop, or Escape
+      tip.addEventListener("pointerdown", (e) => { if (e.target === tip) closeTip(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !tip.hidden) closeTip(); });
+    })();

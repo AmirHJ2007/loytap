@@ -27,7 +27,12 @@ html[dir="rtl"] {
   --font-body: "Vazirmatn", "Nunito", system-ui, -apple-system, sans-serif;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+/* min-height, not height: a fixed height caps body's own painted box at
+   exactly the viewport, so once .staff's content (e.g. a stack of incoming
+   requests) grows taller than that and the page scrolls, body's background
+   gradient stops covering the overflow — the "not full screen" gap. auth.css
+   already gets this right; staff.css just didn't match it. */
+html, body { min-height: 100%; margin: 0; }
 body {
   font-family: var(--font-body);
   color: var(--ink);
@@ -72,25 +77,27 @@ body {
   background-image: radial-gradient(rgba(20,20,20,0.6) 0.5px, transparent 0.6px);
   background-size: 3px 3px; }
 
-/* ---------------- Sign out — full-width glass CTA under the scan card ---------------- */
-.signout-cta {
-  display: flex; align-items: center; justify-content: center; gap: 9px;
-  width: 100%; padding: 15px 20px; border-radius: 16px;
-  font-family: var(--font-heading); font-weight: 700; font-size: 15px;
-  color: #c0503f; cursor: pointer;
-  background: linear-gradient(155deg, rgba(253,241,238,0.5), rgba(247,221,214,0.4));
+/* ---------------- Sign out — small icon button, top-left, fixed so it's
+   always reachable without scrolling back up (there's no header bar on this
+   page to anchor it to). Same glass-icon-button look as .signout-btn on the
+   customer wallet (styles.css), just its own copy since staff.html doesn't
+   load that stylesheet. */
+.staff-signout {
+  position: fixed; top: 16px; left: 16px; z-index: 60;
+  width: 44px; height: 44px; border-radius: 14px;
+  display: grid; place-items: center; cursor: pointer;
+  color: #c0503f;
+  background: linear-gradient(155deg, rgba(253,241,238,0.62), rgba(247,221,214,0.5));
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   border: 1px solid rgba(192,80,63,0.28);
-  box-shadow: 0 10px 24px -14px rgba(150,50,30,0.35), inset 0 1px 0 rgba(255,255,255,0.55);
-  transition: transform 0.14s ease, box-shadow 0.3s ease, background 0.2s ease;
-  animation: fadeUp 0.6s var(--ease-spring) 0.3s both;
+  box-shadow: 0 10px 22px -10px rgba(150,50,30,0.4), inset 0 1px 0 rgba(255,255,255,0.55);
+  transition: transform 0.16s ease, box-shadow 0.3s ease;
+  animation: fadeDown 0.7s var(--ease-spring) both;
 }
-.signout-cta:hover {
-  background: linear-gradient(155deg, rgba(253,241,238,0.68), rgba(247,221,214,0.56));
-  box-shadow: 0 14px 30px -14px rgba(150,50,30,0.45), inset 0 1px 0 rgba(255,255,255,0.55);
-}
-.signout-cta:active { transform: translateY(1px) scale(0.99); }
+.staff-signout:hover { box-shadow: 0 12px 26px -10px rgba(150,50,30,0.5), inset 0 1px 0 rgba(255,255,255,0.6); }
+.staff-signout:active { transform: scale(0.94); }
+.staff-signout:focus-visible { outline: 2px solid #c0503f; outline-offset: 3px; }
 
 /* ---------------- Layout ---------------- */
 .staff {
@@ -110,14 +117,6 @@ body {
   animation: fadeDown 0.7s var(--ease-spring) both;
 }
 @keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-.staff-badge {
-  font-family: var(--font-heading); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px;
-  color: var(--ink-dim); background: rgba(255,255,255,0.4); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.5);
-  border-radius: 20px; padding: 6px 16px;
-  animation: fadeUp 0.6s var(--ease-spring) 0.1s both;
-}
-@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ================================================================
    Incoming stamp-tap requests (realtime) — each customer tap drops
@@ -336,5 +335,5 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .bg::before, .bg::after, .stain, .scanner__line, .scanner__idle-ring { animation: none; }
-  .staff-title, .staff-badge, .staff-card, .signout-cta { animation: none; opacity: 1; transform: none; }
+  .staff-title, .staff-card, .staff-signout { animation: none; opacity: 1; transform: none; }
 }

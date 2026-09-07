@@ -7,10 +7,6 @@
 // ===================================================================
 (function () {
   var KEY = "loytap_lang";
-  var STR = {
-    en: { back: "Back" },
-    fa: { back: "بازگشت" }
-  };
   function getLang() {
     try { var v = localStorage.getItem(KEY); if (v === "en" || v === "fa") return v; } catch (e) {}
     return "fa";
@@ -24,7 +20,6 @@
     document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
     document.getElementById("docEn").hidden = lang !== "en";
     document.getElementById("docFa").hidden = lang !== "fa";
-    document.getElementById("backLabel").textContent = STR[lang].back;
     document.querySelectorAll(".lang-switch__btn").forEach(function (b) {
       b.classList.toggle("is-on", b.dataset.lang === lang);
     });

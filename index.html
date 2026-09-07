@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=90" />
-  <script src="i18n.js?v=22"></script>
+  <link rel="stylesheet" href="styles.css?v=92" />
+  <script src="i18n.js?v=23"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -43,7 +43,7 @@
 
   <button class="wallet-close" id="walletClose" type="button" aria-label="Back to wallet" hidden data-i18n-aria="WALLET_ARIA_BACK_TO_WALLET">✕</button>
 
-  <main class="stage">
+  <main class="stage" id="stage">
     <p class="greeting" id="greeting"></p>
     <div class="wallet" id="wallet"></div>
   </main>
@@ -88,17 +88,18 @@
   </button>
 
   <div class="scrim" id="scrim" hidden></div>
-  <aside class="drawer" id="drawer" aria-hidden="true" aria-label="My discounts">
-    <div class="drawer__grip" aria-hidden="true"></div>
+  <!-- Discounts tab panel — a persistent panel swapped with #stage (see setTab
+       in app.js), not an overlay: no scrim, no close button, matching the
+       owner dashboard's Card/Discounts/Settings tabs. -->
+  <div class="drawer" id="drawer" hidden aria-label="My discounts">
     <header class="drawer__head">
       <button class="drawer__back" id="drawerBack" aria-label="Back" hidden data-i18n-aria="WALLET_ARIA_BACK">‹</button>
       <h2 class="drawer__title" id="drawerTitle" data-i18n="WALLET_MY_CAFES">My Cafés</h2>
-      <button class="drawer__close" id="drawerClose" aria-label="Close" data-i18n-aria="WALLET_ARIA_CLOSE">✕</button>
     </header>
     <div class="drawer__list" id="drawerList">
       <p class="drawer__empty" id="drawerEmpty" data-i18n-html="WALLET_EMPTY_DISCOUNTS">No discounts yet.<br/>Fill a card to earn one.</p>
     </div>
-  </aside>
+  </div>
 
   <!-- Congratulation ticket -->
   <div class="congrats" id="congrats" hidden aria-hidden="true">
@@ -194,6 +195,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=69"></script>
+  <script src="app.js?v=70"></script>
 </body>
 </html>
