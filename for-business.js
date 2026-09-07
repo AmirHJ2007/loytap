@@ -178,6 +178,7 @@
       FB_NAV_FAQ: "FAQ",
       FB_NAV_HOW: "How it works",
       FB_NAV_INSIGHTS: "What you get",
+      FB_NAV_MENU: "Menu",
       FB_NAV_PRICING: "Pricing",
       FB_NEXT1_H3: "Targeted messages, in the card they kept",
       FB_NEXT1_P: "Reach the customers who have drifted past their usual rhythm — inside the card already on their home screen, not in the message app where they hear from family.",
@@ -367,6 +368,7 @@
       FB_NAV_FAQ: "سوالات متداول",
       FB_NAV_HOW: "روش کار",
       FB_NAV_INSIGHTS: "امکانات",
+      FB_NAV_MENU: "منو",
       FB_NAV_PRICING: "قیمت‌گذاری",
       FB_NEXT1_H3: "پیام‌های هدفمند، در همان کارتی که نگه داشته‌اند",
       FB_NEXT1_P: "به مشتریانی برسید که از ریتم معمولشان فاصله گرفته‌اند — داخل همان کارتی که از قبل روی صفحه اصلی گوشی‌شان است، نه در اپ پیام‌رسانی که از خانواده‌شان خبر می‌گیرند.",
@@ -463,6 +465,8 @@
       b.classList.toggle("is-on", on);
       b.setAttribute("aria-selected", String(on));
     });
+    var burger = $("navBurger");
+    if (burger && dict.FB_NAV_MENU != null) burger.setAttribute("aria-label", dict.FB_NAV_MENU);
   }
   function langSwitch(onChange) {
     $$(".lang-switch__btn").forEach(function (b) {
@@ -582,7 +586,7 @@
     var items = $$(".rv");
     if (!("IntersectionObserver" in window) || reduced.matches) {
       items.forEach(function (el) { el.classList.add("is-in"); });
-      return;
+      return { sync: function () {} };
     }
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
@@ -592,6 +596,38 @@
       });
     }, { rootMargin: "0px 0px -12% 0px", threshold: 0.12 });
     items.forEach(function (el) { io.observe(el); });
+
+    /* Safety net: this observer only ever sees the .rv elements that
+       existed when reveals() first ran — but applyI18n() re-renders
+       every data-i18n-html target (like #whyList) wholesale on each
+       language switch, via innerHTML, which throws the old .why__row
+       nodes away and builds fresh ones that were never handed to
+       io.observe(). Nothing was ever going to make those intersect;
+       they'd just sit at opacity:0 forever ("the why section doesn't
+       load"). A big/fast scroll jump landing straight in the middle of
+       the section can plausibly hit the same dead end even without a
+       language switch. sync() re-checks every not-yet-revealed .rv
+       directly against the viewport, catching both cases — exposed so
+       the language switch can call it immediately instead of only
+       reacting to the next scroll. */
+    var checking = false;
+    function sync() {
+      if (checking) return;
+      checking = true;
+      requestAnimationFrame(function () {
+        checking = false;
+        $$(".rv:not(.is-in)").forEach(function (el) {
+          var r = el.getBoundingClientRect();
+          if (r.bottom > 0 && r.top < window.innerHeight) {
+            el.classList.add("is-in");
+            io.unobserve(el);
+          }
+        });
+      });
+    }
+    on(window, "scroll", sync, { passive: true });
+    on(window, "resize", sync);
+    return { sync: sync };
   }
 
   /* The hero headline animates on load rather than on scroll — it is already
@@ -649,6 +685,41 @@
     frame();
 
     wireSmoothLinks(bar);
+  }
+
+  /* ======================================================= mobile nav === */
+  /* The hamburger below 860px opens a dropdown holding the section links
+     and the "early access" CTA (both live in the DOM once, styled inline
+     on desktop via display:contents — see for-business.css). Closes on a
+     link tap, Escape, an outside click, or resizing back past the
+     breakpoint, so it never gets left open behind a changed layout. */
+  function mobileNav() {
+    var burger = $("navBurger");
+    var panel  = $("navMobile");
+    if (!burger || !panel) return;
+
+    function isOpen() { return panel.classList.contains("is-open"); }
+    function close() {
+      panel.classList.remove("is-open");
+      burger.setAttribute("aria-expanded", "false");
+    }
+    function open() {
+      panel.classList.add("is-open");
+      burger.setAttribute("aria-expanded", "true");
+    }
+
+    on(burger, "click", function (e) {
+      e.stopPropagation();
+      isOpen() ? close() : open();
+    });
+    on(panel, "click", function (e) {
+      if (e.target.closest("a")) close();
+    });
+    on(document, "keydown", function (e) { if (e.key === "Escape") close(); });
+    on(document, "click", function (e) {
+      if (isOpen() && !panel.contains(e.target) && e.target !== burger) close();
+    });
+    on(window, "resize", function () { if (window.innerWidth > 860) close(); });
   }
 
   /* ============================================================== foot === */
@@ -717,18 +788,73 @@
     if (!list) return null;
     var steps  = $$(".step", list);
     var scenes = $$(".scene", panel);
+    // Below 940px, .steps only ever shows one step — these are its
+    // prev/next controls and "N / total" readout (see .steps__nav in
+    // for-business.css). Hidden above that width, where every step is
+    // already visible in the list and clicking one is enough.
+    var nav    = $$(".steps__nav", panel)[0];
+    var navCur = nav && $$(".steps__navCur", nav)[0];
     var timer  = null;
     var manual = false;
     var i = 0;
 
+    // Below 940px every step is position:absolute (see for-business.css),
+    // so .steps has no natural height of its own — without this it would
+    // jump straight to each step's height in one frame, undercutting the
+    // whole point of animating the swap.
+    //
+    // Measuring steps[i].scrollHeight (or its wrapping <span>'s) doesn't
+    // work for this: scrollHeight only reports true overflow content on an
+    // element that itself sets overflow to hidden/scroll/auto — on a plain
+    // overflow:visible box it just returns the box's own current height,
+    // no matter how much content actually spills past it. .step is one of
+    // those (position:absolute + inset:0 pins it to whatever .steps
+    // currently measures), and so is the plain <span> wrapping its h3+p
+    // (a grid item stretched to match .step__n's row by default
+    // align-items:stretch) — both were silently reporting the *previous*
+    // step's height back, short by however much padding that left out.
+    // h3 and p don't have that problem: h3 is a normal descendant, not a
+    // grid item, so it's never externally stretched; p already carries its
+    // own overflow:hidden (for the old expand/collapse behaviour), which
+    // makes its scrollHeight trustworthy the same way. Content height plus
+    // .step's own vertical padding is the real total.
+    var carouselMQ = window.matchMedia("(max-width: 940px)");
+    function syncHeight() {
+      if (!carouselMQ.matches) { list.style.height = ""; return; }
+      var active  = steps[i];
+      var kicker  = active.querySelector(".step__kicker"); // steps 2/3 of the "gain" panel only
+      var h3      = active.querySelector("h3");
+      var p       = active.querySelector("p");
+      var cs      = getComputedStyle(active);
+      var padY    = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      var h3MarginBottom = parseFloat(getComputedStyle(h3).marginBottom);
+      var kickerHeight = 0;
+      if (kicker) {
+        kickerHeight = kicker.offsetHeight + parseFloat(getComputedStyle(kicker).marginBottom);
+      }
+      list.style.height = (kickerHeight + h3.offsetHeight + h3MarginBottom + p.scrollHeight + padY) + "px";
+    }
+
     function show(next) {
       i = next;
       steps.forEach(function (s, k) {
-        s.classList.toggle("is-on", k === i);
-        s.setAttribute("aria-pressed", String(k === i));
+        var on = k === i;
+        s.classList.toggle("is-on", on);
+        // Below 940px the step list becomes a one-at-a-time horizontal
+        // carousel (see for-business.css) — "is-before" marks a step
+        // that's already had its turn so CSS can park it to the left
+        // instead of the default "not reached yet" park on the right.
+        // Index-based, not a DOM sibling check, because steps 2 and 3
+        // nest inside a shared "first time only" group.
+        s.classList.toggle("is-before", k < i);
+        s.setAttribute("aria-pressed", String(on));
       });
       scenes.forEach(function (s, k) { s.classList.toggle("is-on", k === i); });
+      if (navCur) navCur.textContent = String(i + 1);
+      syncHeight();
     }
+    show(0);
+    on(window, "resize", syncHeight);
 
     function stop() {
       manual = true;
@@ -753,6 +879,16 @@
       on(s, "click", function () { stop(); show(k); });
       on(s, "focus", function () { if (!manual) show(k); });
     });
+
+    if (nav) {
+      $$(".steps__navBtn", nav).forEach(function (b) {
+        var dir = Number(b.dataset.dir);
+        on(b, "click", function () {
+          stop();
+          show((i + dir + steps.length) % steps.length);
+        });
+      });
+    }
 
     if ("IntersectionObserver" in window) {
       var io = new IntersectionObserver(function (entries) {
@@ -1122,10 +1258,10 @@
   /* ================================================================ go ==== */
   applyI18n();
   fillCommercials();
-  reveals();
   heroTitle();
   ctaButtons();
   nav();
+  mobileNav();
   footNav();
   logoJump();
   spotlight();
@@ -1135,8 +1271,13 @@
   counters();
   faq();
   signup();
+  var revealsCtrl = reveals();
   langSwitch(function () {
     fillCommercials();
     pricingCtrl && pricingCtrl.refreshLang();
+    // applyI18n() just rebuilt every data-i18n-html target (#whyList
+    // included) from scratch — see reveals()'s own comment for why that
+    // otherwise leaves the new .why__row elements stuck invisible.
+    revealsCtrl.sync();
   });
 })();

@@ -16,8 +16,8 @@
 
   <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="for-business.css?v=30" />
-  <script src="for-business.js?v=16" defer></script>
+  <link rel="stylesheet" href="for-business.css?v=47" />
+  <script src="for-business.js?v=24" defer></script>
 </head>
 <body>
 
@@ -56,17 +56,22 @@
         </svg>
         <svg class="logo__word" viewBox="0 0 100 36.842" aria-hidden="true"><use href="#logoWord" /></svg>
       </a>
-      <nav class="nav__links" aria-label="Sections">
-        <a href="#how" data-i18n="FB_NAV_HOW">How it works</a>
-        <a href="#insights" data-i18n="FB_NAV_INSIGHTS">What you get</a>
-        <a href="#pricing" data-i18n="FB_NAV_PRICING">Pricing</a>
-        <a href="#faq" data-i18n="FB_NAV_FAQ">FAQ</a>
-      </nav>
+      <div class="nav__mobile" id="navMobile">
+        <nav class="nav__links" aria-label="Sections">
+          <a href="#how" data-i18n="FB_NAV_HOW">How it works</a>
+          <a href="#insights" data-i18n="FB_NAV_INSIGHTS">What you get</a>
+          <a href="#pricing" data-i18n="FB_NAV_PRICING">Pricing</a>
+          <a href="#faq" data-i18n="FB_NAV_FAQ">FAQ</a>
+        </nav>
+        <a class="btn btn--primary nav__cta" href="#signup"><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
       <div class="lang-switch" id="langSwitch" role="tablist" aria-label="Language">
         <button class="lang-switch__btn" data-lang="en" type="button">EN</button>
         <button class="lang-switch__btn" data-lang="fa" type="button">فا</button>
       </div>
-      <a class="btn btn--primary nav__cta" href="#signup"><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <button class="nav__burger" id="navBurger" type="button" aria-expanded="false" aria-controls="navMobile" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
       <span class="nav__prog" id="prog" aria-hidden="true"></span>
     </div>
   </header>
@@ -283,13 +288,22 @@
             <li class="steps__group">
               <p class="steps__grouplabel" aria-hidden="true" data-i18n="FB_HOW_GROUP_LABEL">First time only</p>
               <ol class="steps__sub">
-                <li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_G2_H">First time? Name and mobile number</h3><p data-i18n="FB_HOW_G2_P">Two fields. The account is created instantly — no app store, no password, no email confirmation, nothing to install.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
-                <li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_G3_H">They add it to their home screen</h3><p data-i18n="FB_HOW_G3_P">It looks and opens like an app icon, but there is nothing to download and nothing to update. It is a web page that behaves like an app.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+                <li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><span class="step__kicker" aria-hidden="true" data-i18n="FB_HOW_GROUP_LABEL">First time only</span><h3 data-i18n="FB_HOW_G2_H">First time? Name and mobile number</h3><p data-i18n="FB_HOW_G2_P">Two fields. The account is created instantly — no app store, no password, no email confirmation, nothing to install.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
+                <li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><span class="step__kicker" aria-hidden="true" data-i18n="FB_HOW_GROUP_LABEL">First time only</span><h3 data-i18n="FB_HOW_G3_H">They add it to their home screen</h3><p data-i18n="FB_HOW_G3_P">It looks and opens like an app icon, but there is nothing to download and nothing to update. It is a web page that behaves like an app.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
               </ol>
             </li>
             <li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_G4_H">Staff confirm the tap on their panel</h3><p data-i18n="FB_HOW_G4_P">The request shows up live on the staff panel. A stamp is only added once staff approve it — that is what stops anyone claiming a free one.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
             <li><button type="button" class="step" aria-pressed="false" data-step="5"><span class="step__n" aria-hidden="true">05</span><span><h3 data-i18n="FB_HOW_G5_H">Every visit after that is one tap</h3><p data-i18n="FB_HOW_G5_P">Tap, stamp added, card updated. No card to carry, no card to lose, no app to open first — fill the card and the reward is theirs.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
           </ol>
+          <div class="steps__nav">
+            <button type="button" class="steps__navBtn" data-dir="-1" aria-label="Previous step">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="steps__navCount" aria-hidden="true"><span class="steps__navCur">1</span> / <span class="steps__navTotal">5</span></span>
+            <button type="button" class="steps__navBtn" data-dir="1" aria-label="Next step">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
           <div class="phone rv" aria-hidden="true">
             <div class="phone__frame">
               <div class="phone__screen">
@@ -344,6 +358,15 @@
         <!-- ------------------------------------------------------ using a reward -->
         <div class="how__grid" id="howPanelUse" role="tabpanel" aria-labelledby="howTabUse" hidden>
           <ol class="steps" aria-label="How a customer redeems a reward, step by step"><li><button type="button" class="step is-on" aria-pressed="true" data-step="1"><span class="step__n" aria-hidden="true">01</span><span><h3 data-i18n="FB_HOW_U1_H">They bring up their card</h3><p data-i18n="FB_HOW_U1_P">A completed card turns into a ticket — a QR code and a short backup code, ready to show at the counter.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_U2_H">Staff scan it, or type the code</h3><p data-i18n="FB_HOW_U2_P">The staff scanner reads the QR in a beat. Mid-rush and awkward to scan? Staff can type the short code by hand instead.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_U3_H">Checked before anything is given</h3><p data-i18n="FB_HOW_U3_P">It is verified against our server instantly — an expired or already-used code is caught right there, before any discount is handed out.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_U4_H">Redeemed — apply the discount</h3><p data-i18n="FB_HOW_U4_P">The screen turns to "Redeemed ✓." Staff apply it on the customer's bill right there at the register.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="5"><span class="step__n" aria-hidden="true">05</span><span><h3 data-i18n="FB_HOW_U5_H">Used once, then it is gone</h3><p data-i18n="FB_HOW_U5_P">The same code cannot be scanned twice. No reused screenshots, no double discounts — every reward is spent exactly once.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li></ol>
+          <div class="steps__nav">
+            <button type="button" class="steps__navBtn" data-dir="-1" aria-label="Previous step">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="steps__navCount" aria-hidden="true"><span class="steps__navCur">1</span> / <span class="steps__navTotal">5</span></span>
+            <button type="button" class="steps__navBtn" data-dir="1" aria-label="Next step">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
           <div class="phone rv" aria-hidden="true">
             <div class="phone__frame">
               <div class="phone__screen">
