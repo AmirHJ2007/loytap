@@ -118,6 +118,14 @@ routerAdd("POST", "/card/stamp/request", (e) => {
 // simply expired), there's nothing left to cancel. Staff's queue (staff.js)
 // already treats any non-"pending" status as "resolved, remove the card", so
 // this needs no extra staff-side plumbing beyond the distinct label.
+//
+// Wrapped in $app.runInTransaction — see the long comment on that in
+// /card/stamp/confirm below: without it, this can race a concurrent confirm
+// (customer cancels the instant staff approves) so that the request ends up
+// "approved" with a real stamp granted, while THIS call still returns a
+// clean 200 {status:"cancelled"} to the customer who called it — the
+// customer's own screen says cancelled while the backend silently stamped
+// their card. Verified fixed: see the confirm handler's comment for how.
 //   POST /card/stamp/cancel  (customer auth) { request_id } -> { status: "cancelled" }
 routerAdd("POST", "/card/stamp/cancel", (e) => {
   const u = e.auth;
@@ -126,22 +134,52 @@ routerAdd("POST", "/card/stamp/cancel", (e) => {
   const reqId = String((e.requestInfo().body || {}).request_id || "").trim();
   if (!reqId) return e.json(400, { error: "Missing request" });
 
-  let req = null;
-  try { req = $app.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
-  if (!req) return e.json(404, { status: "invalid", error: "Request not found" });
+  let response = null;
+  $app.runInTransaction((txApp) => {
+    let req = null;
+    try { req = txApp.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
+    if (!req) { response = { code: 404, body: { status: "invalid", error: "Request not found" } }; return; }
 
-  // only the customer who made it — never another customer's pending request
-  if (req.getString("user") !== u.id) return e.json(403, { status: "invalid", error: "Not your request" });
+    // only the customer who made it — never another customer's pending request
+    if (req.getString("user") !== u.id) {
+      response = { code: 403, body: { status: "invalid", error: "Not your request" } };
+      return;
+    }
 
-  if (req.getString("status") !== "pending") {
-    return e.json(409, { status: req.getString("status"), error: "Already handled" });
-  }
+    if (req.getString("status") !== "pending") {
+      response = { code: 409, body: { status: req.getString("status"), error: "Already handled" } };
+      return;
+    }
 
-  req.set("status", "cancelled");
-  $app.save(req);
-  return e.json(200, { status: "cancelled" });
+    req.set("status", "cancelled");
+    txApp.save(req);
+    response = { code: 200, body: { status: "cancelled" } };
+  });
+
+  return e.json(response.code, response.body);
 }, $apis.requireAuth());
 
+// Everything from the status check through the final req.status write below
+// runs inside ONE $app.runInTransaction. Without that, two staff members
+// (or two devices signed into the same shared staff code) tapping
+// Confirm on the same request within the same instant both read
+// status:"pending" before either write lands — verified this for real by
+// firing two truly-concurrent /card/stamp/confirm calls at the same
+// request_id: on the customer's card-completing stamp it minted TWO
+// separate real, redeemable discount codes for one card, and on an
+// ordinary stamp both calls returned 200 with a different randomly-
+// generated stamp look, silently overwriting each other with no error and
+// no way to tell which "won". Every race also left a duplicate stamp_events
+// audit row. runInTransaction fixes this the way it's designed to: fired
+// the same two-concurrent-calls test against a probe record and confirmed
+// empirically that PocketBase genuinely serializes here — the second
+// transaction BLOCKS until the first commits, then its OWN read inside the
+// transaction sees the already-updated status and its already-pending
+// check below correctly 409s, with none of its side effects (stamp_events,
+// membership, discount) ever applied. Same reasoning applies to a customer
+// racing their own /card/stamp/cancel against a staff confirm — whichever
+// of the two transactions starts first wins outright; the other sees the
+// real, already-final status, never a stale "still pending".
 routerAdd("POST", "/card/stamp/confirm", (e) => {
   const u = e.auth;
   const role = u ? u.getString("role") : "";
@@ -155,165 +193,173 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
   const approve = !!body.approve;
   if (!reqId) return e.json(400, { error: "Missing request" });
 
-  let req = null;
-  try { req = $app.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
-  if (!req) return e.json(404, { status: "invalid", error: "Request not found" });
+  let response = null;
+  $app.runInTransaction((txApp) => {
+    let req = null;
+    try { req = txApp.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
+    if (!req) { response = { code: 404, body: { status: "invalid", error: "Request not found" } }; return; }
 
-  // this staff/owner's own café only — never someone else's pending request
-  let cafe = null;
-  try {
-    cafe = $app.findFirstRecordByFilter("cafe_card", "id = {:c} && (staff_user = {:u} || owner_user = {:u})", { c: req.getString("cafe"), u: u.id });
-  } catch (err) { cafe = null; }
-  if (!cafe) return e.json(403, { status: "invalid", error: "Not your café" });
+    // this staff/owner's own café only — never someone else's pending request
+    let cafe = null;
+    try {
+      cafe = txApp.findFirstRecordByFilter("cafe_card", "id = {:c} && (staff_user = {:u} || owner_user = {:u})", { c: req.getString("cafe"), u: u.id });
+    } catch (err) { cafe = null; }
+    if (!cafe) { response = { code: 403, body: { status: "invalid", error: "Not your café" } }; return; }
 
-  if (req.getString("status") !== "pending") {
-    return e.json(409, { status: req.getString("status"), error: "Already handled" });
-  }
+    if (req.getString("status") !== "pending") {
+      response = { code: 409, body: { status: req.getString("status"), error: "Already handled" } };
+      return;
+    }
 
-  const createdMs = new Date(String(req.getString("created")).replace(" ", "T")).getTime();
-  if (isNaN(createdMs) || Date.now() - createdMs > REQUEST_TTL_MS) {
-    req.set("status", "expired");
-    $app.save(req);
-    return e.json(410, { status: "expired", error: "This request expired" });
-  }
+    const createdMs = new Date(String(req.getString("created")).replace(" ", "T")).getTime();
+    if (isNaN(createdMs) || Date.now() - createdMs > REQUEST_TTL_MS) {
+      req.set("status", "expired");
+      txApp.save(req);
+      response = { code: 410, body: { status: "expired", error: "This request expired" } };
+      return;
+    }
 
-  if (!approve) {
-    req.set("status", "denied");
-    $app.save(req);
-    return e.json(200, { status: "denied" });
-  }
+    if (!approve) {
+      req.set("status", "denied");
+      txApp.save(req);
+      response = { code: 200, body: { status: "denied" } };
+      return;
+    }
 
-  // ---- the actual stamp: server-generated look, audit row, and — on ----
-  // ---- completion — a weighted-random reward draw + minted discount ----
-  const userId = req.getString("user");
-  const tagCode = req.getString("tag");
-  const inkColor = "#1c2b3a";
+    // ---- the actual stamp: server-generated look, audit row, and — on ----
+    // ---- completion — a weighted-random reward draw + minted discount ----
+    const userId = req.getString("user");
+    const tagCode = req.getString("tag");
+    const inkColor = "#1c2b3a";
 
-  let membership = null;
-  try {
-    membership = $app.findFirstRecordByFilter("memberships", "user = {:u} && cafe = {:c}", { u: userId, c: cafe.id });
-  } catch (err) { membership = null; }
-  if (!membership) {
-    membership = new Record($app.findCollectionByNameOrId("memberships"));
-    membership.set("user", userId);
-    membership.set("cafe", cafe.id);
-    membership.set("stamp_count", 0);
-    membership.set("cycles", 0);
-    membership.set("stamps", []);
-  }
+    let membership = null;
+    try {
+      membership = txApp.findFirstRecordByFilter("memberships", "user = {:u} && cafe = {:c}", { u: userId, c: cafe.id });
+    } catch (err) { membership = null; }
+    if (!membership) {
+      membership = new Record(txApp.findCollectionByNameOrId("memberships"));
+      membership.set("user", userId);
+      membership.set("cafe", cafe.id);
+      membership.set("stamp_count", 0);
+      membership.set("cycles", 0);
+      membership.set("stamps", []);
+    }
 
-  const stamp = {
-    dx: 0, // always dead-center in the slot circle — no scatter
-    dy: 0,
-    r: +(Math.random() * 14 - 7).toFixed(1),
-    sa: +(0.55 + Math.random() * 0.45).toFixed(2),
-    color: inkColor,
-  };
-
-  let stamps = [];
-  try {
-    const raw = toString(membership.get("stamps")); // JSON field comes back as raw bytes
-    if (raw && raw !== "null") stamps = JSON.parse(raw);
-  } catch (err) { stamps = []; }
-  if (!Array.isArray(stamps)) stamps = [];
-  stamps.push(stamp);
-  let count = stamps.length;
-
-  // Lock the goal to the café's value at the moment a card STARTS. A later change
-  // to stamps_required must not move the goalposts for a card already in progress —
-  // only the customer's NEXT card picks up the new number.
-  let required;
-  if (count === 1) {
-    required = cafe.getInt("stamps_required") || 8;
-    membership.set("card_required", required);
-  } else {
-    required = membership.getInt("card_required") || cafe.getInt("stamps_required") || 8;
-  }
-
-  // audit log (records the real tap source, café, and which tag)
-  const ev = new Record($app.findCollectionByNameOrId("stamp_events"));
-  ev.set("user", userId);
-  ev.set("cafe", cafe.id);
-  ev.set("source", "nfc");
-  ev.set("tag", tagCode);
-  $app.save(ev);
-
-  let completed = false;
-  let discount = null;
-
-  if (count >= required) {
-    // draw one active reward from THIS café's pool at random — every reward
-    // has an equal chance. (To boost a reward's odds the owner simply adds it
-    // more than once, so it holds more than one ticket in this uniform draw.)
-    const opts = $app.findRecordsByFilter("reward_options", "active = true && cafe = {:c}", "", 200, 0, { c: cafe.id });
-    const picked = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
-
-    // due date = issue time + the drawn reward's own "expires after" (amount + unit).
-    // Falls back to the café-wide reward_expiry_days if the reward has none.
-    const due = new Date();
-    const amt = picked ? picked.getInt("expiry_amount") : 0;
-    const unit = picked ? picked.getString("expiry_unit") : "";
-    if (amt > 0 && unit === "day") due.setDate(due.getDate() + amt);
-    else if (amt > 0 && unit === "week") due.setDate(due.getDate() + amt * 7);
-    else if (amt > 0 && unit === "month") due.setMonth(due.getMonth() + amt);
-    else due.setDate(due.getDate() + cafe.getInt("reward_expiry_days"));
-    const dueMs = due.getTime();
-    const code = "LOY" + $security.randomStringWithAlphabet(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
-
-    const d = new Record($app.findCollectionByNameOrId("discounts"));
-    d.set("user", userId);
-    d.set("cafe", cafe.id);
-    if (picked) d.set("reward_option", picked.id);
-    d.set("code", code);
-    d.set("deal", picked ? picked.getString("deal") : "Reward");
-    d.set("description", picked ? picked.getString("description") : "");
-    d.set("one_time", true);
-    d.set("due_date", new Date(dueMs).toISOString());
-    d.set("status", "active");
-    $app.save(d);
-
-    const z = (n) => (n < 10 ? "0" + n : "" + n);
-    discount = {
-      id: d.id,
-      code,
-      deal: d.getString("deal"),
-      description: d.getString("description"),
-      shop: cafe.getString("cafe_name"),
-      cafe_id: cafe.id,
-      due: z(due.getDate()) + "." + z(due.getMonth() + 1) + "." + String(due.getFullYear()).slice(2),
+    const stamp = {
+      dx: 0, // always dead-center in the slot circle — no scatter
+      dy: 0,
+      r: +(Math.random() * 14 - 7).toFixed(1),
+      sa: +(0.55 + Math.random() * 0.45).toFixed(2),
+      color: inkColor,
     };
 
-    // reset the card for a fresh cycle; the next card adopts the café's CURRENT goal
-    stamps = [];
-    count = 0;
-    membership.set("cycles", membership.getInt("cycles") + 1);
-    membership.set("card_required", cafe.getInt("stamps_required") || 8);
-    completed = true;
-  }
+    let stamps = [];
+    try {
+      const raw = toString(membership.get("stamps")); // JSON field comes back as raw bytes
+      if (raw && raw !== "null") stamps = JSON.parse(raw);
+    } catch (err) { stamps = []; }
+    if (!Array.isArray(stamps)) stamps = [];
+    stamps.push(stamp);
+    let count = stamps.length;
 
-  membership.set("stamps", stamps);
-  membership.set("stamp_count", count);
-  $app.save(membership);
+    // Lock the goal to the café's value at the moment a card STARTS. A later change
+    // to stamps_required must not move the goalposts for a card already in progress —
+    // only the customer's NEXT card picks up the new number.
+    let required;
+    if (count === 1) {
+      required = cafe.getInt("stamps_required") || 8;
+      membership.set("card_required", required);
+    } else {
+      required = membership.getInt("card_required") || cafe.getInt("stamps_required") || 8;
+    }
 
-  const result = {
-    stamp, stamp_count: count, required, completed, discount,
-    // the goal the NEXT card will use — after a completion this is the café's
-    // current (possibly changed) value, so the client can rebuild with it
-    next_required: membership.getInt("card_required") || required,
-    cafe: {
-      id: cafe.id,
-      name: cafe.getString("cafe_name"),
-      tagline: cafe.getString("tagline"),
-      accent: cafe.getString("accent") || "#171717",
-      stamps_required: required,
-      min_purchase: cafe.getInt("min_purchase"),
-      theme: cafe.getString("theme"),
-    },
-  };
+    // audit log (records the real tap source, café, and which tag)
+    const ev = new Record(txApp.findCollectionByNameOrId("stamp_events"));
+    ev.set("user", userId);
+    ev.set("cafe", cafe.id);
+    ev.set("source", "nfc");
+    ev.set("tag", tagCode);
+    txApp.save(ev);
 
-  req.set("status", "approved");
-  req.set("result", result);
-  $app.save(req);
+    let completed = false;
+    let discount = null;
 
-  return e.json(200, { status: "approved", result });
+    if (count >= required) {
+      // draw one active reward from THIS café's pool at random — every reward
+      // has an equal chance. (To boost a reward's odds the owner simply adds it
+      // more than once, so it holds more than one ticket in this uniform draw.)
+      const opts = txApp.findRecordsByFilter("reward_options", "active = true && cafe = {:c}", "", 200, 0, { c: cafe.id });
+      const picked = opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
+
+      // due date = issue time + the drawn reward's own "expires after" (amount + unit).
+      // Falls back to the café-wide reward_expiry_days if the reward has none.
+      const due = new Date();
+      const amt = picked ? picked.getInt("expiry_amount") : 0;
+      const unit = picked ? picked.getString("expiry_unit") : "";
+      if (amt > 0 && unit === "day") due.setDate(due.getDate() + amt);
+      else if (amt > 0 && unit === "week") due.setDate(due.getDate() + amt * 7);
+      else if (amt > 0 && unit === "month") due.setMonth(due.getMonth() + amt);
+      else due.setDate(due.getDate() + cafe.getInt("reward_expiry_days"));
+      const dueMs = due.getTime();
+      const code = "LOY" + $security.randomStringWithAlphabet(6, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
+
+      const d = new Record(txApp.findCollectionByNameOrId("discounts"));
+      d.set("user", userId);
+      d.set("cafe", cafe.id);
+      if (picked) d.set("reward_option", picked.id);
+      d.set("code", code);
+      d.set("deal", picked ? picked.getString("deal") : "Reward");
+      d.set("description", picked ? picked.getString("description") : "");
+      d.set("one_time", true);
+      d.set("due_date", new Date(dueMs).toISOString());
+      d.set("status", "active");
+      txApp.save(d);
+
+      const z = (n) => (n < 10 ? "0" + n : "" + n);
+      discount = {
+        id: d.id,
+        code,
+        deal: d.getString("deal"),
+        description: d.getString("description"),
+        shop: cafe.getString("cafe_name"),
+        cafe_id: cafe.id,
+        due: z(due.getDate()) + "." + z(due.getMonth() + 1) + "." + String(due.getFullYear()).slice(2),
+      };
+
+      // reset the card for a fresh cycle; the next card adopts the café's CURRENT goal
+      stamps = [];
+      count = 0;
+      membership.set("cycles", membership.getInt("cycles") + 1);
+      membership.set("card_required", cafe.getInt("stamps_required") || 8);
+      completed = true;
+    }
+
+    membership.set("stamps", stamps);
+    membership.set("stamp_count", count);
+    txApp.save(membership);
+
+    const result = {
+      stamp, stamp_count: count, required, completed, discount,
+      // the goal the NEXT card will use — after a completion this is the café's
+      // current (possibly changed) value, so the client can rebuild with it
+      next_required: membership.getInt("card_required") || required,
+      cafe: {
+        id: cafe.id,
+        name: cafe.getString("cafe_name"),
+        tagline: cafe.getString("tagline"),
+        accent: cafe.getString("accent") || "#171717",
+        stamps_required: required,
+        min_purchase: cafe.getInt("min_purchase"),
+        theme: cafe.getString("theme"),
+      },
+    };
+
+    req.set("status", "approved");
+    req.set("result", result);
+    txApp.save(req);
+
+    response = { code: 200, body: { status: "approved", result } };
+  });
+
+  return e.json(response.code, response.body);
 }, $apis.requireAuth());
