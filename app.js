@@ -482,10 +482,27 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
     else if (rec.status === "denied" || rec.status === "expired" || rec.status === "cancelled") finish(rec.status);
   });
 
-  // client-side backstop in case the SSE push is missed/dropped — the server
-  // is the real authority on the window (a late confirm is refused there),
-  // this just stops the customer staring at a countdown stuck at 0
-  setTimeout(() => finish("expired"), seconds * 1000 + 1200);
+  // client-side backstop in case the SSE push is missed/dropped (phone
+  // locked, brief signal loss) — but it does NOT just assume the worst.
+  // The server is the real authority on what actually happened, so this
+  // asks it directly before showing anything: a dropped realtime
+  // connection must never tell the customer "expired" over a stamp (or
+  // reward) that was actually granted while their connection was down —
+  // they'd only find out on their next visit, having watched the wrong
+  // outcome animate. A plain GET is enough; the customer already has
+  // read access to their own request (same viewRule as the realtime feed).
+  setTimeout(async () => {
+    if (wrap.hidden || wrap.classList.contains("is-approved") || wrap.classList.contains("is-declined")) return;
+    try {
+      const r = await fetch(API + "/api/collections/stamp_requests/records/" + requestId, { headers: { Authorization: token } });
+      if (r.ok) {
+        const rec = await r.json();
+        if (rec.status === "approved") { finish("approved", rec.result); return; }
+        if (rec.status === "denied" || rec.status === "cancelled") { finish(rec.status); return; }
+      }
+    } catch (_) {}
+    finish("expired"); // still genuinely pending, or the server couldn't be reached — nothing better to show
+  }, seconds * 1000 + 1200);
 }
 
 function hideConfirmWait() {

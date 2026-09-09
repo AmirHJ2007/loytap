@@ -382,3 +382,51 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
 
   return e.json(response.code, response.body);
 }, $apis.requireAuth());
+
+// A pending request only ever gets marked "expired" as a side effect of
+// something touching it — the same customer re-tapping (/card/stamp/request)
+// or staff acting on it past its window (/card/stamp/confirm). A customer
+// who taps once and never returns, with staff never opening their queue for
+// that request either, leaves it "pending" in the database forever.
+//
+// This is pure hygiene, not a security fix: the TTL above is already the
+// real authority everywhere it's checked — a stale row can never be
+// approved past its 30s window whether or not this has run yet (see the
+// createdMs check in /card/stamp/confirm). This just sweeps up rows nobody
+// ever touches again, once a minute, so stamp_requests doesn't accumulate
+// dead pending rows and staff's own queue never has to filter out ancient
+// ones by hand. Saving a record fires the same realtime broadcast as any
+// other write, so a customer who's still watching (connection came back
+// after all) gets the real "expired" outcome from this too, not just a
+// silent DB update.
+//
+// Re-checks each row inside its own transaction before writing — the same
+// verified-serializing pattern as every route above — so this can never
+// race a customer or staff member acting on a request in the same instant
+// this sweep reaches it.
+cronAdd("expire_stale_stamp_requests", "* * * * *", () => {
+  const REQUEST_TTL_MS = 30000;
+  const cutoff = new Date(Date.now() - REQUEST_TTL_MS).toISOString().replace("T", " ");
+
+  let stale = [];
+  try {
+    stale = $app.findRecordsByFilter("stamp_requests", "status = 'pending' && created < {:cut}", "", 200, 0, { cut: cutoff });
+  } catch (err) {
+    $app.logger().error("stale stamp_request sweep query failed", "error", String(err));
+    return;
+  }
+
+  for (const row of stale) {
+    try {
+      $app.runInTransaction((txApp) => {
+        let fresh = null;
+        try { fresh = txApp.findRecordById("stamp_requests", row.id); } catch (err) { fresh = null; }
+        if (!fresh || fresh.getString("status") !== "pending") return; // resolved by someone else in the meantime
+        fresh.set("status", "expired");
+        txApp.save(fresh);
+      });
+    } catch (err) {
+      $app.logger().warn("stale stamp_request sweep failed for one row", "id", row.id, "error", String(err));
+    }
+  }
+});
