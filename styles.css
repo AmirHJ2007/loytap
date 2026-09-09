@@ -77,7 +77,13 @@ body {
 /* ---------------- Stage & wallet ---------------- */
 .stage {
   position: relative; z-index: 1;
-  min-height: 100%;
+  /* min-height:100% only resolves against an ancestor with an explicit
+     (not min-)height, which html/body don't set — so on short content this
+     silently collapsed to the content's own height, leaving the plain body
+     background showing below the fold. Anchor to the viewport instead;
+     dvh accounts for mobile browser chrome collapsing/expanding. */
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   padding: calc(30px + env(safe-area-inset-top, 0px)) 20px 28px;
   gap: 22px;
@@ -182,9 +188,6 @@ body {
   from { opacity: 0; transform: translateY(26px) scale(0.94); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.notch { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--cream); border-radius: 50%; transform: translateY(-50%); box-shadow: inset 0 0 0 2px rgba(0,0,0,0.07); z-index: 2; }
-.notch--l { left: -10px; }
-.notch--r { right: -10px; }
 
 /* ---------------- Brand header ---------------- */
 .brand { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; margin-bottom: 18px; position: relative; z-index: 1; }
@@ -255,8 +258,8 @@ body {
 html[dir="rtl"] .reward-teaser { direction: rtl; }
 .reward-teaser {
   display: none;
+  flex-direction: column; /* .reward-teaser__row above, the optional prizes panel below */
   width: 100%; box-sizing: border-box;
-  align-items: center; gap: 11px;
   margin-top: 14px;
   padding: 12px 15px; border-radius: 15px;
   /* Plain (no backdrop-filter) — a live blur sampled every frame while this
@@ -275,13 +278,61 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
 .reward-teaser[hidden] { display: none; }
 /* only the open card's teaser is visible — the browse stack stays compact */
 .wcard.is-open .reward-teaser:not([hidden]) { display: flex; }
+.reward-teaser__row { display: flex; align-items: center; gap: 11px; }
 .reward-teaser__gift { font-size: 22px; flex: 0 0 auto; line-height: 1; animation: giftBob 2.4s ease-in-out infinite; }
 .reward-teaser__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .reward-teaser__main { font-family: var(--font-heading); font-weight: 700; font-size: 13px; color: var(--ink); letter-spacing: -0.2px; }
 .reward-teaser__main b { font-weight: 800; color: var(--ink); }
 .reward-teaser__sub { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-dim); }
+/* only rendered when a café has more than one active reward (see updateTeaser
+   in app.js) — a plain <span> becomes a button that toggles the prizes panel
+   below it open/closed, so it needs its own (no-underline) tap affordance. */
+.reward-teaser__sub--link {
+  display: inline-flex; align-items: center; gap: 3px;
+  font: inherit; text-transform: uppercase; letter-spacing: 0.6px;
+  background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+  color: var(--ink);
+  transition: opacity 0.15s ease;
+}
+.reward-teaser__sub--link:active { opacity: 0.6; }
+.reward-teaser__chev { font-size: 11px; line-height: 1; transition: transform 0.3s var(--ease-spring); }
+/* chevron points down ("more below") at rest, flips to point up once the
+   panel it opens is showing */
+.reward-teaser__sub--link.is-open .reward-teaser__chev { transform: rotate(180deg); }
 @keyframes teaserIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
 @keyframes giftBob { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
+
+/* ---------------- Prizes panel (toggled open from .reward-teaser__sub--link
+   above — see setTeaserPanelOpen in app.js) ---------------- */
+/* A CSS-Grid row that animates 0fr -> 1fr instead of a hardcoded max-height:
+   it settles at the panel's real content height exactly, whatever that is,
+   rather than guessing a cap and either clipping a long list or leaving the
+   transition "finish" early on a short one. */
+.reward-teaser__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  transition: grid-template-rows 0.45s var(--ease-spring), margin-top 0.45s var(--ease-spring);
+}
+.reward-teaser__panel.is-open { grid-template-rows: 1fr; margin-top: 12px; }
+.reward-teaser__panel-inner {
+  overflow: hidden; min-height: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.prize-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 13px;
+  background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
+}
+/* the panel starts collapsed (0fr) — an entrance animation on its rows would
+   just play invisibly behind that, so it's only worth animating once the
+   panel is actually open (each toggle-open re-triggers it since the whole
+   box's innerHTML — panel included — is rebuilt fresh every time). */
+.reward-teaser__panel.is-open .prize-row { animation: rowIn 0.4s var(--ease-spring) both; animation-delay: calc(var(--i, 0) * 0.05s); }
+.prize-row__gift { font-size: 18px; flex: 0 0 auto; line-height: 1; }
+.prize-row__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.prize-row__deal { font-family: var(--font-heading); font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.prize-row__desc { font-size: 11.5px; line-height: 1.4; color: var(--ink-dim); }
 
 /* ---------------- Stamp grid ---------------- */
 .grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 12px; position: relative; z-index: 1; }
@@ -413,7 +464,9 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
    matching how the owner dashboard's own tabs work. */
 .drawer {
   position: relative; z-index: 1;
-  min-height: 100%;
+  /* see .stage above — min-height:100% doesn't reliably fill the screen */
+  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(160deg, #ececec, #e2e2e2);
   display: flex; flex-direction: column;
   padding: calc(30px + env(safe-area-inset-top, 0px)) 20px 28px;
@@ -421,16 +474,26 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
 .drawer[hidden] { display: none; }
 .drawer__head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .drawer__title { flex: 1; min-width: 0; font-family: var(--font-heading); font-weight: 600; font-size: 22px; margin: 0; letter-spacing: -0.3px; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drawer__back { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.drawer__back { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); color: #565656; font-size: 20px; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: transform 0.14s ease, color 0.2s ease; }
 .drawer__back:hover { color: #171717; }
+.drawer__back:active { transform: scale(0.9); }
 .drawer__back[hidden] { display: none; }
 .drawer__list { flex: 1; display: flex; flex-direction: column; gap: 12px; }
 .drawer__empty { margin: 40px 8px; text-align: center; font-size: 13px; line-height: 1.6; color: #9a9a9a; }
 
 /* avatar/name/chevron order stays like the English version regardless of UI
    language — only the text content translates */
+/* the café list is the very first thing shown when the Discounts tab opens
+   (see showPanel in app.js) — give it the same entrance as the level-2
+   .discounts-page it hands off to, so the tab never just snaps into view. */
 .cafe-list { display: flex; flex-direction: column; gap: 10px; direction: ltr; }
+.cafe-list .cafe-row:nth-child(1) { animation-delay: 0.02s; }
+.cafe-list .cafe-row:nth-child(2) { animation-delay: 0.06s; }
+.cafe-list .cafe-row:nth-child(3) { animation-delay: 0.10s; }
+.cafe-list .cafe-row:nth-child(n+4) { animation-delay: 0.14s; }
+@keyframes rowIn { 0% { opacity: 0; transform: translateY(10px) scale(0.97); } 100% { opacity: 1; transform: none; } }
 .cafe-row {
+  animation: rowIn 0.4s var(--ease-spring) both;
   display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px;
   padding: 13px 14px; border-radius: 16px; border: 0; cursor: pointer; text-align: left;
   background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.6);
@@ -470,7 +533,10 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 
 .coupon-grid {
   flex-shrink: 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;
+  /* auto-fit (not auto-fill): empty tracks collapse to 0 instead of being
+     reserved, so a single card stretches to fill the row instead of sitting
+     in a narrow first column with dead space beside it. */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;
   perspective: 900px;
 }
 
@@ -535,14 +601,8 @@ html[dir="rtl"] .cafe-row { text-align: right; }
   font-size: 11px; color: rgba(255,255,255,0.62); margin: 5px 0 0;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-/* perforated tear line, pushed to the bottom, with punched notches at both edges */
+/* perforated tear line, pushed to the bottom of the card */
 .coupon-card__notch { position: relative; height: 0; margin: auto -15px 11px; align-self: stretch; border-top: 1.5px dashed rgba(255,255,255,0.22); }
-.coupon-card__notch::before, .coupon-card__notch::after {
-  content: ""; position: absolute; top: 0; width: 12px; height: 12px; border-radius: 50%;
-  background: #e7e7e7; transform: translate(-50%, -50%);
-}
-.coupon-card__notch::before { left: 0; }
-.coupon-card__notch::after { left: 100%; }
 .coupon-card__exp {
   position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 5px; align-self: flex-start;
   font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); margin: 0;
@@ -920,9 +980,10 @@ html[dir="rtl"] .cafe-row { text-align: right; }
   width: 84px; padding: 9px 0 8px;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: none; border: 0; cursor: pointer; color: #565656;
-  transition: color 0.35s ease;
+  transition: color 0.35s ease, transform 0.14s ease;
 }
 .tab.is-active { color: #ffffff; }
+.tab:active { transform: scale(0.9); }
 .tab__ico { position: relative; display: grid; place-items: center; height: 24px; }
 .tab.is-active .tab__ico { animation: tabPop 0.5s var(--ease-spring); }
 @keyframes tabPop { 0% { transform: scale(1); } 42% { transform: scale(1.3) translateY(-2px); } 100% { transform: scale(1); } }
@@ -983,6 +1044,7 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
   .tabbar__ind, .sheet, .drawer { transition: none; }
   .discounts-page, .coupon-card, .coupon-card__glow, .coupon-card__dot { animation: none; }
   .coupon-card__shine { display: none; }
+  .cafe-row, .prize-row { animation: none; }
 }
 
 /* ---------------- RTL ---------------- */
@@ -993,3 +1055,15 @@ html[dir="rtl"] .wallet-close { left: auto; right: 16px; }
    sliding active-tab indicator needs to anchor from the other edge and
    translate the opposite way to still land under the right tab */
 html[dir="rtl"] .tabbar__ind { left: auto; right: 7px; transform: translateX(calc(var(--ti, 1) * -84px)); }
+/* the café-detail header inside the Discounts tab, by request: back button
+   pinned to the left (rather than the reading-start/right edge .wallet-close
+   uses above) and the café name centred between it and the empty space that
+   mirrors it, instead of just filling the remaining flex space next to the
+   button. */
+html[dir="rtl"] .drawer__head { position: relative; }
+/* "‹" is a bidi-mirrored character — inside an RTL run the browser flips it
+   to "›" automatically, which reads backwards now that this button sits on
+   the left; direction:ltr keeps it pointing the way it's typed. */
+html[dir="rtl"] .drawer__back { position: absolute; left: 0; top: 50%; transform: translateY(-50%); direction: ltr; }
+html[dir="rtl"] .drawer__back:active { transform: translateY(-50%) scale(0.9); }
+html[dir="rtl"] .drawer__title { width: 100%; text-align: center; padding: 0 44px; }

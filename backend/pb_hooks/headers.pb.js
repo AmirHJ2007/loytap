@@ -22,7 +22,7 @@
 routerUse(new Middleware((e) => {
   try {
     // TRADEOFF — style-src keeps 'unsafe-inline':
-    //   analytics/owner/terms.html carry <style> blocks plus a few style="..."
+    //   owner/terms.html carry <style> blocks plus a few style="..."
     //   attributes. Inline STYLE cannot execute JS, so the residual risk is
     //   CSS-selector exfiltration / layout spoofing — orders of magnitude smaller
     //   than inline SCRIPT. Drop it once those blocks move into .css files.

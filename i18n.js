@@ -141,6 +141,7 @@ const STRINGS = {
     WALLET_POOL_NONE: "a surprise reward awaits",
     WALLET_POOL_LINE: "win {names}{more}",
     WALLET_POOL_AND_MORE: " & more",
+    WALLET_SEE_PRIZES: "see prizes",
     WALLET_TEASER_READY_MAIN: "Reward ready — <b>tap Stamp!</b>",
     WALLET_TEASER_ONE_MAIN: "<b>1 stamp</b> away — so close!",
     WALLET_TEASER_MANY_MAIN: "Only <b>{n} stamps</b> away from a reward",
@@ -233,7 +234,7 @@ const STRINGS = {
     OWNER_STAMPS_HINT: "to earn a reward",
     OWNER_SAVED: "Saved ✓",
     OWNER_LOGO_TITLE: "Your logo",
-    OWNER_PREVIEW_LABEL: "Your customers see",
+    OWNER_PREVIEW_LABEL: "Your loyalty card",
     OWNER_IDENTITY_TITLE: "Business identity",
     OWNER_IDENTITY_SUB: "Shown at the top of every customer's card.",
     OWNER_LOGO_SUB: "Optional — shown as a circle next to your name on every customer's card.",
@@ -287,7 +288,7 @@ const STRINGS = {
     OWNER_NO: "No",
     OWNER_ERR_SAVE_FAILED: "Couldn't save — are you signed in as owner?",
 
-    // ---- analytics.html ----
+    // ---- owner.html — analytics tab ----
     AN_ARIA_INFO: "What does this mean?",
     AN_STAMP_ONE: "Stamp",
     AN_STAMP_MANY: "Stamps",
@@ -503,6 +504,7 @@ const STRINGS = {
     WALLET_POOL_NONE: "یک جایزه شگفت‌انگیز در انتظار شماست",
     WALLET_POOL_LINE: "برنده {names} شوید{more}",
     WALLET_POOL_AND_MORE: " و موارد دیگر",
+    WALLET_SEE_PRIZES: "دیدن جوایز",
     WALLET_TEASER_READY_MAIN: "جایزه آماده است — <b>روی مهر بزنید!</b>",
     WALLET_TEASER_ONE_MAIN: "<b>1 مهر</b> مانده — خیلی نزدیکید!",
     WALLET_TEASER_MANY_MAIN: "تنها <b>{n} مهر</b> تا دریافت جایزه",
@@ -595,7 +597,7 @@ const STRINGS = {
     OWNER_STAMPS_HINT: "برای دریافت جایزه",
     OWNER_SAVED: "ذخیره شد ✓",
     OWNER_LOGO_TITLE: "لوگوی شما",
-    OWNER_PREVIEW_LABEL: "مشتریان شما این را می‌بینند",
+    OWNER_PREVIEW_LABEL: "کارت وفاداری شما",
     OWNER_IDENTITY_TITLE: "هویت کسب‌وکار",
     OWNER_IDENTITY_SUB: "در بالای کارت هر مشتری نمایش داده می‌شود.",
     OWNER_LOGO_SUB: "اختیاری — به شکل دایره کنار نام شما روی کارت هر مشتری دیده می‌شود.",
@@ -649,7 +651,7 @@ const STRINGS = {
     OWNER_NO: "خیر",
     OWNER_ERR_SAVE_FAILED: "ذخیره ممکن نشد — آیا به‌عنوان مالک وارد شده‌اید؟",
 
-    // ---- analytics.html ----
+    // ---- owner.html — analytics tab ----
     AN_ARIA_INFO: "این یعنی چه؟",
     AN_STAMP_ONE: "مهر",
     AN_STAMP_MANY: "مهر",

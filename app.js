@@ -103,10 +103,10 @@ function toast(msg) {
 // ===================================================================
 // The reward is a random draw from the café's pool, so we tease what could be won
 // and count down the stamps remaining on the card itself.
-let rewardPool = [];
+let rewardPool = []; // [{deal, description}] — the open card's café's active reward options
 function poolLine() {
   if (!rewardPool.length) return t("WALLET_POOL_NONE");
-  const names = rewardPool.slice(0, 2).map(escapeHtml).join(t("WALLET_LIST_SEP"));
+  const names = rewardPool.slice(0, 2).map((r) => escapeHtml(r.deal)).join(t("WALLET_LIST_SEP"));
   return t("WALLET_POOL_LINE", { names, more: rewardPool.length > 2 ? t("WALLET_POOL_AND_MORE") : "" });
 }
 function updateTeaser(deck) {
@@ -121,12 +121,55 @@ function updateTeaser(deck) {
   } else {
     gift = "🎁"; main = t("WALLET_TEASER_MANY_MAIN", { n: remaining }); sub = poolLine();
   }
-  box.innerHTML = `<span class="reward-teaser__gift">${gift}</span>
-    <span class="reward-teaser__body"><span class="reward-teaser__main">${main}</span>${sub ? `<span class="reward-teaser__sub">${sub}</span>` : ""}</span>`;
+  // A single possible prize is named right there in `sub` already — nothing
+  // to drill into. More than one collapses `sub` into a "see prizes" toggle
+  // that unfurls a little panel of every reward right below it, in the same
+  // box (see setTeaserPanelOpen + the click delegation in buildCard).
+  const seePrizes = remaining > 0 && rewardPool.length > 1;
+  const subHtml = seePrizes
+    ? `<button type="button" class="reward-teaser__sub reward-teaser__sub--link">${t("WALLET_SEE_PRIZES")} <span class="reward-teaser__chev" aria-hidden="true">⌄</span></button>`
+    : (sub ? `<span class="reward-teaser__sub">${sub}</span>` : "");
+  const panelHtml = seePrizes ? `
+    <div class="reward-teaser__panel">
+      <div class="reward-teaser__panel-inner">${rewardPool.map((r, i) => `
+        <div class="prize-row" style="--i:${i}">
+          <span class="prize-row__gift">🎁</span>
+          <span class="prize-row__body">
+            <span class="prize-row__deal">${escapeHtml(r.deal)}</span>
+            ${r.description ? `<span class="prize-row__desc">${escapeHtml(r.description)}</span>` : ""}
+          </span>
+        </div>`).join("")}</div>
+    </div>` : "";
+  box.innerHTML = `
+    <span class="reward-teaser__row">
+      <span class="reward-teaser__gift">${gift}</span>
+      <span class="reward-teaser__body"><span class="reward-teaser__main">${main}</span>${subHtml}</span>
+    </span>${panelHtml}`;
   box.hidden = false;
   // the teaser only renders (and takes up space) when this card is open —
   // recompute the wallet's height now that its content just changed
   if (selectedIndex === deck.index) layout();
+}
+
+// Opens/closes a card's "see prizes" panel in place. The panel's own height
+// animates via CSS (grid-template-rows: 0fr -> 1fr, see styles.css) but the
+// wallet's containing box has a JS-measured fixed pixel height (see layout()),
+// so it has to be re-measured on every frame of that transition too, or the
+// card below it either clips the panel or leaves a dead-air gap once it settles.
+function animateTeaserResize(ms) {
+  const start = performance.now();
+  (function step(now) {
+    layout();
+    if (now - start < ms) requestAnimationFrame(step);
+  })(start);
+}
+function setTeaserPanelOpen(teaserBox, open) {
+  const panel = teaserBox && teaserBox.querySelector(".reward-teaser__panel");
+  if (!panel) return;
+  panel.classList.toggle("is-open", open);
+  const link = teaserBox.querySelector(".reward-teaser__sub--link");
+  if (link) link.classList.toggle("is-open", open);
+  animateTeaserResize(REDUCED ? 0 : 450);
 }
 
 // Blend a hex colour toward black (amt < 0) or white (amt > 0); amt in [-1, 1].
@@ -169,7 +212,6 @@ function buildCard(cfg, index) {
   el.innerHTML = `
     <div class="card">
       <section class="face face--front">
-        <span class="notch notch--l"></span><span class="notch notch--r"></span>
         <div class="oram-sheen" aria-hidden="true"></div>
         <header class="oram-head">
           <div class="oram-head__main">
@@ -207,9 +249,19 @@ function buildCard(cfg, index) {
 
   // in the browse stack, tapping a card opens it in detail view; tapping the
   // already-open card again closes it, same as the ✕ button
-  el.addEventListener("click", () => {
+  el.addEventListener("click", (e) => {
+    if (e.target.closest(".reward-teaser__sub--link")) return; // handled below, not a card-select
     if (selectedIndex == null) selectCard(deck.index);
     else if (selectedIndex === deck.index) deselectCard();
+  });
+  // delegated (updateTeaser rewrites the box's innerHTML on every stamp) —
+  // the "see prizes" link + panel only exist once there's more than one
+  // possible prize (see updateTeaser); clicking it toggles the panel open.
+  const teaserBox = q(".reward-teaser");
+  if (teaserBox) teaserBox.addEventListener("click", (e) => {
+    if (!e.target.closest(".reward-teaser__sub--link")) return;
+    const panel = teaserBox.querySelector(".reward-teaser__panel");
+    if (panel) setTeaserPanelOpen(teaserBox, !panel.classList.contains("is-open"));
   });
 
   // No manual/self-serve stamping in production — stamps are only granted by a real
@@ -854,11 +906,12 @@ function renderCafeList() {
   memberships.forEach((m) => {
     const rewardCount = discounts.filter((d) => d.cafeId === m.cafeId && !pocketState(d).past).length;
     const initial = (m.cafeName || "?").trim().charAt(0).toUpperCase();
+    const accent = m.accent || "#171717";
     const row = document.createElement("button");
     row.className = "cafe-row";
     row.type = "button";
     row.innerHTML = `
-      <span class="cafe-row__avatar">${escapeHtml(initial)}</span>
+      <span class="cafe-row__avatar" style="background: linear-gradient(158deg, ${shade(accent, -0.08)}, ${shade(accent, -0.30)})">${escapeHtml(initial)}</span>
       <span class="cafe-row__body">
         <span class="cafe-row__name">${escapeHtml(m.cafeName)}</span>
       </span>
@@ -1167,8 +1220,10 @@ if (walletCloseBtn) walletCloseBtn.addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  const openPanel = document.querySelector(".reward-teaser__panel.is-open");
   if (!congrats.hidden) hideCongrats();
   else if (settingsSheet && settingsSheet.classList.contains("open")) closeSettings();
+  else if (openPanel) setTeaserPanelOpen(openPanel.closest(".reward-teaser"), false);
   else if (selectedIndex != null) deselectCard();
 });
 
@@ -1240,7 +1295,9 @@ async function loadRewardPool(cafeId) {
       "&filter=" + encodeURIComponent(`(active=true && cafe='${cafeId}')`)
     );
     const rd = await rr.json();
-    rewardPool = ((rd && rd.items) || []).map((x) => x.deal).filter(Boolean);
+    rewardPool = ((rd && rd.items) || [])
+      .filter((x) => x.deal)
+      .map((x) => ({ deal: x.deal, description: x.description || "" }));
   } catch (_) { rewardPool = []; }
 }
 

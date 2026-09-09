@@ -57,12 +57,15 @@ routerAdd("GET", "/staff.html", (e) => {
   return e.redirect(301, "/staff");
 });
 
+// Analytics used to be its own page (analytics.html); it's now the first tab
+// of /owner instead, so both old paths just redirect there — no existing
+// link, bookmark, or NFC tag breaks.
 routerAdd("GET", "/analytics", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "analytics.html");
+  return e.redirect(301, "/owner#analytics");
 });
 
 routerAdd("GET", "/analytics.html", (e) => {
-  return e.redirect(301, "/analytics");
+  return e.redirect(301, "/owner#analytics");
 });
 
 routerAdd("GET", "/terms", (e) => {
