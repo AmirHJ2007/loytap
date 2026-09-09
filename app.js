@@ -385,6 +385,17 @@ async function handleTap(tagCode) {
 // Waiting for staff to confirm — live over PocketBase realtime, no refresh
 // ===================================================================
 let confirmWaitTimer = null;
+// The pending request the countdown is currently watching, and whether a
+// cancel is already in flight — read by the walletClose ("✕") button's
+// click handler, which cancels this request instead of leaving the wallet
+// while the countdown overlay is up (see below).
+let activeRequestId = null;
+let cancellingRequest = false;
+// set to the live showConfirmWait() call's own `finish` closure below, so
+// cancelStampRequest() (bound to the walletClose button, outside that
+// closure) can resolve the SAME overlay instance instead of duplicating
+// its transition/cleanup logic.
+let activeFinish = null;
 
 function showConfirmWait(deck, requestId, seconds, cafeName) {
   const wrap = document.getElementById("confirmWait");
@@ -393,6 +404,11 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
   const status = document.getElementById("confirmWaitStatus");
   const sub = document.getElementById("confirmWaitSub");
   if (!wrap || !requestId) { busy = false; return; }
+
+  activeRequestId = requestId;
+  cancellingRequest = false;
+  const wc = document.getElementById("walletClose");
+  if (wc) wc.setAttribute("aria-label", t("WALLET_ARIA_CANCEL_REQUEST"));
 
   clearInterval(confirmWaitTimer);
   wrap.classList.remove("is-approved", "is-declined");
@@ -430,6 +446,8 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
     if (wrap.hidden || wrap.classList.contains("is-approved") || wrap.classList.contains("is-declined")) return;
     clearInterval(confirmWaitTimer);
     rtStop();
+    activeRequestId = null;
+    activeFinish = null;
     if (outcome === "approved") {
       wrap.classList.add("is-approved");
       status.textContent = t("WALLET_CONFIRM_APPROVED");
@@ -437,6 +455,13 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
       // let the check spring in + success burst breathe, then zoom the overlay
       // through and hand off to the rubber-stamp press on the card behind
       setTimeout(() => { hideConfirmWait(); animateStamp(deck, resultForStamp); }, REDUCED ? 60 : 780); // frees busy in onLifted
+    } else if (outcome === "cancelled") {
+      // the customer's own choice, not something that happened TO them — no
+      // reject buzz, and dismiss quicker since they already want out
+      wrap.classList.add("is-declined");
+      status.textContent = t("WALLET_CONFIRM_CANCELLED");
+      sub.textContent = t("WALLET_CONFIRM_CANCELLED_SUB");
+      setTimeout(() => { hideConfirmWait(); busy = false; }, 700);
     } else {
       wrap.classList.add("is-declined");
       if (navigator.vibrate) { try { navigator.vibrate([40, 60, 40]); } catch (_) {} }
@@ -446,9 +471,15 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
     }
   };
 
+  activeFinish = finish;
+
   rtWatch("stamp_requests/" + requestId, (rec) => {
     if (rec.status === "approved") finish("approved", rec.result);
-    else if (rec.status === "denied" || rec.status === "expired") finish(rec.status);
+    // "cancelled" normally resolves locally the instant POST /card/stamp/cancel
+    // succeeds (see cancelStampRequest below) — this is just the backstop if
+    // that response is lost; finish() is idempotent so a duplicate call here
+    // is a harmless no-op.
+    else if (rec.status === "denied" || rec.status === "expired" || rec.status === "cancelled") finish(rec.status);
   });
 
   // client-side backstop in case the SSE push is missed/dropped — the server
@@ -463,7 +494,39 @@ function hideConfirmWait() {
   wrap.classList.add("is-leaving"); // zoom the card through as the overlay fades
   wrap.classList.remove("show");
   wrap.setAttribute("aria-hidden", "true");
+  const wc = document.getElementById("walletClose");
+  if (wc) wc.setAttribute("aria-label", t("WALLET_ARIA_BACK_TO_WALLET")); // back to its normal meaning
   setTimeout(() => { wrap.hidden = true; wrap.classList.remove("is-approved", "is-declined", "is-leaving"); }, 460);
+}
+
+// Cancel the customer's OWN pending request — bound to the walletClose ("✕")
+// button while showConfirmWait's overlay is up (see the click handler below),
+// replacing what used to be a dead button there (deselectCard() no-ops while
+// `busy` is true, which it always is during this countdown).
+async function cancelStampRequest() {
+  if (!activeRequestId || cancellingRequest) return;
+  cancellingRequest = true;
+  const requestId = activeRequestId;
+  const status = document.getElementById("confirmWaitStatus");
+  if (status) status.textContent = t("WALLET_CONFIRM_CANCELLING");
+
+  try {
+    const r = await fetch(API + "/card/stamp/cancel", {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId }),
+    });
+    if (r.ok && activeFinish) { activeFinish("cancelled"); return; }
+    // 409 means staff already acted (or it expired) in the moment between the
+    // click and this response landing — that outcome is already on its way
+    // in over rtWatch (or the backstop timeout), so there's nothing to do here
+  } catch (_) {
+    // offline/failed — nothing changed server-side, so put the waiting text
+    // back (only if this same request is still the one showing — a realtime
+    // update could have already resolved it while this call was in flight)
+    if (status && activeRequestId === requestId) status.textContent = t("WALLET_CONFIRM_WAITING");
+  }
+  cancellingRequest = false;
 }
 
 // Press an already-recorded stamp onto a deck (no network — res came from the tap).
@@ -1076,7 +1139,14 @@ function rebuildCard(deck, n) {
 congratsContinue.addEventListener("click", hideCongrats);
 
 const walletCloseBtn = document.getElementById("walletClose");
-if (walletCloseBtn) walletCloseBtn.addEventListener("click", deselectCard);
+if (walletCloseBtn) walletCloseBtn.addEventListener("click", () => {
+  // same button, two meanings: while a stamp request is being confirmed it
+  // cancels that request (deselectCard() would no-op anyway — `busy` is
+  // true for the whole countdown); otherwise it's the normal "back to wallet".
+  const wrap = document.getElementById("confirmWait");
+  if (wrap && !wrap.hidden) { cancelStampRequest(); return; }
+  deselectCard();
+});
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;

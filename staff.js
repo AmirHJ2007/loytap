@@ -343,8 +343,9 @@ function resolveIncoming(id, status) {
   clearInterval(entry.timer);
   incoming.delete(id);
   entry.el.classList.remove("is-busy");
-  entry.el.classList.add(status === "approved" ? "is-approved" : status === "denied" ? "is-denied" : "is-expired");
+  entry.el.classList.add(status === "approved" ? "is-approved" : status === "denied" ? "is-denied" : status === "cancelled" ? "is-cancelled" : "is-expired");
   if (status === "expired") { const p = entry.el.querySelector(".incoming__sub"); if (p) p.textContent = t("STAFF_INCOMING_EXPIRED"); }
+  else if (status === "cancelled") { const p = entry.el.querySelector(".incoming__sub"); if (p) p.textContent = t("STAFF_INCOMING_CANCELLED"); }
   setTimeout(() => entry.el.remove(), 900);
 }
 

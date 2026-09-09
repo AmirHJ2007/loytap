@@ -115,6 +115,7 @@ const STRINGS = {
     // ---- index.html / app.js (customer wallet) ----
     WALLET_SIGNOUT: "Sign out",
     WALLET_ARIA_BACK_TO_WALLET: "Back to wallet",
+    WALLET_ARIA_CANCEL_REQUEST: "Cancel stamp request",
     WALLET_GREETING: "Welcome back, {name} 👋",
     WALLET_STAMP_BTN: "Stamp",
     WALLET_ARIA_MY_DISCOUNTS: "My discounts",
@@ -167,6 +168,9 @@ const STRINGS = {
     WALLET_CONFIRM_DENIED_SUB: "Ask the staff to confirm your stamp",
     WALLET_CONFIRM_EXPIRED: "No response in time",
     WALLET_CONFIRM_EXPIRED_SUB: "No one confirmed in time — tap again",
+    WALLET_CONFIRM_CANCELLING: "Cancelling…",
+    WALLET_CONFIRM_CANCELLED: "Request cancelled",
+    WALLET_CONFIRM_CANCELLED_SUB: "You cancelled this stamp request",
     WALLET_CONFIRM_ERROR_SUB: "Something went wrong — tap again",
 
     // ---- staff.html / staff.js ----
@@ -207,6 +211,7 @@ const STRINGS = {
     STAFF_BTN_APPROVE: "Confirm stamp",
     STAFF_BTN_DENY: "Deny",
     STAFF_INCOMING_EXPIRED: "Expired — no response in time",
+    STAFF_INCOMING_CANCELLED: "Customer cancelled",
 
     // ---- owner.html ----
     OWNER_BADGE: "Owner Dashboard",
@@ -472,6 +477,7 @@ const STRINGS = {
 
     WALLET_SIGNOUT: "خروج",
     WALLET_ARIA_BACK_TO_WALLET: "بازگشت به کیف پول",
+    WALLET_ARIA_CANCEL_REQUEST: "لغو درخواست مهر",
     WALLET_GREETING: "خوش برگشتی، {name} 👋",
     WALLET_STAMP_BTN: "مهر",
     WALLET_ARIA_MY_DISCOUNTS: "تخفیف‌های من",
@@ -524,6 +530,9 @@ const STRINGS = {
     WALLET_CONFIRM_DENIED_SUB: "از کارمند بخواهید مهر شما را تأیید کند",
     WALLET_CONFIRM_EXPIRED: "پاسخی دریافت نشد",
     WALLET_CONFIRM_EXPIRED_SUB: "کسی به‌موقع تأیید نکرد — دوباره ضربه بزنید",
+    WALLET_CONFIRM_CANCELLING: "در حال لغو…",
+    WALLET_CONFIRM_CANCELLED: "درخواست لغو شد",
+    WALLET_CONFIRM_CANCELLED_SUB: "شما این درخواست مهر را لغو کردید",
     WALLET_CONFIRM_ERROR_SUB: "مشکلی پیش آمد — دوباره ضربه بزنید",
 
     // ---- staff.html / staff.js ----
@@ -564,6 +573,7 @@ const STRINGS = {
     STAFF_BTN_APPROVE: "تأیید مهر",
     STAFF_BTN_DENY: "رد کردن",
     STAFF_INCOMING_EXPIRED: "منقضی شد — پاسخی به‌موقع داده نشد",
+    STAFF_INCOMING_CANCELLED: "مشتری لغو کرد",
 
     // ---- owner.html ----
     OWNER_BADGE: "داشبورد مالک",

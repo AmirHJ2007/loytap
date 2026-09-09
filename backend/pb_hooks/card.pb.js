@@ -112,6 +112,36 @@ routerAdd("POST", "/card/stamp/request", (e) => {
   return e.json(200, { request_id: req.id, expires_in: REQUEST_TTL_MS / 1000, cafe: cafeEcho });
 }, $apis.requireAuth());
 
+// A customer can back out of their OWN pending request before staff acts on
+// it — e.g. they tapped by mistake or changed their mind while waiting. Only
+// while it's still "pending": once staff has approved/denied it (or it's
+// simply expired), there's nothing left to cancel. Staff's queue (staff.js)
+// already treats any non-"pending" status as "resolved, remove the card", so
+// this needs no extra staff-side plumbing beyond the distinct label.
+//   POST /card/stamp/cancel  (customer auth) { request_id } -> { status: "cancelled" }
+routerAdd("POST", "/card/stamp/cancel", (e) => {
+  const u = e.auth;
+  if (!u) return e.json(401, { error: "Not signed in" });
+
+  const reqId = String((e.requestInfo().body || {}).request_id || "").trim();
+  if (!reqId) return e.json(400, { error: "Missing request" });
+
+  let req = null;
+  try { req = $app.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
+  if (!req) return e.json(404, { status: "invalid", error: "Request not found" });
+
+  // only the customer who made it — never another customer's pending request
+  if (req.getString("user") !== u.id) return e.json(403, { status: "invalid", error: "Not your request" });
+
+  if (req.getString("status") !== "pending") {
+    return e.json(409, { status: req.getString("status"), error: "Already handled" });
+  }
+
+  req.set("status", "cancelled");
+  $app.save(req);
+  return e.json(200, { status: "cancelled" });
+}, $apis.requireAuth());
+
 routerAdd("POST", "/card/stamp/confirm", (e) => {
   const u = e.auth;
   const role = u ? u.getString("role") : "";

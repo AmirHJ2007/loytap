@@ -152,7 +152,7 @@ body {
 }
 .incoming.show::before { animation: incomingWipe 1s ease-out 0.15s; }
 @keyframes incomingWipe { to { transform: translateX(100%); } }
-.incoming.is-approved, .incoming.is-denied, .incoming.is-expired {
+.incoming.is-approved, .incoming.is-denied, .incoming.is-expired, .incoming.is-cancelled {
   transform: translateY(-6px) scale(0.97); opacity: 0;
   transition: transform 0.5s ease, opacity 0.5s ease; animation: none;
 }
@@ -167,7 +167,7 @@ body {
   box-shadow: 0 8px 18px -8px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.16);
 }
 .incoming.is-approved .incoming__avatar { background: linear-gradient(155deg, #27b877, #1f9d63); }
-.incoming.is-denied .incoming__avatar, .incoming.is-expired .incoming__avatar { background: linear-gradient(155deg, #d06450, #c0503f); }
+.incoming.is-denied .incoming__avatar, .incoming.is-expired .incoming__avatar, .incoming.is-cancelled .incoming__avatar { background: linear-gradient(155deg, #d06450, #c0503f); }
 
 .incoming__body { flex: 1; min-width: 0; }
 .incoming__name { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -178,7 +178,7 @@ body {
 .incoming__track { fill: none; stroke: rgba(20,20,20,0.12); stroke-width: 4; }
 .incoming__bar { fill: none; stroke: #171717; stroke-width: 4; stroke-linecap: round; transition: stroke 0.4s ease; }
 .incoming.is-approved .incoming__bar { stroke: #1f9d63; }
-.incoming.is-denied .incoming__bar, .incoming.is-expired .incoming__bar { stroke: #c0503f; }
+.incoming.is-denied .incoming__bar, .incoming.is-expired .incoming__bar, .incoming.is-cancelled .incoming__bar { stroke: #c0503f; }
 .incoming__num {
   position: absolute; inset: 0; display: grid; place-items: center;
   font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--ink);
@@ -210,7 +210,7 @@ body {
   .incoming.show { animation: none; }
   .incoming.show::before { animation: none; }
   .incoming__btn--approve { animation: none; }
-  .incoming.is-approved, .incoming.is-denied, .incoming.is-expired { transform: none; }
+  .incoming.is-approved, .incoming.is-denied, .incoming.is-expired, .incoming.is-cancelled { transform: none; }
 }
 
 /* ---------------- Frosted glass panel wrapping the whole scanner flow ---------------- */
