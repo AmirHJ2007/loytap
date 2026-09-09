@@ -13,7 +13,7 @@
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
   <link rel="stylesheet" href="auth.css?v=42" />
-  <script src="i18n.js?v=23"></script>
+  <script src="i18n.js?v=25"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -190,7 +190,7 @@
           <p class="field__err" id="createErr" hidden></p>
         </div>
         <button class="btn btn--primary" id="createBtn" type="button" data-i18n="AUTH_BTN_CREATE_BUSINESS">Create business</button>
-        <p class="fine" data-i18n-html="BIZ_TERMS_LINE">By creating a business you agree to our <a href="business-terms.html">Business Terms</a>.</p>
+        <p class="fine" data-i18n-html="BIZ_TERMS_LINE">By creating a business you agree to our <a href="/business-terms">Business Terms</a>.</p>
       </section>
 
       <!-- OWNER: verify the phone before the business is actually created -->
@@ -217,14 +217,14 @@
         <div class="done__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
         <p class="step__title" data-i18n="AUTH_BUSINESS_REGISTERED_TITLE">Business registered!</p>
         <p class="step__sub" data-i18n="AUTH_BUSINESS_REGISTERED_SUB"></p>
-        <a class="btn btn--primary" id="continueBtn" href="owner.html" data-i18n="AUTH_BTN_OPEN_DASHBOARD">Open dashboard</a>
+        <a class="btn btn--primary" id="continueBtn" href="/owner" data-i18n="AUTH_BTN_OPEN_DASHBOARD">Open dashboard</a>
       </section>
 
       <button class="link-btn" id="customerLink" type="button" data-i18n="BIZ_LINK_CUSTOMER">Customer sign in</button>
-      <p class="fine"><a href="business-terms.html" data-i18n="BIZ_TERMS_FOOTER_LINK">Business Terms &amp; Conditions</a></p>
+      <p class="fine"><a href="/business-terms" data-i18n="BIZ_TERMS_FOOTER_LINK">Business Terms &amp; Conditions</a></p>
     </div>
   </main>
 
-  <script src="business.js?v=12"></script>
+  <script src="business.js?v=13"></script>
 </body>
 </html>

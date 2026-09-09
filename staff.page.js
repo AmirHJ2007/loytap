@@ -9,5 +9,5 @@
     document.getElementById("signoutBtn").addEventListener("click", function () {
       ["loytap_token","loytap_staff","loytap_owner","loytap_role","loytap_signed_in","loytap_name","loytap_cafe"]
         .forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
-      location.replace("auth.html");
+      location.replace("/signin");
     });

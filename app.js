@@ -900,7 +900,7 @@ function closeSettings(keepTab) {
 function doSignout() {
   ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe", "loytap_phone"]
     .forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
-  location.replace("auth.html");
+  location.replace("/signin");
 }
 
 pocketBtn.addEventListener("click", () => goToTab("discounts"));
@@ -1198,7 +1198,7 @@ async function init() {
 
   if (!user) {
     try { localStorage.removeItem("loytap_signed_in"); } catch (_) {}
-    location.replace("auth.html");
+    location.replace("/signin");
     return;
   }
   myUserId = user.id;

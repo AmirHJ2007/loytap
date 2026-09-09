@@ -27,11 +27,11 @@
 
     // ---------------- bottom tab bar ----------------
     // Analytics is already the active tab here; the other three are a
-    // different page (owner.html), which reads the hash to land on the right
+    // different page (/owner), which reads the hash to land on the right
     // one of its own tabs (see setOwnerTab/initial-tab logic in owner.page.js).
-    $("tabCard").onclick = () => { location.href = "owner.html"; };
-    $("tabDiscounts").onclick = () => { location.href = "owner.html#discounts"; };
-    $("tabSettings").onclick = () => { location.href = "owner.html#settings"; };
+    $("tabCard").onclick = () => { location.href = "/owner"; };
+    $("tabDiscounts").onclick = () => { location.href = "/owner#discounts"; };
+    $("tabSettings").onclick = () => { location.href = "/owner#settings"; };
 
     // ---- SVG donut helper (single-value ring, monochrome) ----
     function ring(pct, sub) {

@@ -27,7 +27,7 @@ const PERSIAN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿‌‏]/g;
   });
 });
 
-$("customerLink").addEventListener("click", () => { location.href = "auth.html"; });
+$("customerLink").addEventListener("click", () => { location.href = "/signin"; });
 
 function normalizePhone(v) {
   let d = v.replace(/\D/g, "");
@@ -107,7 +107,7 @@ async function cafeLogin() {
       localStorage.setItem("loytap_staff", "1");
       localStorage.setItem("loytap_cafe", data.cafe_name || "");
     } catch (_) {}
-    location.href = "staff.html";
+    location.href = "/staff";
   } catch (err) {
     $("cafeCodeErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
     $("cafeCodeErr").hidden = false;
@@ -275,7 +275,7 @@ async function verifyOwnerLogin() {
       localStorage.setItem("loytap_name", data.name || "");
       localStorage.setItem("loytap_cafe", data.cafe_name || "");
     } catch (_) {}
-    location.href = "owner.html";
+    location.href = "/owner";
   } catch (err) {
     $("ownerOtpErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
     $("ownerOtpErr").hidden = false;

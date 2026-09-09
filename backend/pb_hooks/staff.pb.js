@@ -148,7 +148,10 @@ routerAdd("POST", "/staff/login", (e) => {
   // good code → this IP starts clean again
   try { if (att) $app.delete(att); } catch (err) {}
 
-  const token = staff.newAuthToken();
+  // Static 24h token, deliberately not the (now 14-day, customer-only)
+  // collection default — see owner.pb.js's /owner/register for the same
+  // reasoning: a staff token can confirm/deny stamps and redeem rewards.
+  const token = staff.newStaticAuthToken(24 * 60 * 60 * 1e9);
   return e.json(200, {
     token,
     cafe_name: card.getString("cafe_name"),
@@ -156,3 +159,18 @@ routerAdd("POST", "/staff/login", (e) => {
     role: staff.getString("role"),
   });
 });
+
+// Staff session refresh — same reasoning and pattern as owner.pb.js's
+// /owner/session/refresh: staff tokens are static (non-refreshable), so
+// PocketBase's core auth-refresh endpoint can't extend one — it just hands
+// back an equivalent token with the same unchanged expiry. This route mints
+// a fresh 24h static token instead. staff.js calls it once per page load:
+// a staff member who opens the scanner at least once every 24h never sees
+// the wall-clock expiry; anyone who stays away longer has to sign back in
+// with the café code.
+//   POST /staff/session/refresh  (staff auth) -> { token }
+routerAdd("POST", "/staff/session/refresh", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "staff") return e.json(403, { error: "Staff access only" });
+  return e.json(200, { token: u.newStaticAuthToken(24 * 60 * 60 * 1e9) });
+}, $apis.requireAuth());

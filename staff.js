@@ -8,9 +8,33 @@
 // When the page is served by PocketBase (or a tunnel / Liara), the API is same-origin.
 // When served from the standalone :8000 dev server, talk to PocketBase on :8090.
 const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
-const token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
+let token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
 
 applyI18n();
+
+// Staff tokens are static (see staff.pb.js), so PocketBase's core
+// auth-refresh can't extend one — it just hands back the same unchanged
+// expiry. This mirrors the customer wallet's silent refresh-on-load
+// (app.js's init()) but calls our own /staff/session/refresh instead, which
+// mints a fresh 24h token. Runs once per page load: a staff member who
+// opens the scanner at least once every 24h never sees the wall-clock
+// expiry.
+(async function refreshStaffSession() {
+  try {
+    const r = await fetch(API + "/staff/session/refresh", { method: "POST", headers: { Authorization: token } });
+    if (r.ok) {
+      const d = await r.json();
+      token = d.token;
+      try { localStorage.setItem("loytap_token", token); } catch (e) {}
+      return;
+    }
+  } catch (e) {}
+  // no live token to refresh — same wall-clock expiry as before, just
+  // caught here on page load instead of silently on the next scan
+  ["loytap_token", "loytap_staff", "loytap_owner", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
+    .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+  location.replace("/signin");
+})();
 
 const PERSIAN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿‌‏]/g;
 document.getElementById("manualInput").addEventListener("input", (e) => {

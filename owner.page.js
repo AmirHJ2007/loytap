@@ -4,8 +4,32 @@
 // ===================================================================
     applyI18n();
     const API = location.port === "8000" ? location.protocol + "//" + location.hostname + ":8090" : location.origin;
-    const token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
+    let token = (function () { try { return localStorage.getItem("loytap_token") || ""; } catch (e) { return ""; } })();
     const $ = (id) => document.getElementById(id);
+
+    // Owner tokens are static (see owner.pb.js), so PocketBase's core
+    // auth-refresh can't extend one — it just hands back the same unchanged
+    // expiry. This mirrors the customer wallet's silent refresh-on-load
+    // (app.js's init()) but calls our own /owner/session/refresh instead,
+    // which mints a fresh 72h token. Runs once per page load, same as the
+    // customer wallet: an owner who opens the dashboard at least once every
+    // 72h never sees the wall-clock expiry.
+    (async function refreshOwnerSession() {
+      try {
+        const r = await fetch(API + "/owner/session/refresh", { method: "POST", headers: { Authorization: token } });
+        if (r.ok) {
+          const d = await r.json();
+          token = d.token;
+          try { localStorage.setItem("loytap_token", token); } catch (e) {}
+          return;
+        }
+      } catch (e) {}
+      // no live token to refresh — same wall-clock expiry as before, just
+      // caught here on page load instead of silently on the next fetch
+      ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"]
+        .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+      location.replace("/signin");
+    })();
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
     function unitWord(unit, amt) {
@@ -594,18 +618,18 @@
       finally { box.classList.remove("is-busy"); }
     };
 
-    $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("auth.html"); };
+    $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("/signin"); };
 
     // ---------------- bottom tab bar ----------------
     // Same sliding-indicator pattern as the customer wallet's tabbar
     // (index.html / app.js setTab): each tab maps to one .panel, except
-    // Analytics, which is its own page (analytics.html) rather than a panel.
+    // Analytics, which is its own page (/analytics) rather than a panel.
     const tabbarEl = $("tabbar");
     const panelBtns = { discounts: $("tabDiscounts"), card: $("tabCard"), settings: $("tabSettings") };
     const panels = { discounts: $("panelDiscounts"), card: $("panelCard"), settings: $("panelSettings") };
     // Index 0 (Analytics) is skipped here on purpose — it's a real slot in the
     // tabbar's flex row (now the first one), just not one with a panel of its
-    // own (it navigates straight to analytics.html), so Card/Discounts/Settings
+    // own (it navigates straight to /analytics), so Card/Discounts/Settings
     // sit at indices 1-3 instead of 0-2.
     const TAB_INDEX = { card: 1, discounts: 2, settings: 3 };
 
@@ -622,10 +646,10 @@
     $("tabDiscounts").onclick = () => setOwnerTab("discounts");
     $("tabCard").onclick = () => setOwnerTab("card");
     $("tabSettings").onclick = () => setOwnerTab("settings");
-    $("tabAnalytics").onclick = () => { location.href = "analytics.html"; };
+    $("tabAnalytics").onclick = () => { location.href = "/analytics"; };
 
     // land on the tab the owner actually asked for — e.g. Analytics' own
-    // tabbar links here as "owner.html#discounts" / "owner.html#settings" —
+    // tabbar links here as "/owner#discounts" / "/owner#settings" —
     // instead of always resetting to Card, the static HTML's default tab
     const initialTab = ["discounts", "card", "settings"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "card";
     setOwnerTab(initialTab);

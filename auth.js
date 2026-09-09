@@ -2,7 +2,7 @@
 // Reloy — customer sign in / register. Phone + OTP.
 // Talks to the PocketBase backend: POST /otp/request + POST /otp/verify.
 // In dev the backend returns the code (devCode) so it auto-fills — no SMS.
-// Business (staff/owner) sign in lives on its own page: business.html.
+// Business (staff/owner) sign in lives on its own page: /business/signin.
 // ===================================================================
 
 // Backend runs on port 8090 on the same host that serves this page.
@@ -35,7 +35,7 @@ $("name").addEventListener("input", () => {
   }
 });
 
-$("businessLink").addEventListener("click", () => { location.href = "business.html"; });
+$("businessLink").addEventListener("click", () => { location.href = "/business/signin"; });
 
 $("modeTabs").addEventListener("click", (e) => {
   const b = e.target.closest(".tabs__btn"); if (!b) return;
@@ -243,11 +243,11 @@ function stopResend() { if (resendTimer) clearInterval(resendTimer); resendTimer
 function finish() {
   const name = (signedUser && signedUser.name) || $("name").value.trim();
   // signing in (existing account) skips the confirmation screen and goes straight in
-  if (mode === "signin") { location.href = "index.html"; return; }
+  if (mode === "signin") { location.href = "/"; return; }
   $("doneTitle").textContent = t("AUTH_WELCOME", { name: name || t("AUTH_THERE") });
   $("doneSub").textContent = t("AUTH_OPENING_WALLET");
   $("continueBtn").textContent = t("AUTH_BTN_OPEN_WALLET");
-  $("continueBtn").href = "index.html";
+  $("continueBtn").href = "/";
   go("done");
 }
 

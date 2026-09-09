@@ -260,7 +260,13 @@ routerAdd("POST", "/owner/register", (e) => {
   tag.set("cafe", card.id);
   $app.save(tag);
 
-  const token = owner.newAuthToken();
+  // Static, not the regular refreshable token: owner sessions run on their
+  // own fixed window regardless of users.authToken.duration, which customers
+  // now use at 14 days (see 1700000026_customer_session_length.js). An owner
+  // token reaches a café's whole customer list, analytics, rewards and staff
+  // code, so it keeps a shorter window on purpose — kept alive across visits
+  // by /owner/session/refresh below, not by this collection-wide setting.
+  const token = owner.newStaticAuthToken(72 * 60 * 60 * 1e9);
   return e.json(200, { token, name: owner.getString("name"), role: "admin", cafe_name: cafeName, staff_code: staffCode, nfc: tagCode });
 });
 
@@ -633,7 +639,9 @@ routerAdd("POST", "/owner/login/verify", (e) => {
     if (card) cafeName = card.getString("cafe_name");
   } catch (err) {}
 
-  const token = u.newAuthToken();
+  // Static 72h token — see the mint in /owner/register above for why owner
+  // sessions don't use the (now 14-day, customer-only) collection default.
+  const token = u.newStaticAuthToken(72 * 60 * 60 * 1e9);
   return e.json(200, { token, name: u.getString("name"), role: u.getString("role"), cafe_name: cafeName });
 });
 
@@ -938,6 +946,23 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
   // logs in with the password they just set
   return e.json(200, { ok: true });
 });
+
+// Owner session refresh — mirrors the customer wallet's silent
+// auth-refresh on every page load (app.js's init(), via PocketBase's core
+// POST /api/collections/users/auth-refresh). Owner tokens are static (see
+// /owner/register and /owner/login/verify above), and a static token's
+// expiry does NOT move when the core auth-refresh endpoint is called on it —
+// it just hands back an equivalent token with the same unchanged exp — so
+// that endpoint can't keep an owner signed in. This route mints a brand new
+// 72h static token instead. owner.page.js calls it once per page load: an
+// owner who opens the dashboard at least once every 72h never sees the
+// wall-clock expiry; anyone who stays away longer has to sign back in.
+//   POST /owner/session/refresh  (admin auth) -> { token }
+routerAdd("POST", "/owner/session/refresh", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  return e.json(200, { token: u.newStaticAuthToken(72 * 60 * 60 * 1e9) });
+}, $apis.requireAuth());
 
 // The owner's own café config — resolved from the auth token, never a client-
 // supplied id, so one owner can never read/target another café's settings.
