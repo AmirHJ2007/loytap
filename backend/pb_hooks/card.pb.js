@@ -83,33 +83,52 @@ routerAdd("POST", "/card/stamp/request", (e) => {
   }
 
   // one outstanding request per customer per café — a re-tap while a request
-  // is already pending just re-surfaces it instead of spamming the staff panel
-  let existing = null;
-  try {
-    existing = $app.findFirstRecordByFilter("stamp_requests", "user = {:u} && cafe = {:c} && status = 'pending'", { u: u.id, c: cafe.id });
-  } catch (err) { existing = null; }
-  if (existing) {
-    const createdMs = new Date(String(existing.getString("created")).replace(" ", "T")).getTime();
-    const age = isNaN(createdMs) ? Infinity : Date.now() - createdMs;
-    if (age < REQUEST_TTL_MS) {
-      return e.json(200, { request_id: existing.id, expires_in: Math.ceil((REQUEST_TTL_MS - age) / 1000), cafe: cafeEcho });
+  // is already pending just re-surfaces it instead of spamming the staff panel.
+  //
+  // Wrapped in a transaction — same reasoning as /card/stamp/confirm and
+  // /card/stamp/cancel above. Verified this one for real too: an accidental
+  // double-tap, a flaky network retrying the same POST, or two devices
+  // signed into the same account tapping within the same instant all send
+  // two /card/stamp/request calls close enough together that both can read
+  // "no pending request yet" before either write lands — reproduced 15/15
+  // times in a row with two genuinely concurrent calls, each creating its
+  // OWN pending row for the same tap. That puts two cards from the same
+  // customer in staff's queue at once; approving both is a real double
+  // stamp (and, on a completing tap, a second free reward) — the same
+  // failure mode as the confirm-side race, just entered from here instead.
+  let requestId = "";
+  let expiresIn = REQUEST_TTL_MS / 1000;
+  $app.runInTransaction((txApp) => {
+    let existing = null;
+    try {
+      existing = txApp.findFirstRecordByFilter("stamp_requests", "user = {:u} && cafe = {:c} && status = 'pending'", { u: u.id, c: cafe.id });
+    } catch (err) { existing = null; }
+    if (existing) {
+      const createdMs = new Date(String(existing.getString("created")).replace(" ", "T")).getTime();
+      const age = isNaN(createdMs) ? Infinity : Date.now() - createdMs;
+      if (age < REQUEST_TTL_MS) {
+        requestId = existing.id;
+        expiresIn = Math.ceil((REQUEST_TTL_MS - age) / 1000);
+        return;
+      }
+      existing.set("status", "expired");
+      txApp.save(existing);
     }
-    existing.set("status", "expired");
-    $app.save(existing);
-  }
 
-  const req = new Record($app.findCollectionByNameOrId("stamp_requests"));
-  req.set("user", u.id);
-  req.set("cafe", cafe.id);
-  req.set("user_name", u.getString("name") || "");
-  req.set("tag", tagCode);
-  req.set("status", "pending");
-  $app.save(req);
+    const req = new Record(txApp.findCollectionByNameOrId("stamp_requests"));
+    req.set("user", u.id);
+    req.set("cafe", cafe.id);
+    req.set("user_name", u.getString("name") || "");
+    req.set("tag", tagCode);
+    req.set("status", "pending");
+    txApp.save(req);
+    requestId = req.id;
+  });
 
   // note when this tag was last tapped
   try { tag.set("last_used", new Date().toISOString()); $app.save(tag); } catch (err) {}
 
-  return e.json(200, { request_id: req.id, expires_in: REQUEST_TTL_MS / 1000, cafe: cafeEcho });
+  return e.json(200, { request_id: requestId, expires_in: expiresIn, cafe: cafeEcho });
 }, $apis.requireAuth());
 
 // A customer can back out of their OWN pending request before staff acts on
