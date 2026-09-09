@@ -81,12 +81,16 @@
   --radius-lg: 30px;
 }
 
-/* Persian pass: one font swap covers every heading/body rule on the page,
-   since they all read from --f-display/--f-ui rather than naming a family
-   directly (see the @font-face block above for the Vazirmatn files). */
+/* Persian pass: one font swap covers every heading/body/mono rule on the
+   page, since they all read from --f-display/--f-ui/--f-mono rather than
+   naming a family directly (see the @font-face block above for the
+   Vazirmatn files). --f-mono has no real Persian monospace equivalent, so
+   eyebrows/badges/labels get Vazirmatn too instead of falling back past
+   JetBrains (Latin-only) to whatever generic font the OS picks. */
 html[dir="rtl"] {
   --f-display: "Vazirmatn", system-ui, sans-serif;
   --f-ui:      "Vazirmatn", system-ui, sans-serif;
+  --f-mono:    "Vazirmatn", system-ui, sans-serif;
 }
 
 .band--paper {
@@ -2389,3 +2393,17 @@ html[dir="rtl"] .foot__col a::after {
   left: 100%; right: 0; transition: left 0.32s var(--e-out);
 }
 html[dir="rtl"] .foot__col a:hover::after { left: 0; }
+
+/* the CTA buttons' arrow is a baked-in right-pointing SVG path, not a glyph
+   direction:rtl can flip on its own — mirror it, and negate the hover/launch
+   translateX distances so it still darts toward the reading-forward side
+   (left in RTL) instead of drifting into the button label. */
+html[dir="rtl"] .btn__arrow { transform: scaleX(-1); }
+html[dir="rtl"] .btn:hover .btn__arrow { transform: scaleX(-1) translateX(4px); }
+html[dir="rtl"] .btn.is-launch .btn__arrow { animation: btnArrowLaunchRtl 0.42s var(--e-out); }
+@keyframes btnArrowLaunchRtl {
+  0%   { transform: scaleX(-1) translateX(0); opacity: 1; }
+  45%  { transform: scaleX(-1) translateX(12px); opacity: 0; }
+  46%  { transform: scaleX(-1) translateX(-8px); }
+  100% { transform: scaleX(-1) translateX(0); opacity: 1; }
+}
