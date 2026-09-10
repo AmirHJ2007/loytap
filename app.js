@@ -1001,13 +1001,20 @@ function hideScrim() {
 }
 
 async function loadDiscounts() {
+  // showPanel() already painted the drawer once with whatever `discounts`
+  // held from the last load, so the tab never just snaps into view. Only
+  // re-render here if this fetch actually changed something — otherwise
+  // (the common case: nothing changed since last open) rebuilding the same
+  // rows would replay their entrance animation a moment later, which reads
+  // as the whole tab animating in twice, worse the slower the round trip.
+  const before = JSON.stringify(discounts);
   try {
     const r = await fetch(API + "/api/collections/discounts/records?perPage=200&sort=-created&expand=cafe", { headers: { Authorization: token } });
     const data = await r.json();
     if (data && data.items) discounts = data.items.map(mapDiscount);
   } catch (_) {}
   updateBadges();
-  renderDrawer();
+  if (JSON.stringify(discounts) !== before) renderDrawer();
 }
 
 function openSettings() {
