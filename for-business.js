@@ -44,10 +44,14 @@
   var FB_STRINGS = {
     en: {
       FB_ABOUT_EYEBROW: "About Reloy",
-      FB_ABOUT_P1: "Reloy was built for the cafés we actually go to. We kept watching good places hand out paper stamp cards that customers lost within a week, while the loyalty apps on offer wanted a download, a password, and a fee that only makes sense at twenty branches.",
-      FB_ABOUT_P2: "So we built the version a single café can live with: one stamp behind the counter, two fields for the customer, and a dashboard that finally answers “are people coming back?” — a question most owners have only ever been able to guess at.",
-      FB_ABOUT_P3: "<strong>We are a small team from Mashhad.</strong> We met at Hasheminejad 2 and most of us never left, which is why getting you set up means one of us walking into your café — not a courier and a PDF.",
-      FB_ABOUT_P4: "<strong>We are early, and we are not hiding it.</strong> Reloy is live in its first cafés right now, which is exactly why joining now is worth it: you get our full attention and a direct line to the person building it. If it does not work for you, you walk away — there is no contract and nothing installed on your machines.",
+      FB_ABOUT_H1: "Started in London. Built in Mashhad.",
+      FB_ABOUT_P1: "I saw the idea for Reloy in London and decided to build it for Iran. Today our team works on building and running Reloy from Mashhad, the city our first cafés are in.",
+      FB_ABOUT_P2: "That is why setting Reloy up is never just a guide file sent to your inbox. If it is needed, one of us walks in through your café door.",
+      FB_ABOUT_P3: "Support, to us, means talking directly to the people who build the product, not getting lost in a queue of tickets.",
+      FB_ABOUT_H2: "We are still making it better.",
+      FB_ABOUT_P5: "It is running behind real counters right now as a pilot, alongside the first café owners who trusted us and agreed to try it. We are still learning from their feedback and improving the product on what they live with every day.",
+      FB_ABOUT_P6: "Joining at this stage means a direct line to the team building it, our full attention, and a real say in what gets built next.",
+      FB_ABOUT_P7: "There is no complicated contract and nothing is installed on your machines. If Reloy does not earn its place on your counter, you simply stop.",
       FB_ADDR: "Karimi 5, Aghdasie 15, Mashhad, Iran",
       FB_BACK_TOP: "Back to top",
       FB_BILLING_MONTHLY: "Monthly",
@@ -55,8 +59,6 @@
       FB_CONTACT_H: "Contact",
       FB_DAYS_UNIT: "days",
       FB_DEMO_CAPTION: "The exact card your customers keep on their phone",
-      FB_DONE_H3: "Thanks — your email is ready to send",
-      FB_DONE_P: "We have opened a prefilled message for <strong id=\"doneCafe\"></strong>.\n                  Press send in your mail app and we will come back to you within a day.\n                  If nothing opened, write to <a data-email href=\"#\">reloy.ir@gmail.com</a> directly.",
       FB_FAQ_A1: "No — and this is the part that makes the difference at the counter. Reloy is a web page. One press of the stamp opens it instantly, with nothing from the App Store or Play Store, nothing to install, and no storage used. They can add it to their home screen so it opens like an app, but that is a shortcut, not a download.",
       FB_FAQ_A10: "Yes. Every reward carries an expiry date, 30 days from when it is earned by default. Change that number for your whole café from your dashboard, or set a different one on an individual reward. It is also why the 71% claimed rate on this page means something: it only counts rewards that got redeemed before the clock ran out.",
       FB_FAQ_A11: "A name and a mobile number. That is everything. No email, no password, no address, no payment details, no location, and no access to their contacts or photos.",
@@ -98,14 +100,6 @@
       FB_FEAT_6: "Staff scanner with real-time stamp confirmation",
       FB_FEAT_7: "Change your reward whenever you want",
       FB_FEAT_8: "No commission on anything you sell",
-      FB_FIELD_CAFE_LABEL: "Café or restaurant name",
-      FB_FIELD_CAFE_PH: "Filo",
-      FB_FIELD_CITY_LABEL: "City",
-      FB_FIELD_CITY_PH: "Mashhad",
-      FB_FIELD_CONTACT_HINT: "Whichever you would rather we used.",
-      FB_FIELD_CONTACT_LABEL: "Phone or email",
-      FB_FIELD_PERSON_LABEL: "Who should we talk to?",
-      FB_FIELD_PERSON_PH: "Your name",
       FB_FOOT_APP_LINK: "The customer app",
       FB_FOOT_BIZ_TERMS: "Business terms",
       FB_FOOT_COL1_H: "The product",
@@ -114,9 +108,6 @@
       FB_FOOT_CUST_TERMS: "Customer terms & privacy",
       FB_FOOT_LEGAL: "© <span id=\"footYear\">2026</span> Reloy. All rights reserved. Digital stamp cards for cafés and restaurants.",
       FB_FOOT_PITCH: "\n          A digital stamp card that lives on your customer's home screen.\n          One stamp behind the counter, one press at checkout.\n        ",
-      FB_FORM_PRIVACY_HINT: "We will only use your details to talk to you about Reloy.",
-      FB_FORM_SUBMIT: "Request early access",
-      FB_FORM_SUMMARY_H3: "Please check these before sending",
       FB_HEAT_FRI: "Fri",
       FB_HEAT_MON: "Mon",
       FB_HEAT_SAT: "Sat",
@@ -125,8 +116,10 @@
       FB_HEAT_TUE: "Tue",
       FB_HEAT_WED: "Wed",
       FB_HERO_EYEBROW: "For cafés & restaurants",
-      FB_HERO_LEDE: "\n            Reloy is a digital stamp card for your counter. Your cashier presses one NFC\n            stamp to the customer's phone, no app store, no download, no password, and\n            their card fills itself. You finally see who keeps coming back, and when.\n          ",
-      FB_HERO_NOTE: "NFC tag, staff training and setup included — live in about a week.",
+      FB_HERO_LEDE: "\n            Reloy is a digital stamp card for your counter. Your cashier presses one NFC\n            stamp to the customer's phone, no app store, no download, no password, and\n            their card fills itself. You finally see how often they come back, and when.\n          ",
+      FB_HERO_NOTE1: "Simple setup, fully separate from your accounting system.",
+      FB_HERO_NOTE2: "NFC tag delivered in under a week.",
+      FB_HERO_NOTE3: "Training on how it works, if you need it.",
       FB_HERO_SEE_HOW: "See how it works",
       FB_HERO_TITLE_HTML: "<span class=\"line\"><span class=\"w\" style=\"--d:60ms\">Turn</span> <span class=\"w\" style=\"--d:115ms\">every</span> <span class=\"w\" style=\"--d:170ms\">tap</span></span><span class=\"line\"><span class=\"w\" style=\"--d:225ms\">into</span> <span class=\"w\" style=\"--d:280ms\">a</span> <span class=\"w\" style=\"--d:335ms\">customer</span></span><span class=\"line\"><span class=\"w\" style=\"--d:400ms\">who</span> <span class=\"w hero__accent\" style=\"--d:455ms\">comes back.<svg aria-hidden=\"true\" preserveAspectRatio=\"none\" viewBox=\"0 0 200 12\"><path d=\"M3 8.6C40 3.2 96 2 197 5.8\"></path></svg></span></span>",
       FB_HOW_EYEBROW: "How Reloy works",
@@ -153,38 +146,40 @@
       FB_HOW_U3_P: "It is verified against our server instantly — an expired or already-used code is caught right there, before any discount is handed out.",
       FB_HOW_U4_H: "Redeemed — apply the discount",
       FB_HOW_U4_P: "The screen turns to \"Redeemed ✓.\" Staff apply it on the customer's bill right there at the register.",
-      FB_HOW_U5_H: "Used once, then it is gone",
-      FB_HOW_U5_P: "The same code cannot be scanned twice. No reused screenshots, no double discounts — every reward is spent exactly once.",
-      FB_INS1_BODY: "Every stamp is time-stamped, so the grid fills in on its own. Thursday evening is this café’s peak — nearly four times a Friday morning.",
+      FB_INS1_BODY: "Every stamp is time-stamped, so the grid fills itself in. Each square is the stamps taken in that day and that hour across your last 30 days, darkest where you were busiest — and any square will tell you its exact count.",
       FB_INS1_EYEBROW: "When they come",
-      FB_INS1_H3: "Your week has a shape, and now you can see it",
-      FB_INS1_USE: "<span class=\"ins__use-tag\">Use it to</span> put your strongest staff on the Thursday rush, stop paying for a quiet Monday morning, and time your bake and prep to the hours that actually earn.",
-      FB_INS2_BODY: "One counts every first-timer you have ever served and asks how many came back even once. The other splits this month between faces your staff had seen before and faces they had not.",
-      FB_INS2_CAP1: "of first-timers came back at least once",
+      FB_INS1_H3: "The rush you can feel is now a number you can plan around",
+      FB_INS1_USE: "<span class=\"ins__use-tag\">Use it to</span> put your strongest staff on the hour that actually earns, stop paying for a dead Monday morning, and time your bake to the rush instead of guessing at it.",
+      FB_INS2_BODY: "One is the rhythm of a returning customer — the typical gap between one person’s own visits, taken as a median so a single straggler wandering back after three months cannot skew it. The other splits everyone active this month into faces your staff had seen before and faces they had not.",
       FB_INS2_CAP2: "<b>38%</b> new this month · <b>62%</b> returning",
       FB_INS2_EYEBROW: "Whether they come back",
       FB_INS2_H3: "Are you building regulars, or serving strangers?",
-      FB_INS2_USE: "<span class=\"ins__use-tag\">Use it to</span> see whether you are adding regulars or only replacing the ones you lose. A café can look busy all month and still be serving a different room every week.",
-      FB_INS3_BODY: "Rewards issued against rewards actually redeemed, next to the normal gap between one customer’s visits — the median, so one person wandering back after three months does not distort it.",
+      FB_INS2_USE: "<span class=\"ins__use-tag\">Use it to</span> tell a café that is growing apart from one that is only replacing what it loses. And when that gap starts stretching, you hear about it before the quiet week arrives.",
+      FB_INS3_BODY: "The ring is every reward earned in the last 30 days against the ones actually claimed. Each bar under it is that same rate for a single prize, so the reward people hurry back for and the one they let expire stop looking alike.",
       FB_INS3_CAP1: "typical gap between one customer’s visits",
       FB_INS3_CAP2: "of issued rewards actually claimed",
+      FB_DEAL_CAP: "usage rate by reward type",
+      FB_DEAL1_LABEL: "Free coffee",
+      FB_DEAL1_VAL: "82%",
+      FB_DEAL2_LABEL: "10% off",
+      FB_DEAL2_VAL: "64%",
+      FB_DEAL3_LABEL: "20% off",
+      FB_DEAL3_VAL: "45%",
+      FB_DEAL4_LABEL: "Free croissant",
+      FB_DEAL4_VAL: "29%",
       FB_INS3_EYEBROW: "Whether the reward works",
       FB_INS3_H3: "Is the prize pulling its weight?",
-      FB_INS3_USE: "<span class=\"ins__use-tag\">Use it to</span> fix a prize that gets earned but never claimed. And once you know the normal gap is four days, someone at twenty days has clearly drifted.",
+      FB_INS3_USE: "<span class=\"ins__use-tag\">Use it to</span> retire the prize nobody claims and put the one they do on the front of the card. A reward that is earned and never used costs you nothing — and does nothing for you either.",
       FB_INS_EYEBROW: "What you get",
-      FB_INS_H2: "Who is coming back, in real time, without a spreadsheet.",
-      FB_INS_LEDE: "\n            Every tap is a data point you never had before. This is the owner dashboard,\n            with sample figures from a café doing a few hundred stamps a month.\n          ",
-      FB_NAV_CTA: "Get early access",
+      FB_INS_H2: "A busy month and a growing café are not the same thing.",
+      FB_INS_LEDE: "Every tap is a data point your counter never kept. This is part of the owner dashboard — your busiest hours, how many customers come back and how often, and which rewards actually get claimed — with sample figures from a café doing a few hundred stamps a month.",
+      FB_NAV_CTA: "Register your café",
       FB_NAV_FAQ: "FAQ",
       FB_NAV_HOW: "How it works",
       FB_NAV_INSIGHTS: "What you get",
       FB_NAV_MENU: "Menu",
       FB_NAV_PRICING: "Pricing",
-      FB_NEXT1_H3: "Targeted messages, in the card they kept",
-      FB_NEXT1_P: "Reach the customers who have drifted past their usual rhythm — inside the card already on their home screen, not in the message app where they hear from family.",
-      FB_NEXT2_H3: "Offers aimed at the people they would move",
-      FB_NEXT2_P: "Send a reward to the customers it would actually bring back, instead of discounting everyone who was already on their way in.",
-      FB_NEXT_LABEL: "<span aria-hidden=\"true\" class=\"next__dot\"></span>In development",
+      FB_NEXT_LINE: "Targeting customers with messages and special discounts is in development.",
       FB_PLAN_FOOT: "Your trial starts the day your tag goes live at your counter — not the day you sign up. By starting a trial you agree to our <a href=\"/business-terms\">Business Terms</a>.",
       FB_PLAN_NOTE: "No setup fee, no per-tap charge, no per-member fee. The number on the left is the whole bill.",
       FB_PRICING_EYEBROW: "Pricing",
@@ -212,32 +207,26 @@
       FB_SCENE_U3_P: "Verified against our server, live.",
       FB_SCENE_U4_H: "Redeemed ✓",
       FB_SCENE_U4_P: "Applied — give the customer their discount.",
-      FB_SCENE_U5_H: "Spent once, for good",
-      FB_SCENE_U5_P: "That exact code will never work again.",
-      FB_SIGNUP_ASIDE_1: "We send the tag and set your card up for you.",
-      FB_SIGNUP_ASIDE_2: "We show your staff how it works, on your floor.",
-      FB_SIGNUP_ASIDE_3: "Your trial only starts once it is actually live.",
-      FB_SIGNUP_ASIDE_4: "No contract. Stop whenever you want.",
-      FB_SIGNUP_EYEBROW: "Get early access",
-      FB_SIGNUP_H2: "Let's get a tag on your counter.",
-      FB_SIGNUP_LEDE: "Tell us where you are and we will get back to you. We will set up your NFC kit within about a week.",
-      FB_TEAM_1: "Founder. Builds it. Reading computer science at UCL, on Reloy year-round.",
-      FB_TEAM_2: "Co-founder. Reading computer engineering in Mashhad — and the one who turns up at your counter.",
+      FB_TEAM_1: "Founder and product builder. Reading computer science at UCL, responsible for building and developing Reloy.",
+      FB_TEAM_2: "Co-founder. Reading computer engineering in Mashhad, and the one who moves Reloy forward alongside café owners, behind the counter.",
       FB_TOMAN: "Toman",
       FB_TRUST_1: "No card needed",
       FB_TRUST_2: "No contract",
       FB_TRUST_3: "Live in about a week",
-      FB_USED_BADGE: "Used",
       FB_WHY_EYEBROW: "Why cafés choose Reloy",
       FB_WHY_H2: "It has to survive the morning rush, or it is useless.",
       FB_WHY_LIST_HTML: "<div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 7v5l3 2\"></path></svg></span><div><h3>It does not slow the queue down</h3><p>A press takes about as long as a card payment. The customer holds out their own phone, your cashier presses the stamp to it, and nobody types anything, just one tap to confirm on the panel already open behind the counter.</p></div><span class=\"why__stat\">~2 seconds</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M6 9V3h12v6\"></path><rect height=\"7\" rx=\"2\" width=\"18\" x=\"3\" y=\"9\"></rect><path d=\"M7 16h10v5H7z\"></path></svg></span><div><h3>No more printing paper cards</h3><p>No reprints when the design changes, no boxes of cards behind the counter, no stamp pad drying out.</p></div><span class=\"why__stat\">Zero print cost</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1\"></path><circle cx=\"9.5\" cy=\"7\" r=\"3.5\"></circle><path d=\"M16 11l2 2 4-4\"></path></svg></span><div><h3>Almost nothing asked of the customer</h3><p>A name and a mobile number, once. No app store visit, no password to invent, no email to verify, no storage used on their phone.</p></div><span class=\"why__stat\">2 fields, once</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 9h18l-1.6-5H4.6L3 9Z\"></path><path d=\"M5 9v11h14V9\"></path><path d=\"M9.5 20v-6h5v6\"></path></svg></span><div><h3>Your café stays front and centre</h3><p>Your colours, your logo and your name are on every screen a customer sees. Reloy stays behind the scenes.</p></div><span class=\"why__stat\">Your brand</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 17l6-6 4 4 7-7\"></path><path d=\"M14 7h7v7\"></path></svg></span><div><h3>See when your regulars return</h3><p>Compare 7 or 30 days of real stamp data to spot your busiest days, your strongest hours, and whether repeat visits are growing.</p></div><span class=\"why__stat\">7 or 30 days</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M9.5 3h5v3.5a3 3 0 0 0 .9 2.1L16.5 10h-9l1.1-1.4a3 3 0 0 0 .9-2.1Z\"></path><rect height=\"4\" rx=\"1.5\" width=\"16\" x=\"4\" y=\"13\"></rect><path d=\"M5.5 21h13\"></path></svg></span><div><h3>It still feels like a stamp</h3><p>The tag we send you is a classic stamp with the chip inside. Your staff press it onto the phone the way they always pressed paper, the same ritual your counter already had, without the ink pad.</p></div><span class=\"why__stat\">Still a stamp</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 7h11v9H3z\"></path><path d=\"M14 10h4l3 3v3h-7z\"></path><circle cx=\"7\" cy=\"18\" r=\"2\"></circle><circle cx=\"17\" cy=\"18\" r=\"2\"></circle></svg></span><div><h3>We set it up, not you</h3><p>We send the NFC tag, get your card and reward configured, and show your staff how it works on the floor. You are running in about a week.</p></div><span class=\"why__stat\">~1 week</span></div>",
     },
     fa: {
-      FB_ABOUT_EYEBROW: "درباره رلوی",
-      FB_ABOUT_P1: "رلوی برای کافه‌هایی ساخته شده که خودمان هم می‌رویم. دیدیم جاهای خوب کارت‌های کاغذی پخش می‌کنند که مشتری ظرف یک هفته گمشان می‌کند، درحالی‌که اپ‌های وفاداری موجود یک دانلود، یک رمز عبور، و هزینه‌ای می‌خواهند که فقط برای بیست شعبه معنی دارد.",
-      FB_ABOUT_P2: "پس نسخه‌ای ساختیم که یک کافه تنها هم بتواند باهاش زندگی کند: یک استمپ پشت پیشخوان، دو فیلد برای مشتری، و داشبوردی که بالاخره به این سؤال جواب می‌دهد «آیا مردم برمی‌گردند؟» — سؤالی که بیشتر صاحبان کسب‌وکار فقط حدس می‌زدند.",
-      FB_ABOUT_P3: "<strong>ما یک تیم کوچک از مشهد هستیم.</strong> در هاشمی‌نژاد ۲ آشنا شدیم و بیشترمان همان‌جا ماندیم، برای همین راه‌اندازی شما یعنی یکی از ما وارد کافه‌تان می‌شود — نه یک پیک با یک PDF.",
-      FB_ABOUT_P4: "<strong>ما تازه‌کاریم و پنهانش نمی‌کنیم.</strong> رلوی همین حالا در اولین کافه‌هایش فعال است، و دقیقاً برای همین همین حالا پیوستن می‌ارزد: توجه کامل ما و ارتباط مستقیم با کسی که آن را می‌سازد، نصیبتان می‌شود. اگر برایتان کار نکرد، کنار می‌کشید — نه قراردادی هست و نه چیزی روی دستگاه‌هایتان نصب شده.",
+      FB_ABOUT_EYEBROW: "درباره ریلوی",
+      FB_ABOUT_H1: "از لندن شروع شد، در مشهد ساخته می‌شود.",
+      FB_ABOUT_P1: "من ایده‌ی ریلوی را در لندن دیدم و تصمیم گرفتم آن را برای ایران بسازم. امروز تیم ما در مشهد روی ساخت و اجرای ریلوی کار می‌کند؛ شهری که اولین کافه‌های ما هم در آن هستند.",
+      FB_ABOUT_P2: "برای همین، راه‌اندازی ریلوی برای ما فقط فرستادن یک فایل راهنما نیست. اگر لازم باشد، یکی از خود ما از در کافه‌تان وارد می‌شود.",
+      FB_ABOUT_P3: "پشتیبانی برای ما یعنی صحبت مستقیم با آدم‌هایی که خود محصول را می‌سازند، نه گم‌شدن در صف تیکت‌ها.",
+      FB_ABOUT_H2: "هنوز داریم آن را بهتر می‌کنیم.",
+      FB_ABOUT_P5: "همین حالا به‌صورت آزمایشی پشت پیشخوان‌های واقعی کار می‌کند؛ کنار اولین کافه‌دارهایی که به ما اعتماد کردند و حاضر شدند آن را امتحان کنند. ما هنوز از بازخورد آن‌ها یاد می‌گیریم و محصول را بر اساس همان تجربه‌ها بهتر می‌کنیم.",
+      FB_ABOUT_P6: "پیوستن در این مرحله یعنی ارتباط مستقیم با تیم سازنده، توجه کامل ما و امکان اثر گذاشتن روی چیزی که بعداً ساخته می‌شود.",
+      FB_ABOUT_P7: "نه قرارداد پیچیده‌ای در کار است، نه چیزی روی دستگاه‌هایتان نصب می‌شود. اگر ریلوی جای خودش را روی پیشخوان شما باز نکرد، ساده کنارش می‌گذارید.",
       FB_ADDR: "کریمی ۵، اقدسیه ۱۵، مشهد، ایران",
       FB_BACK_TOP: "بازگشت به بالا",
       FB_BILLING_MONTHLY: "ماهانه",
@@ -245,15 +234,13 @@
       FB_CONTACT_H: "تماس با ما",
       FB_DAYS_UNIT: "روز",
       FB_DEMO_CAPTION: "همان کارتی که مشتری‌های شما روی گوشی‌شان نگه می‌دارند",
-      FB_DONE_H3: "ممنون — ایمیل شما آماده ارسال است",
-      FB_DONE_P: "یک پیام از پیش پرشده برای <strong id=\"doneCafe\"></strong> باز کرده‌ایم.\n                  در اپ ایمیل خود دکمه ارسال را بزنید و ما ظرف یک روز پاسخ می‌دهیم.\n                  اگر چیزی باز نشد، مستقیم به <a data-email href=\"#\">reloy.ir@gmail.com</a> بنویسید.",
-      FB_FAQ_A1: "نه — و همین نکته فرق را در پیشخوان می‌سازد. رلوی یک صفحه وب است. یک تپ استمپ، آن را فوراً باز می‌کند، بدون چیزی از اپ‌استور یا پلی‌استور، بدون نصب، و بدون فضای اشغال‌شده. می‌توانند آن را به صفحه اصلی گوشی‌شان اضافه کنند تا مثل اپ باز شود، اما این یک میان‌بر است، نه دانلود.",
+      FB_FAQ_A1: "نه — و همین نکته فرق را در پیشخوان می‌سازد. ریلوی یک صفحه وب است. یک تپ استمپ، آن را فوراً باز می‌کند، بدون چیزی از اپ‌استور یا پلی‌استور، بدون نصب، و بدون فضای اشغال‌شده. می‌توانند آن را به صفحه اصلی گوشی‌شان اضافه کنند تا مثل اپ باز شود، اما این یک میان‌بر است، نه دانلود.",
       FB_FAQ_A10: "بله. هر پاداش یک تاریخ انقضا دارد، به‌طور پیش‌فرض ۳۰ روز از زمان کسبش. این عدد را برای کل کافه‌تان از داشبورد عوض کنید، یا برای یک پاداش خاص عدد دیگری بگذارید. برای همین است که نرخ ۷۱٪ استفاده‌شده در این صفحه معنی دارد: فقط پاداش‌هایی را می‌شمارد که پیش از تمام‌شدن زمان، استفاده شده‌اند.",
       FB_FAQ_A11: "یک نام و یک شماره موبایل. همین. بدون ایمیل، بدون رمز عبور، بدون آدرس، بدون اطلاعات پرداخت، بدون موقعیت مکانی، و بدون دسترسی به مخاطبین یا عکس‌هایشان.",
-      FB_FAQ_A12: "بله. همه‌چیز از طریق HTTPS منتقل و روی سرور خودمان ذخیره می‌شود — لیست مشتریان شما را به کسی نمی‌فروشیم، به اشتراک نمی‌گذاریم یا اجاره نمی‌دهیم، و هیچ کافه دیگری که از رلوی استفاده می‌کند نمی‌تواند آن را ببیند. اطلاعات مشتریان شما متعلق به کافه شماست، و هر زمان بخواهید می‌توانید از ما بخواهید حذفش کنیم.",
+      FB_FAQ_A12: "بله. همه‌چیز از طریق HTTPS منتقل و روی سرور خودمان ذخیره می‌شود — لیست مشتریان شما را به کسی نمی‌فروشیم، به اشتراک نمی‌گذاریم یا اجاره نمی‌دهیم، و هیچ کافه دیگری که از ریلوی استفاده می‌کند نمی‌تواند آن را ببیند. اطلاعات مشتریان شما متعلق به کافه شماست، و هر زمان بخواهید می‌توانید از ما بخواهید حذفش کنیم.",
       FB_FAQ_A13: "نه، و این عمدی است. اگر تپ زدن به تگ به این معنی بود که یک کافه می‌تواند مستقیم با مشتری تماس بگیرد یا پیام بدهد، مردم قبل از تپ زدن دو بار فکر می‌کردند، و همین تپ تمام محصول است. ما شماره‌ها را دقیقاً برای همین روی سرور خودمان نگه می‌داریم، تا مشتری به تپ اعتماد کند و به استفاده ادامه دهد. رساندن پیام به کسانی که فاصله گرفته‌اند ویژگی‌ای است که در حال ساختنش هستیم، و از طریق پیامی داخل همان کارتی که روی صفحه اصلی گوشی‌شان است کار خواهد کرد، نه با دادن شماره‌شان به کسی.",
       FB_FAQ_A14: "هنوز نه، اما برای نسخه بعدی در دست ساخت است. برنامه این است که بتوانید مشتریانی را که از ریتم معمولشان فاصله گرفته‌اند با پیامی داخل همان کارت روی صفحه اصلی گوشی‌شان پیدا کنید، و به کسانی که واقعاً برمی‌گردند پیشنهاد بدهید، به‌جای تخفیف به همه کسانی که در هر صورت می‌آمدند. اگر برای تصمیم شما اهمیت دارد، از ما درباره وضعیتش بپرسید.",
-      FB_FAQ_A2: "فرقی نمی‌کند. استمپ رلوی یک وسیله کاملاً جدا است که پشت پیشخوان شما می‌ماند — هیچ ربطی به دستگاه کارت‌خوان، صندوق، یا درگاه پرداخت شما ندارد، و نیازی به برق، سیم‌کشی یا اینترنت مخصوص خودش هم ندارد.",
+      FB_FAQ_A2: "فرقی نمی‌کند. استمپ ریلوی یک وسیله کاملاً جدا است که پشت پیشخوان شما می‌ماند — هیچ ربطی به دستگاه کارت‌خوان، صندوق، یا درگاه پرداخت شما ندارد، و نیازی به برق، سیم‌کشی یا اینترنت مخصوص خودش هم ندارد.",
       FB_FAQ_A3: "می‌توانید تعیین کنید، و همان روی کارت مشتری نشان داده می‌شود تا از قبل بداند. ما به صندوق یا سیستم حسابداری شما وصل نیستیم، پس نمی‌توانیم خودمان صورت‌حساب را چک کنیم. تصمیم با کارمند شماست که فقط بعد از رسیدن به آن حد استمپ بزند. آن را روی صفر — پیش‌فرض — بگذارید تا چیزی برای اجرا نباشد.",
       FB_FAQ_A4: "بله، هر وقت خواستید، از داشبوردتان. هم تخفیف و هم تعداد استمپ لازم برای گرفتنش دست شماست. کارت‌های موجود خودکار تغییر را می‌گیرند — نیازی نیست کارت جدیدی صادر شود.",
       FB_FAQ_A5: "چیزی از دست نمی‌رود. کارت او روی سرور ما و بر اساس شماره موبایلش ذخیره است، نه روی گوشی. کارمند شما گوشی جدید را استمپ می‌زند، مشتری شماره‌اش را تأیید می‌کند، و همه استمپ‌هایی که جمع کرده همان‌جا هستند.",
@@ -288,25 +275,14 @@
       FB_FEAT_6: "اسکنر پرسنل با تأیید زنده استمپ",
       FB_FEAT_7: "هر وقت خواستید پاداش را عوض کنید",
       FB_FEAT_8: "بدون کمیسیون روی هرچه می‌فروشید",
-      FB_FIELD_CAFE_LABEL: "نام کافه یا رستوران",
-      FB_FIELD_CAFE_PH: "فیلو",
-      FB_FIELD_CITY_LABEL: "شهر",
-      FB_FIELD_CITY_PH: "مشهد",
-      FB_FIELD_CONTACT_HINT: "هرکدام که ترجیح می‌دهید استفاده کنیم.",
-      FB_FIELD_CONTACT_LABEL: "تلفن یا ایمیل",
-      FB_FIELD_PERSON_LABEL: "با چه کسی صحبت کنیم؟",
-      FB_FIELD_PERSON_PH: "نام شما",
       FB_FOOT_APP_LINK: "اپ مشتری",
       FB_FOOT_BIZ_TERMS: "شرایط کسب‌وکار",
       FB_FOOT_COL1_H: "محصول",
       FB_FOOT_COL2_H: "در تماس باشید",
       FB_FOOT_COL3_H: "نکات حقوقی",
       FB_FOOT_CUST_TERMS: "شرایط و حریم خصوصی مشتری",
-      FB_FOOT_LEGAL: "© <span id=\"footYear\">2026</span> رلوی. تمام حقوق محفوظ است. کارت‌های امتیاز دیجیتال برای کافه‌ها و رستوران‌ها.",
+      FB_FOOT_LEGAL: "© <span id=\"footYear\">2026</span> ریلوی. تمام حقوق محفوظ است. کارت‌های امتیاز دیجیتال برای کافه‌ها و رستوران‌ها.",
       FB_FOOT_PITCH: "یک کارت امتیاز دیجیتال که روی صفحه اصلی گوشی مشتری شما زندگی می‌کند.\n          یک استمپ پشت پیشخوان، یک تپ در لحظه پرداخت.",
-      FB_FORM_PRIVACY_HINT: "اطلاعات شما را فقط برای صحبت درباره رلوی استفاده می‌کنیم.",
-      FB_FORM_SUBMIT: "درخواست دسترسی زودهنگام",
-      FB_FORM_SUMMARY_H3: "پیش از ارسال، این موارد را بررسی کنید",
       FB_HEAT_FRI: "جمعه",
       FB_HEAT_MON: "دوشنبه",
       FB_HEAT_SAT: "شنبه",
@@ -315,66 +291,70 @@
       FB_HEAT_TUE: "سه‌شنبه",
       FB_HEAT_WED: "چهارشنبه",
       FB_HERO_EYEBROW: "برای کافه‌ها و رستوران‌ها",
-      FB_HERO_LEDE: "رلوی یک کارت امتیاز دیجیتال برای پیشخوان شماست. کارمند شما فقط یک تگ NFC را به گوشی مشتری می‌زند؛ بدون اپ‌استور، بدون دانلود، بدون رمز عبور، و کارت او خودش پر می‌شود. بالاخره می‌بینید چه کسانی برمی‌گردند و چه زمانی.",
-      FB_HERO_NOTE: "تگ NFC، آموزش پرسنل و راه‌اندازی — همه در قیمت. کمتر از یک هفته آماده می‌شوید.",
+      FB_HERO_LEDE: "ریلوی، نگه‌دارنده‌ی کارت وفاداری دیجیتال شماست.<br>کافیه NFC رو به گوشی مشتری نزدیک کنید — بدون نیاز به دانلود اپ، کارت وفاداری‌شون مهر می‌خوره.<br>بالاخره می‌بینید هر چند وقت یک‌بار برمی‌گردن.",
+      FB_HERO_NOTE1: "راه‌اندازی ساده و کاملاً مستقل از سیستم حسابداری شما.",
+      FB_HERO_NOTE2: "دریافت تگ NFC در کمتر از یک هفته.",
+      FB_HERO_NOTE3: "آموزش روش کار، در صورت نیاز.",
       FB_HERO_SEE_HOW: "ببینید چگونه کار می‌کند",
-      FB_HERO_TITLE_HTML: "<span class=\"line\"><span class=\"w\" style=\"--d:60ms\">هر</span> <span class=\"w\" style=\"--d:115ms\">تپ</span> <span class=\"w\" style=\"--d:170ms\">را</span></span><span class=\"line\"><span class=\"w\" style=\"--d:225ms\">به</span> <span class=\"w\" style=\"--d:280ms\">مشتری‌ای</span></span><span class=\"line\"><span class=\"w\" style=\"--d:335ms\">تبدیل</span> <span class=\"w\" style=\"--d:400ms\">کنید</span> <span class=\"w\" style=\"--d:400ms\">که</span> <span class=\"w hero__accent\" style=\"--d:455ms\">برمی‌گردد.<svg aria-hidden=\"true\" preserveAspectRatio=\"none\" viewBox=\"0 0 200 12\"><path d=\"M197 5.8C96 2 40 3.2 3 8.6\"></path></svg></span></span>",
-      FB_HOW_EYEBROW: "رلوی چگونه کار می‌کند",
+      FB_HERO_TITLE_HTML: "<span class=\"line\"><span class=\"w\" style=\"--d:60ms\">هر</span> <span class=\"w\" style=\"--d:115ms\">تپ</span></span><span class=\"line\"><span class=\"w\" style=\"--d:170ms\">یک</span> <span class=\"w\" style=\"--d:225ms\">مشتری</span> <span class=\"w hero__accent\" style=\"--d:280ms\">وفادار<svg aria-hidden=\"true\" preserveAspectRatio=\"none\" viewBox=\"0 0 200 12\"><path d=\"M197 5.8C96 2 40 3.2 3 8.6\"></path></svg></span></span>",
+      FB_HOW_EYEBROW: "ریلوی چگونه کار می‌کند",
       FB_HOW_G1_H: "در لحظه پرداخت، گوشی را استمپ بزنید",
-      FB_HOW_G1_P: "استمپ رلوی همیشه دست شماست. مشتری گوشی خودش را جلو می‌آورد، کارمند شما استمپ را به آن می‌زند، و کسی چیزی تایپ نمی‌کند — فقط یک تأیید روی پنلی که پشت پیشخوان باز است.",
-      FB_HOW_G2_H: "بار اول؟ نام و شماره موبایل",
-      FB_HOW_G2_P: "فقط دو فیلد. حساب فوراً ساخته می‌شود — بدون اپ‌استور، بدون رمز عبور، بدون تأیید ایمیل، بدون نصب چیزی.",
+      FB_HOW_G1_P: "مهر مخصوص ریلوی که دارای تکنولوژی NFC است را به گوشی مشتری نزدیک کنید.",
+      FB_HOW_G2_H: "ثبت‌نام فقط با نام و شماره موبایل",
+      FB_HOW_G2_P: "مشتری‌ها فقط با وارد کردن نام و شماره موبایل خود و پس از تأیید شماره، وارد ریلوی می‌شوند و کارت وفاداری شما به‌طور خودکار در حسابشان نمایش داده می‌شود؛ بدون نیاز به رمز عبور.",
       FB_HOW_G3_H: "به صفحه اصلی گوشی اضافه‌اش می‌کنند",
-      FB_HOW_G3_P: "مثل یک آیکون اپ باز می‌شود، اما چیزی برای دانلود یا آپدیت وجود ندارد. یک صفحه وب است که مثل اپ رفتار می‌کند.",
+      FB_HOW_G3_P: "برای دسترسی راحت‌تر، خود مشتری‌ها می‌توانند ریلوی را به صفحه اصلی گوشی‌شان اضافه کنند؛ بدون نیاز به دانلود اپ و منتظر ماندن.",
       FB_HOW_G4_H: "پرسنل، استمپ را روی پنل خود تأیید می‌کنند",
-      FB_HOW_G4_P: "درخواست به‌صورت زنده روی پنل پرسنل نمایش داده می‌شود. استمپ فقط با تأیید پرسنل ثبت می‌شود — همین جلوی سوءاستفاده را می‌گیرد.",
-      FB_HOW_G5_H: "از این به بعد، هر بازدید فقط یک تپ است",
-      FB_HOW_G5_P: "تپ می‌زند، استمپ ثبت می‌شود، کارت به‌روز می‌شود. کارتی برای حمل یا گم‌کردن نیست، اپی برای باز کردن نیست — کارت را پر کند، پاداش مال اوست.",
+      FB_HOW_G4_P: "درخواست به‌صورت زنده روی پنل پرسنل نمایش داده می‌شود. استمپ فقط با تأیید پرسنل ثبت می‌شود، همین جلوی سوءاستفاده را می‌گیرد.",
+      FB_HOW_G5_H: "استمپ ثبت می‌شود و مشتری یک قدم به پاداش نزدیک می‌شود",
+      FB_HOW_G5_P: "استمپ با انیمیشنی خاص در گوشی مشتری ثبت می‌شود تا تجربه‌ای دلپذیر بسازد؛ با پر شدن کارت وفاداری، مشتری به پاداش می‌رسد.",
       FB_HOW_GROUP_LABEL: "فقط بار اول",
-      FB_HOW_H2: "دو لحظه. هر کدام پنج مرحله.",
+      FB_HOW_H2: "از اولین استمپ تا اولین پاداش.",
       FB_HOW_TAB_GAIN: "گرفتن پاداش",
       FB_HOW_TAB_HOW_LINK: "روش کار",
       FB_HOW_TAB_USE: "استفاده از پاداش",
-      FB_HOW_U1_H: "کارت خود را باز می‌کنند",
-      FB_HOW_U1_P: "یک کارت تکمیل‌شده به یک بلیت تبدیل می‌شود — یک کد QR و یک کد پشتیبان کوتاه، آماده برای نشان‌دادن در پیشخوان.",
+      FB_HOW_U1_H: "مشتری کارت پاداش خود را در اپ باز می‌کند",
+      FB_HOW_U1_P: "کارت پاداش حاوی یک کد QR و یک کد یکتا برای نشان دادن به پیشخوان است.",
       FB_HOW_U2_H: "پرسنل اسکن می‌کنند، یا کد را تایپ می‌کنند",
-      FB_HOW_U2_P: "اسکنر پرسنل در یک لحظه QR را می‌خواند. وسط شلوغی و اسکن سخت است؟ پرسنل می‌توانند کد کوتاه را دستی تایپ کنند.",
+      FB_HOW_U2_P: "پرسنل این کار را در پنل خود می‌توانند انجام دهند.",
       FB_HOW_U3_H: "قبل از هر چیز بررسی می‌شود",
-      FB_HOW_U3_P: "همان لحظه در سرور ما بررسی می‌شود — کد منقضی‌شده یا قبلاً استفاده‌شده همان‌جا مشخص می‌شود، پیش از آنکه تخفیفی داده شود.",
-      FB_HOW_U4_H: "استفاده شد — تخفیف را اعمال کنید",
-      FB_HOW_U4_P: "صفحه به «استفاده شد ✓» تغییر می‌کند. پرسنل همان‌جا روی صورت‌حساب مشتری اعمالش می‌کنند.",
-      FB_HOW_U5_H: "یک‌بار استفاده شد، تمام",
-      FB_HOW_U5_P: "همان کد دوباره قابل اسکن نیست. بدون اسکرین‌شات تکراری، بدون تخفیف دوبل — هر پاداش دقیقاً یک‌بار خرج می‌شود.",
-      FB_INS1_BODY: "هر استمپ زمان‌دار است، پس جدول خودش پر می‌شود. عصر پنجشنبه، اوج این کافه است — تقریباً چهار برابر صبح جمعه.",
+      FB_HOW_U3_P: "اعتبار پاداش در کسری از ثانیه بررسی می‌شود تا پاداشی به کدهای منقضی‌شده یا قبلاً استفاده‌شده اختصاص نیابد.",
+      FB_HOW_U4_H: "اعمال تخفیف توسط پرسنل",
+      FB_HOW_U4_P: "در صورت معتبر بودن پاداش، پرسنل شما می‌توانند پاداش را در صورت‌حساب اعمال کنند.",
+      FB_INS1_BODY: "هر استمپ زمان‌دار است، پس جدول خودش پر می‌شود. هر خانه، تعداد استمپ‌های همان روز و همان ساعت در ۳۰ روز اخیر است؛ هرچه پررنگ‌تر، شلوغ‌تر، و با زدن روی هر خانه، عدد دقیقش را می‌بینید.",
       FB_INS1_EYEBROW: "چه زمانی می‌آیند",
-      FB_INS1_H3: "هفته شما شکل خاص خودش را دارد، و حالا می‌توانید ببینیدش",
-      FB_INS1_USE: "<span class=\"ins__use-tag\">از این استفاده کنید تا</span> قوی‌ترین پرسنل خود را برای شلوغی پنجشنبه بگذارید، برای صبح آرام دوشنبه هزینه اضافه ندهید، و پخت و آماده‌سازی را با ساعت‌هایی که واقعاً درآمد دارند هماهنگ کنید.",
-      FB_INS2_BODY: "یکی همه کسانی را که تا حالا یک بار سرویس داده‌اید می‌شمارد و می‌پرسد چند نفر حتی یک‌بار برگشته‌اند. دیگری این ماه را بین چهره‌های آشنا و چهره‌های تازه تقسیم می‌کند.",
-      FB_INS2_CAP1: "از مشتریان بار اولی، دست‌کم یک‌بار برگشته‌اند",
+      FB_INS1_H3: "شلوغی‌ای که حس می‌کنید، حالا عددی است که می‌شود برایش برنامه ریخت",
+      FB_INS1_USE: "<span class=\"ins__use-tag\">از این استفاده کنید تا</span> قوی‌ترین پرسنل خود را روی ساعتی بگذارید که واقعاً مشتری بیشتری می‌آید، برای صبح خلوت دوشنبه هزینه ندهید، و پخت و آماده‌سازی را به‌جای حدس، با ساعت شلوغی هماهنگ کنید.",
+      FB_INS2_BODY: "یکی ریتم مشتری برگشتی را نشان می‌دهد، فاصله معمول بین دو بازدید یک نفر، به‌صورت میانه تا چند بازدید دیرهنگام تصویر را به‌هم نزند. دیگری مشتری‌های فعال این ماه را بین مشتری‌های تازه و برگشتی تقسیم می‌کند.",
       FB_INS2_CAP2: "<b>۳۸٪</b> مشتری تازه این ماه · <b>۶۲٪</b> برگشتی",
       FB_INS2_EYEBROW: "آیا برمی‌گردند یا نه",
-      FB_INS2_H3: "دارید مشتری ثابت می‌سازید یا فقط به غریبه‌ها سرویس می‌دهید؟",
-      FB_INS2_USE: "<span class=\"ins__use-tag\">از این استفاده کنید تا</span> ببینید دارید مشتری ثابت اضافه می‌کنید یا فقط جای آنهایی که از دست می‌دهید را پر می‌کنید. یک کافه می‌تواند تمام ماه شلوغ به‌نظر برسد و هنوز هر هفته به آدم‌های متفاوتی سرویس بدهد.",
-      FB_INS3_BODY: "پاداش‌های صادرشده در برابر پاداش‌های واقعاً استفاده‌شده، کنار فاصله معمول بین دو بازدید یک مشتری — میانه، تا برگشتن یک نفر بعد از سه ماه آمار را خراب نکند.",
+      FB_INS2_H3: "دارید مشتری ثابت می‌سازید یا فقط به مشتری‌های گذری سرویس می‌دهید؟",
+      FB_INS2_USE: "<span class=\"ins__use-tag\">از این استفاده کنید تا</span> بفهمید چه سهمی از فعالیت کافه از مشتری‌های برگشتی می‌آید و مشتری‌ها معمولاً با چه فاصله‌ای دوباره مراجعه می‌کنند. اگر این فاصله بیشتر شود، تغییر رفتار مشتری‌ها را زودتر می‌بینید.",
+      FB_INS3_BODY: "حلقه، همه‌ی پاداش‌های به‌دست‌آمده در ۳۰ روز اخیر است در برابر آن‌هایی که واقعاً استفاده شده‌اند. هر میله زیر آن، همین نسبت برای یک پاداش مشخص است؛ پس پاداشی که مشتری برایش برمی‌گردد و پاداشی که رهایش می‌کند، دیگر شبیه هم به‌نظر نمی‌رسند.",
       FB_INS3_CAP1: "فاصله معمول بین دو بازدید یک مشتری",
       FB_INS3_CAP2: "از پاداش‌های صادرشده واقعاً استفاده شده",
+      FB_DEAL_CAP: "درصد استفاده از هر نوع پاداش",
+      FB_DEAL1_LABEL: "قهوه رایگان",
+      FB_DEAL1_VAL: "۸۲٪",
+      FB_DEAL2_LABEL: "۱۰٪ تخفیف",
+      FB_DEAL2_VAL: "۶۴٪",
+      FB_DEAL3_LABEL: "۲۰٪ تخفیف",
+      FB_DEAL3_VAL: "۴۵٪",
+      FB_DEAL4_LABEL: "کروسان رایگان",
+      FB_DEAL4_VAL: "۲۹٪",
       FB_INS3_EYEBROW: "آیا پاداش اثر دارد",
       FB_INS3_H3: "آیا جایزه ارزشش را دارد؟",
-      FB_INS3_USE: "<span class=\"ins__use-tag\">از این استفاده کنید تا</span> جایزه‌ای را که کسب می‌شود اما هرگز گرفته نمی‌شود اصلاح کنید. و وقتی بدانید فاصله معمول چهار روز است، کسی که به بیست روز رسیده مشخصاً فاصله گرفته.",
+      FB_INS3_USE: "<span class=\"ins__use-tag\">از این استفاده کنید تا</span> پاداشی را که کسی نمی‌گیرد کنار بگذارید و آن یکی را جلوی کارت بیاورید. پاداشی که استفاده نمی‌شود، بازگشت مشتری ایجاد نمی‌کند.",
       FB_INS_EYEBROW: "چیزی که به‌دست می‌آورید",
-      FB_INS_H2: "بدانید چه کسی برمی‌گردد، همان لحظه، بدون اکسل.",
-      FB_INS_LEDE: "هر تپ، یک داده است که قبلاً نداشتید. این داشبورد صاحب کسب‌وکار است، با اعداد نمونه از کافه‌ای که چند صد استمپ در ماه دارد.",
-      FB_NAV_CTA: "دسترسی زودهنگام",
+      FB_INS_H2: "یک ماه شلوغ با یک کافه‌ی در حال رشد، یکی نیست.",
+      FB_INS_LEDE: "هر تپ، یک داده است که پیشخوان شما تا امروز نگهش نمی‌داشت. این بخشی از داشبورد صاحب کافه است، شلوغ‌ترین ساعت‌ها، اینکه چند نفر و هر چند وقت یک‌بار برمی‌گردند، و پاداش‌هایی که واقعاً گرفته می‌شوند، با اعداد نمونه از کافه‌ای که چند صد استمپ در ماه دارد.",
+      FB_NAV_CTA: "ثبت‌نام کافه",
       FB_NAV_FAQ: "سوالات متداول",
       FB_NAV_HOW: "روش کار",
       FB_NAV_INSIGHTS: "امکانات",
       FB_NAV_MENU: "منو",
       FB_NAV_PRICING: "قیمت‌گذاری",
-      FB_NEXT1_H3: "پیام‌های هدفمند، در همان کارتی که نگه داشته‌اند",
-      FB_NEXT1_P: "به مشتریانی برسید که از ریتم معمولشان فاصله گرفته‌اند — داخل همان کارتی که از قبل روی صفحه اصلی گوشی‌شان است، نه در اپ پیام‌رسانی که از خانواده‌شان خبر می‌گیرند.",
-      FB_NEXT2_H3: "پیشنهادهایی برای کسانی که واقعاً تکان می‌خورند",
-      FB_NEXT2_P: "پاداشی بفرستید برای مشتری‌هایی که واقعاً برمی‌گردانتشان، به‌جای تخفیف به همه کسانی که در هر صورت می‌آمدند.",
-      FB_NEXT_LABEL: "<span aria-hidden=\"true\" class=\"next__dot\"></span>در حال ساخت",
+      FB_NEXT_LINE: "هدف‌گیری مشتری‌ها با پیام‌ها و تخفیفات خاص در حال ساخت است.",
       FB_PLAN_FOOT: "دوره آزمایشی شما از روزی شروع می‌شود که تگتان روی پیشخوان فعال شود — نه روزی که ثبت‌نام می‌کنید. با شروع دوره آزمایشی، <a href=\"/business-terms\">شرایط کسب‌وکار</a> ما را می‌پذیرید.",
       FB_PLAN_NOTE: "بدون هزینه راه‌اندازی، بدون هزینه به‌ازای هر تپ، بدون هزینه به‌ازای هر عضو. عددی که سمت چپ می‌بینید کل صورت‌حساب است.",
       FB_PRICING_EYEBROW: "قیمت‌گذاری",
@@ -402,25 +382,15 @@
       FB_SCENE_U3_P: "به‌صورت زنده روی سرور ما بررسی می‌شود.",
       FB_SCENE_U4_H: "استفاده شد ✓",
       FB_SCENE_U4_P: "اعمال شد — تخفیف را به مشتری بدهید.",
-      FB_SCENE_U5_H: "یک‌بار خرج شد، برای همیشه",
-      FB_SCENE_U5_P: "همان کد دیگر هرگز کار نخواهد کرد.",
-      FB_SIGNUP_ASIDE_1: "تگ را می‌فرستیم و کارتتان را برایتان راه‌اندازی می‌کنیم.",
-      FB_SIGNUP_ASIDE_2: "به پرسنل شما، در محل کارتان، نشان می‌دهیم چگونه کار می‌کند.",
-      FB_SIGNUP_ASIDE_3: "دوره آزمایشی شما فقط وقتی شروع می‌شود که واقعاً فعال شود.",
-      FB_SIGNUP_ASIDE_4: "بدون قرارداد. هر وقت خواستید تمامش کنید.",
-      FB_SIGNUP_EYEBROW: "دسترسی زودهنگام",
-      FB_SIGNUP_H2: "بیایید یک تگ روی پیشخوان شما بگذاریم.",
-      FB_SIGNUP_LEDE: "بگویید کجا هستید تا با شما تماس بگیریم. کیت NFC شما را ظرف حدود یک هفته راه‌اندازی می‌کنیم.",
-      FB_TEAM_1: "بنیان‌گذار. سازنده. دانشجوی علوم کامپیوتر در UCL، تمام سال روی رلوی.",
-      FB_TEAM_2: "هم‌بنیان‌گذار. دانشجوی مهندسی کامپیوتر در مشهد — و کسی که پایش به پیشخوان شما می‌رسد.",
+      FB_TEAM_1: "بنیان‌گذار و سازنده‌ی محصول. دانشجوی علوم کامپیوتر در UCL و مسئول ساخت و توسعه‌ی ریلوی.",
+      FB_TEAM_2: "هم‌بنیان‌گذار. دانشجوی مهندسی کامپیوتر در مشهد و کسی که کنار کافه‌دارها و پشت پیشخوان، ریلوی را جلو می‌برد.",
       FB_TOMAN: "تومان",
       FB_TRUST_1: "بدون نیاز به کارت",
       FB_TRUST_2: "بدون قرارداد",
       FB_TRUST_3: "کمتر از یک هفته فعال می‌شوید",
-      FB_USED_BADGE: "استفاده‌شده",
-      FB_WHY_EYEBROW: "چرا کافه‌ها رلوی را انتخاب می‌کنند",
-      FB_WHY_H2: "اگر ساعت شلوغی صبح دوامش نیاورد، به‌دردنخور است.",
-      FB_WHY_LIST_HTML: "<div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 7v5l3 2\"></path></svg></span><div><h3>سرعت صف را کم نمی‌کند</h3><p>یک تپ تقریباً به اندازه یک پرداخت کارتی طول می‌کشد. مشتری گوشی خودش را جلو می‌آورد، کارمند شما استمپ را به آن می‌زند، و کسی چیزی تایپ نمی‌کند — فقط یک تأیید روی پنلی که پشت پیشخوان از قبل باز است.</p></div><span class=\"why__stat\">~۲ ثانیه</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M6 9V3h12v6\"></path><rect height=\"7\" rx=\"2\" width=\"18\" x=\"3\" y=\"9\"></rect><path d=\"M7 16h10v5H7z\"></path></svg></span><div><h3>دیگر کارت کاغذی چاپ نمی‌کنید</h3><p>موقع تغییر طرح، تجدید چاپ لازم نیست، جعبه‌های کارت پشت پیشخوان نیست، مهر جوهری هم خشک نمی‌شود.</p></div><span class=\"why__stat\">هزینه چاپ صفر</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1\"></path><circle cx=\"9.5\" cy=\"7\" r=\"3.5\"></circle><path d=\"M16 11l2 2 4-4\"></path></svg></span><div><h3>تقریباً چیزی از مشتری خواسته نمی‌شود</h3><p>یک نام و یک شماره موبایل، فقط یک‌بار. بدون سر زدن به اپ‌استور، بدون رمز عبور جدید، بدون تأیید ایمیل، بدون اشغال فضای گوشی.</p></div><span class=\"why__stat\">۲ فیلد، یک‌بار</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 9h18l-1.6-5H4.6L3 9Z\"></path><path d=\"M5 9v11h14V9\"></path><path d=\"M9.5 20v-6h5v6\"></path></svg></span><div><h3>کافه شما همیشه در مرکز توجه است</h3><p>رنگ‌ها، لوگو و نام شما روی هر صفحه‌ای که مشتری می‌بیند هست. رلوی پشت صحنه می‌ماند.</p></div><span class=\"why__stat\">برند خودتان</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 17l6-6 4 4 7-7\"></path><path d=\"M14 7h7v7\"></path></svg></span><div><h3>ببینید مشتری‌های ثابتتان کی برمی‌گردند</h3><p>داده واقعی ۷ یا ۳۰ روز اخیر را مقایسه کنید تا شلوغ‌ترین روزها، قوی‌ترین ساعت‌ها، و روند بازدید تکراری را ببینید.</p></div><span class=\"why__stat\">۷ یا ۳۰ روز</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M9.5 3h5v3.5a3 3 0 0 0 .9 2.1L16.5 10h-9l1.1-1.4a3 3 0 0 0 .9-2.1Z\"></path><rect height=\"4\" rx=\"1.5\" width=\"16\" x=\"4\" y=\"13\"></rect><path d=\"M5.5 21h13\"></path></svg></span><div><h3>هنوز حس یک استمپ واقعی را دارد</h3><p>تگی که برایتان می‌فرستیم یک استمپ کلاسیک با یک تراشه داخلش است. پرسنل شما آن را روی گوشی می‌فشارند، درست مثل همیشه که کاغذ را فشار می‌دادند — همان رسم همیشگی پیشخوانتان، بدون بالشتک جوهر.</p></div><span class=\"why__stat\">هنوز یک استمپ</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 7h11v9H3z\"></path><path d=\"M14 10h4l3 3v3h-7z\"></path><circle cx=\"7\" cy=\"18\" r=\"2\"></circle><circle cx=\"17\" cy=\"18\" r=\"2\"></circle></svg></span><div><h3>ما راه‌اندازی می‌کنیم، نه شما</h3><p>تگ NFC را می‌فرستیم، کارت و پاداش شما را تنظیم می‌کنیم، و به پرسنل شما نشان می‌دهیم چگونه کار می‌کند. ظرف حدود یک هفته آماده‌اید.</p></div><span class=\"why__stat\">~۱ هفته</span></div>",
+      FB_WHY_EYEBROW: "چرا ریلوی را انتخاب کنیم؟",
+      FB_WHY_H2: "طراحی‌شده برای شلوغ‌ترین ساعات کافه شما.",
+      FB_WHY_LIST_HTML: "<div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 7v5l3 2\"></path></svg></span><div><h3>صف کوتاه‌تر، مشتری راضی‌تر</h3><p>یک تپ کافی است. مشتری استمپش را می‌گیرد و بدون ثبت‌نام‌های طولانی به تجربه‌اش ادامه می‌دهد.</p></div><span class=\"why__stat\">~۳۰ ثانیه</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M6 9V3h12v6\"></path><rect height=\"7\" rx=\"2\" width=\"18\" x=\"3\" y=\"9\"></rect><path d=\"M7 16h10v5H7z\"></path></svg></span><div><h3>وفاداری، بدون کاغذبازی</h3><p>دیگر کارت کاغذی، پانچ و چاپ مجدد لازم نیست. کارت وفاداری همیشه در گوشی مشتری می‌ماند.</p></div><span class=\"why__stat\">هزینه چاپ صفر</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1\"></path><circle cx=\"9.5\" cy=\"7\" r=\"3.5\"></circle><path d=\"M16 11l2 2 4-4\"></path></svg></span><div><h3>کمتر بپرسید، بیشتر نگه دارید</h3><p>نام و شماره موبایل کافی است. یک ثبت‌نام ساده، بدون فرم‌های خسته‌کننده و مراحل اضافه.</p></div><span class=\"why__stat\">۲ فیلد، یک‌بار</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 9h18l-1.6-5H4.6L3 9Z\"></path><path d=\"M5 9v11h14V9\"></path><path d=\"M9.5 20v-6h5v6\"></path></svg></span><div><h3>برند شما، در جیب مشتری</h3><p>لوگو، رنگ‌ها و هویت بصری کافه شما روی کارت دیجیتال مشتری دیده می‌شود؛ هر بار که به Reloy سر می‌زند.</p></div><span class=\"why__stat\">همیشه همراه مشتری</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 17l6-6 4 4 7-7\"></path><path d=\"M14 7h7v7\"></path></svg></span><div><h3>مشتری‌هایتان را بهتر بشناسید</h3><p>رفتار مشتری‌ها را ببینید، زمان‌های شلوغ را پیدا کنید و با داده واقعی برای کافه‌تان تصمیم بگیرید.</p></div><span class=\"why__stat\">۷ یا ۳۰ روز</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M9.5 3h5v3.5a3 3 0 0 0 .9 2.1L16.5 10h-9l1.1-1.4a3 3 0 0 0 .9-2.1Z\"></path><rect height=\"4\" rx=\"1.5\" width=\"16\" x=\"4\" y=\"13\"></rect><path d=\"M5.5 21h13\"></path></svg></span><div><h3>حس واقعی یک مهر، هوشمندی دیجیتال</h3><p>یک مهر چوبی واقعی روی کانتر؛ با یک تپ، استمپ مشتری ثبت می‌شود. ساده، ملموس و متفاوت.</p></div><span class=\"why__stat\">هنوز یک استمپ</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 7h11v9H3z\"></path><path d=\"M14 10h4l3 3v3h-7z\"></path><circle cx=\"7\" cy=\"18\" r=\"2\"></circle><circle cx=\"17\" cy=\"18\" r=\"2\"></circle></svg></span><div><h3>شما کافه را اداره کنید؛ راه‌اندازی با ما</h3><p>از اولین مهر تا اولین مشتری، کنارتان هستیم. مهر اختصاصی کافه‌تان آماده می‌شود، NFC داخل آن قرار می‌گیرد، سیستم وفاداری‌تان تنظیم می‌شود و پرسنل آموزش می‌بینند. بدون دردسر فنی، بدون نیاز به راه‌اندازی توسط شما.</p></div><span class=\"why__stat\">~۱ هفته تا شروع</span></div>",
     }
   };
 
@@ -1001,99 +971,6 @@
     });
   }
 
-  /* ============================================================= signup === */
-  function signup() {
-    var form = $("signupForm");
-    if (!form) return;
-    var summary = $("formSummary");
-    var sumList = $("formSummaryList");
-    var done    = $("formDone");
-
-    function fieldDefs() {
-      return currentLang === "fa" ? [
-        { id: "f-cafe",    label: "نام کافه یا رستوران", msg: "نام کافه‌تان را بگویید." },
-        { id: "f-person",  label: "با چه کسی صحبت کنیم؟",  msg: "بگویید با چه کسی صحبت کنیم." },
-        { id: "f-contact", label: "تلفن یا ایمیل",          msg: "یک شماره تلفن یا ایمیل بگذارید تا بتوانیم پاسخ دهیم." },
-        { id: "f-city",    label: "شهر",                    msg: "در کدام شهر هستید؟" }
-      ] : [
-        { id: "f-cafe",    label: "Café or restaurant name", msg: "Tell us the name of your café." },
-        { id: "f-person",  label: "Who should we talk to?",  msg: "Tell us who we should ask for." },
-        { id: "f-contact", label: "Phone or email",          msg: "Leave a phone number or an email so we can reply." },
-        { id: "f-city",    label: "City",                    msg: "Which city are you in?" }
-      ];
-    }
-    var FIELDS = fieldDefs();
-
-    function setError(f, message) {
-      var input = $(f.id);
-      var err   = $("err-" + f.id.slice(2));
-      if (message) {
-        input.setAttribute("aria-invalid", "true");
-        err.textContent = message;
-      } else {
-        input.removeAttribute("aria-invalid");
-        err.textContent = "";
-      }
-    }
-
-    FIELDS.forEach(function (f) {
-      var input = $(f.id);
-      on(input, "input", function () {
-        if (input.getAttribute("aria-invalid") === "true" && input.value.trim()) setError(f, "");
-      });
-    });
-
-    on(form, "submit", function (e) {
-      e.preventDefault();
-      var bad = [];
-      fieldDefs().forEach(function (f) {
-        var v = $(f.id).value.trim();
-        if (!v) { bad.push(f); setError(f, f.msg); } else { setError(f, ""); }
-      });
-
-      if (bad.length) {
-        sumList.innerHTML = "";
-        bad.forEach(function (f) {
-          var li = document.createElement("li");
-          var a  = document.createElement("a");
-          a.href = "#" + f.id;
-          a.textContent = f.label + " — " + f.msg;
-          li.appendChild(a);
-          sumList.appendChild(li);
-        });
-        summary.hidden = false;
-        summary.focus();
-        return;
-      }
-
-      summary.hidden = true;
-
-      var cafe    = $("f-cafe").value.trim();
-      var person  = $("f-person").value.trim();
-      var contact = $("f-contact").value.trim();
-      var city    = $("f-city").value.trim();
-
-      var body = [
-        "Café: " + cafe,
-        "Contact person: " + person,
-        "Phone or email: " + contact,
-        "City: " + city,
-        "",
-        "We would like to try Reloy at our counter."
-      ].join("\n");
-
-      var href = "mailto:" + SITE.email +
-        "?subject=" + encodeURIComponent("Reloy early access — " + cafe) +
-        "&body=" + encodeURIComponent(body);
-
-      $("doneCafe").textContent = cafe;
-      form.hidden = true;
-      done.hidden = false;
-      done.focus();
-      window.location.href = href;
-    });
-  }
-
   /* ============================================================= pricing === */
   /* The plan card's monthly/yearly switch. A price change is worth a small
      beat of motion — the figure dips out and the new one rises in, and the
@@ -1270,7 +1147,6 @@
   var pricingCtrl = pricingPlan();
   counters();
   faq();
-  signup();
   var revealsCtrl = reveals();
   langSwitch(function () {
     fillCommercials();

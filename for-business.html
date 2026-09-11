@@ -16,8 +16,8 @@
 
   <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="for-business.css?v=48" />
-  <script src="for-business.js?v=25" defer></script>
+  <link rel="stylesheet" href="for-business.css?v=53" />
+  <script src="for-business.js?v=26" defer></script>
 </head>
 <body>
 
@@ -63,7 +63,7 @@
           <a href="#pricing" data-i18n="FB_NAV_PRICING">Pricing</a>
           <a href="#faq" data-i18n="FB_NAV_FAQ">FAQ</a>
         </nav>
-        <a class="btn btn--primary nav__cta" href="#signup"><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn btn--primary nav__cta" href="/business/signin"><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
       <div class="lang-switch" id="langSwitch" role="tablist" aria-label="Language">
         <button class="lang-switch__btn" data-lang="en" type="button">EN</button>
@@ -86,18 +86,26 @@
         <div class="hero__copy">
           <p class="eyebrow rv" data-i18n="FB_HERO_EYEBROW">For cafés &amp; restaurants</p>
           <h1 class="hero__title" id="heroTitle" data-i18n-html="FB_HERO_TITLE_HTML"><span class="line"><span class="w" style="--d:60ms">Turn</span> <span class="w" style="--d:115ms">every</span> <span class="w" style="--d:170ms">tap</span></span><span class="line"><span class="w" style="--d:225ms">into</span> <span class="w" style="--d:280ms">a</span> <span class="w" style="--d:335ms">customer</span></span><span class="line"><span class="w" style="--d:400ms">who</span> <span class="w hero__accent" style="--d:455ms">comes back.<svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 8.6C40 3.2 96 2 197 5.8"/></svg></span></span></h1>
-          <p class="hero__lede rv" style="--rv-delay:520ms" data-i18n="FB_HERO_LEDE">
+          <p class="hero__lede rv" style="--rv-delay:520ms" data-i18n-html="FB_HERO_LEDE">
             Reloy is a digital stamp card for your counter. Your cashier presses one NFC
             stamp to the customer's phone, no app store, no download, no password, and
             their card fills itself. You finally see who keeps coming back, and when.
           </p>
           <div class="hero__cta rv" style="--rv-delay:620ms">
-            <a class="btn btn--primary btn--lg" href="#signup" data-magnetic><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <a class="btn btn--primary btn--lg" href="/business/signin" data-magnetic><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
             <a class="btn btn--ghost btn--lg" href="#how" data-i18n="FB_HERO_SEE_HOW">See how it works</a>
           </div>
-          <p class="hero__note rv" style="--rv-delay:700ms">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> <span data-i18n="FB_HERO_NOTE">NFC tag, staff training and setup included — live in about a week.</span>
-          </p>
+          <div class="hero__notes rv" style="--rv-delay:700ms">
+            <p class="hero__note">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> <span data-i18n="FB_HERO_NOTE1">Simple setup, fully separate from your accounting system.</span>
+            </p>
+            <p class="hero__note">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> <span data-i18n="FB_HERO_NOTE2">NFC tag delivered in under a week.</span>
+            </p>
+            <p class="hero__note">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> <span data-i18n="FB_HERO_NOTE3">Training on how it works, if you need it.</span>
+            </p>
+          </div>
         </div>
 
         <!-- the product demos itself: the exact wallet card design, copied
@@ -357,12 +365,12 @@
 
         <!-- ------------------------------------------------------ using a reward -->
         <div class="how__grid" id="howPanelUse" role="tabpanel" aria-labelledby="howTabUse" hidden>
-          <ol class="steps" aria-label="How a customer redeems a reward, step by step"><li><button type="button" class="step is-on" aria-pressed="true" data-step="1"><span class="step__n" aria-hidden="true">01</span><span><h3 data-i18n="FB_HOW_U1_H">They bring up their card</h3><p data-i18n="FB_HOW_U1_P">A completed card turns into a ticket — a QR code and a short backup code, ready to show at the counter.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_U2_H">Staff scan it, or type the code</h3><p data-i18n="FB_HOW_U2_P">The staff scanner reads the QR in a beat. Mid-rush and awkward to scan? Staff can type the short code by hand instead.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_U3_H">Checked before anything is given</h3><p data-i18n="FB_HOW_U3_P">It is verified against our server instantly — an expired or already-used code is caught right there, before any discount is handed out.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_U4_H">Redeemed — apply the discount</h3><p data-i18n="FB_HOW_U4_P">The screen turns to "Redeemed ✓." Staff apply it on the customer's bill right there at the register.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="5"><span class="step__n" aria-hidden="true">05</span><span><h3 data-i18n="FB_HOW_U5_H">Used once, then it is gone</h3><p data-i18n="FB_HOW_U5_P">The same code cannot be scanned twice. No reused screenshots, no double discounts — every reward is spent exactly once.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li></ol>
+          <ol class="steps" aria-label="How a customer redeems a reward, step by step"><li><button type="button" class="step is-on" aria-pressed="true" data-step="1"><span class="step__n" aria-hidden="true">01</span><span><h3 data-i18n="FB_HOW_U1_H">They bring up their card</h3><p data-i18n="FB_HOW_U1_P">A completed card turns into a ticket — a QR code and a short backup code, ready to show at the counter.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_U2_H">Staff scan it, or type the code</h3><p data-i18n="FB_HOW_U2_P">The staff scanner reads the QR in a beat. Mid-rush and awkward to scan? Staff can type the short code by hand instead.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_U3_H">Checked before anything is given</h3><p data-i18n="FB_HOW_U3_P">It is verified against our server instantly — an expired or already-used code is caught right there, before any discount is handed out.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_U4_H">Redeemed — apply the discount</h3><p data-i18n="FB_HOW_U4_P">The screen turns to "Redeemed ✓." Staff apply it on the customer's bill right there at the register.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li></ol>
           <div class="steps__nav">
             <button type="button" class="steps__navBtn" data-dir="-1" aria-label="Previous step">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
-            <span class="steps__navCount" aria-hidden="true"><span class="steps__navCur">1</span> / <span class="steps__navTotal">5</span></span>
+            <span class="steps__navCount" aria-hidden="true"><span class="steps__navCur">1</span> / <span class="steps__navTotal">4</span></span>
             <button type="button" class="steps__navBtn" data-dir="1" aria-label="Next step">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
             </button>
@@ -399,13 +407,6 @@
                     <p data-i18n="FB_SCENE_U4_P">Applied — give the customer their discount.</p>
                   </div>
                 </div>
-                <div class="scene" data-scene="5">
-                  <div>
-                    <div class="scene__art"><span class="used-stamp" data-i18n="FB_USED_BADGE">Used</span></div>
-                    <h4 data-i18n="FB_SCENE_U5_H">Spent once, for good</h4>
-                    <p data-i18n="FB_SCENE_U5_P">That exact code will never work again.</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -436,7 +437,11 @@
           </div>
           <div class="ins ins--flip rv">
             <div class="ins__viz"><div class="ins__pair">
-                <div class="ins__stat"><p class="ins__stat-big"><i data-to="43" data-suffix="%">43%</i></p><p class="ins__stat-cap" data-i18n="FB_INS2_CAP1">of first-timers came back at least once</p></div>
+                <div class="ins__stat"><p class="ins__stat-big"><i data-to="4.2" data-dec="1">4.2</i> <em data-i18n="FB_DAYS_UNIT">days</em></p><div class="rhythm" role="img" aria-label="Distribution of days between visits. Most customers return after four days; the average gap is 4.2 days.">
+              <i style="--h:18%;--d:0"></i><i style="--h:34%;--d:1"></i><i style="--h:58%;--d:2"></i>
+              <i class="pk" style="--h:100%;--d:3"></i><i style="--h:70%;--d:4"></i><i style="--h:42%;--d:5"></i>
+              <i style="--h:26%;--d:6"></i><i style="--h:15%;--d:7"></i>
+            </div><p class="ins__stat-cap" data-i18n="FB_INS3_CAP1">typical gap between one customer&rsquo;s visits</p></div>
                 <div class="ins__stat"><div class="split" style="--w-new:38%;--w-loyal:62%" role="img"
                  aria-label="Customer mix: 38 percent new customers, 62 percent loyal returning customers.">
               <i class="new">38%</i><i class="loyal">62%</i>
@@ -451,11 +456,6 @@
           </div>
           <div class="ins  rv">
             <div class="ins__viz"><div class="ins__pair">
-                <div class="ins__stat"><p class="ins__stat-big"><i data-to="4.2" data-dec="1">4.2</i> <em data-i18n="FB_DAYS_UNIT">days</em></p><div class="rhythm" role="img" aria-label="Distribution of days between visits. Most customers return after four days; the average gap is 4.2 days.">
-              <i style="--h:18%;--d:0"></i><i style="--h:34%;--d:1"></i><i style="--h:58%;--d:2"></i>
-              <i class="pk" style="--h:100%;--d:3"></i><i style="--h:70%;--d:4"></i><i style="--h:42%;--d:5"></i>
-              <i style="--h:26%;--d:6"></i><i style="--h:15%;--d:7"></i>
-            </div><p class="ins__stat-cap" data-i18n="FB_INS3_CAP1">typical gap between one customer&rsquo;s visits</p></div>
                 <div class="ins__stat"><div class="donut" style="--pct:71">
               <svg viewBox="0 0 44 44" aria-hidden="true">
                 <circle class="track" cx="22" cy="22" r="15.9" />
@@ -466,6 +466,12 @@
                 <p class="tile__foot" style="margin-top:4px" data-i18n="FB_INS3_CAP2">of issued rewards actually claimed</p>
               </div>
             </div></div>
+                <div class="ins__stat"><div class="dealbars">
+                  <div class="dealbar"><div class="dealbar__top"><span class="dealbar__label" data-i18n="FB_DEAL1_LABEL">Free coffee</span><span class="dealbar__val" data-i18n="FB_DEAL1_VAL">82%</span></div><div class="dealbar__track"><div class="dealbar__fill" style="--w:82%"></div></div></div>
+                  <div class="dealbar"><div class="dealbar__top"><span class="dealbar__label" data-i18n="FB_DEAL2_LABEL">10% off</span><span class="dealbar__val" data-i18n="FB_DEAL2_VAL">64%</span></div><div class="dealbar__track"><div class="dealbar__fill" style="--w:64%"></div></div></div>
+                  <div class="dealbar"><div class="dealbar__top"><span class="dealbar__label" data-i18n="FB_DEAL3_LABEL">20% off</span><span class="dealbar__val" data-i18n="FB_DEAL3_VAL">45%</span></div><div class="dealbar__track"><div class="dealbar__fill" style="--w:45%"></div></div></div>
+                  <div class="dealbar"><div class="dealbar__top"><span class="dealbar__label" data-i18n="FB_DEAL4_LABEL">Free croissant</span><span class="dealbar__val" data-i18n="FB_DEAL4_VAL">29%</span></div><div class="dealbar__track"><div class="dealbar__fill" style="--w:29%"></div></div></div>
+                </div><p class="ins__stat-cap" data-i18n="FB_DEAL_CAP">usage rate by reward type</p></div>
               </div></div>
             <div class="ins__say">
               <p class="ins__eyebrow" data-i18n="FB_INS3_EYEBROW">Whether the reward works</p>
@@ -476,11 +482,7 @@
           </div>
         </div>
         <div class="next rv"><span class="next__sweep" aria-hidden="true"></span>
-            <p class="next__label" data-i18n-html="FB_NEXT_LABEL"><span class="next__dot" aria-hidden="true"></span>In development</p>
-            <div class="next__grid">
-              <div class="next__item"><span class="next__ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><div><h3 data-i18n="FB_NEXT1_H3">Targeted messages, in the card they kept</h3><p data-i18n-html="FB_NEXT1_P">Reach the customers who have drifted past their usual rhythm &mdash; inside the card already on their home screen, not in the message app where they hear from family.</p></div></div>
-              <div class="next__item"><span class="next__ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.3 13.3 20.6a2 2 0 0 1-2.8 0l-7.1-7.1a2 2 0 0 1-.6-1.4V4.4A1.4 1.4 0 0 1 4.4 3h7.7a2 2 0 0 1 1.4.6l7.1 7.1a2 2 0 0 1 0 2.6Z"/><circle cx="7.6" cy="7.6" r="1.2"/></svg></span><div><h3 data-i18n="FB_NEXT2_H3">Offers aimed at the people they would move</h3><p data-i18n="FB_NEXT2_P">Send a reward to the customers it would actually bring back, instead of discounting everyone who was already on their way in.</p></div></div>
-            </div>
+            <p class="next__line"><span class="next__dot" aria-hidden="true"></span><span data-i18n="FB_NEXT_LINE">Targeting customers with messages and special discounts is in development.</span></p>
           </div>
             </div>
     </section>
@@ -511,7 +513,7 @@
               <p class="plan__equiv" id="planEquiv" hidden></p>
             </div>
             <button type="button" class="plan__nudge" id="planNudge" hidden></button>
-            <a class="btn btn--primary plan__cta" href="#signup"><span id="ctaLabel">Start your free trial</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <a class="btn btn--primary plan__cta" href="/business/signin"><span id="ctaLabel">Start your free trial</span> <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
             <ul class="plan__trust">
               <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_1">No card needed</span></li>
               <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_2">No contract</span></li>
@@ -533,29 +535,35 @@
     <section id="about" class="band">
       <div class="wrap">
         <div class="about glass rv">
-          <span class="about__seal" aria-hidden="true"><svg viewBox="0 0 100 113.562"><use href="#logoMark" /></svg></span>
-          <div>
+          <div class="about__head">
+            <span class="about__seal" aria-hidden="true"><svg viewBox="0 0 100 113.562"><use href="#logoMark" /></svg></span>
             <p class="eyebrow" data-i18n="FB_ABOUT_EYEBROW">About Reloy</p>
-            <p data-i18n="FB_ABOUT_P1">Reloy was built for the cafés we actually go to. We kept watching good places hand out paper stamp cards that customers lost within a week, while the loyalty apps on offer wanted a download, a password, and a fee that only makes sense at twenty branches.</p>
-            <p data-i18n="FB_ABOUT_P2">So we built the version a single café can live with: one stamp behind the counter, two fields for the customer, and a dashboard that finally answers “are people coming back?” — a question most owners have only ever been able to guess at.</p>
-            <p data-i18n-html="FB_ABOUT_P3"><strong>We are a small team from Mashhad.</strong> We met at Hasheminejad 2 and most of us never left, which is why getting you set up means one of us walking into your café — not a courier and a PDF.</p>
+          </div>
+          <div>
+            <h3 class="about__h" data-i18n="FB_ABOUT_H1">Started in London. Built in Mashhad.</h3>
+            <p data-i18n="FB_ABOUT_P1">I saw the idea for Reloy in London and decided to build it for Iran. Today our team works on building and running Reloy from Mashhad, the city our first caf&eacute;s are in.</p>
+            <p data-i18n="FB_ABOUT_P2">That is why setting Reloy up is never just a guide file sent to your inbox. If it is needed, one of us walks in through your caf&eacute; door.</p>
+            <p data-i18n="FB_ABOUT_P3">Support, to us, means talking directly to the people who build the product, not getting lost in a queue of tickets.</p>
             <div class="about__team">
               <div class="about__person">
                 <span class="about__ini" aria-hidden="true">AJ</span>
                 <div>
                   <b>Amir Hossein Javadi</b>
-                  <span data-i18n="FB_TEAM_1">Founder. Builds it. Reading computer science at UCL, on Reloy year-round.</span>
+                  <span data-i18n="FB_TEAM_1">Founder and product builder. Reading computer science at UCL, responsible for building and developing Reloy.</span>
                 </div>
               </div>
               <div class="about__person">
                 <span class="about__ini" aria-hidden="true">PS</span>
                 <div>
                   <b>Pooya Salarimanesh</b>
-                  <span data-i18n="FB_TEAM_2">Co-founder. Reading computer engineering in Mashhad — and the one who turns up at your counter.</span>
+                  <span data-i18n="FB_TEAM_2">Co-founder. Reading computer engineering in Mashhad, and the one who moves Reloy forward alongside café owners, behind the counter.</span>
                 </div>
               </div>
             </div>
-            <p data-i18n-html="FB_ABOUT_P4"><strong>We are early, and we are not hiding it.</strong> Reloy is live in its first cafés right now, which is exactly why joining now is worth it: you get our full attention and a direct line to the person building it. If it does not work for you, you walk away — there is no contract and nothing installed on your machines.</p>
+            <h3 class="about__h" data-i18n="FB_ABOUT_H2">We are still making it better.</h3>
+            <p data-i18n="FB_ABOUT_P5">It is running behind real counters right now as a pilot, alongside the first caf&eacute; owners who trusted us and agreed to try it. We are still learning from their feedback and improving the product on what they live with every day.</p>
+            <p data-i18n="FB_ABOUT_P6">Joining at this stage means a direct line to the team building it, our full attention, and a real say in what gets built next.</p>
+            <p data-i18n="FB_ABOUT_P7">There is no complicated contract and nothing is installed on your machines. If Reloy does not earn its place on your counter, you simply stop.</p>
             <div class="about__contact">
               <p class="about__contact-h" data-i18n="FB_CONTACT_H">Contact</p>
               <ul class="about__contact-list">
@@ -609,63 +617,6 @@
       </div>
     </section>
 
-    <!-- =============================================================== signup -->
-    <section id="signup" class="band">
-      <div class="wrap">
-        <div class="signup glass rv">
-          <div class="signup__grid">
-            <div>
-              <p class="eyebrow" data-i18n="FB_SIGNUP_EYEBROW">Get early access</p>
-              <h2 data-i18n="FB_SIGNUP_H2">Let's get a tag on your counter.</h2>
-              <p class="lede" data-i18n="FB_SIGNUP_LEDE">Tell us where you are and we will get back to you. We will set up your NFC kit within about a week.</p>
-              <div class="signup__aside"><ul><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_1">We send the tag and set your card up for you.</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_2">We show your staff how it works, on your floor.</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_3">Your trial only starts once it is actually live.</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_SIGNUP_ASIDE_4">No contract. Stop whenever you want.</span></li></ul></div>
-            </div>
-            <div>
-              <form class="form" id="signupForm" novalidate>
-                <div class="form__summary" id="formSummary" tabindex="-1" role="alert" hidden>
-                  <h3 data-i18n="FB_FORM_SUMMARY_H3">Please check these before sending</h3>
-                  <ul id="formSummaryList"></ul>
-                </div>
-                <div class="field">
-                  <label for="f-cafe" data-i18n="FB_FIELD_CAFE_LABEL">Café or restaurant name</label>
-                  <input id="f-cafe" name="cafe" type="text" autocomplete="organization" placeholder="Filo" aria-describedby="err-cafe" data-i18n-placeholder="FB_FIELD_CAFE_PH" />
-                  <span class="field__err" id="err-cafe"></span>
-                </div>
-                <div class="field">
-                  <label for="f-person" data-i18n="FB_FIELD_PERSON_LABEL">Who should we talk to?</label>
-                  <input id="f-person" name="person" type="text" autocomplete="name" placeholder="Your name" aria-describedby="err-person" data-i18n-placeholder="FB_FIELD_PERSON_PH" />
-                  <span class="field__err" id="err-person"></span>
-                </div>
-                <div class="form__row">
-                  <div class="field">
-                    <label for="f-contact" data-i18n="FB_FIELD_CONTACT_LABEL">Phone or email</label>
-                    <input id="f-contact" name="contact" type="text" autocomplete="tel" placeholder="0915 000 0000" aria-describedby="err-contact hint-contact" />
-                    <span class="field__hint" id="hint-contact" data-i18n="FB_FIELD_CONTACT_HINT">Whichever you would rather we used.</span>
-                    <span class="field__err" id="err-contact"></span>
-                  </div>
-                  <div class="field">
-                    <label for="f-city" data-i18n="FB_FIELD_CITY_LABEL">City</label>
-                    <input id="f-city" name="city" type="text" autocomplete="address-level2" placeholder="Mashhad" aria-describedby="err-city" data-i18n-placeholder="FB_FIELD_CITY_PH" />
-                    <span class="field__err" id="err-city"></span>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn--primary btn--lg" data-magnetic><span data-i18n="FB_FORM_SUBMIT">Request early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-                <p class="field__hint" data-i18n="FB_FORM_PRIVACY_HINT">We will only use your details to talk to you about Reloy.</p>
-              </form>
-              <div class="form__done" id="formDone" tabindex="-1" hidden>
-                <span class="tick" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-                <h3 data-i18n="FB_DONE_H3">Thanks — your email is ready to send</h3>
-                <p class="lede" style="margin-inline:auto" data-i18n-html="FB_DONE_P">
-                  We have opened a prefilled message for <strong id="doneCafe"></strong>.
-                  Press send in your mail app and we will come back to you within a day.
-                  If nothing opened, write to <a data-email href="#">reloy.ir@gmail.com</a> directly.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
   </main>
 
@@ -724,7 +675,7 @@
         <div class="foot__col">
           <h2 class="foot__h" data-i18n="FB_FOOT_COL2_H">Get in touch</h2>
           <ul>
-            <li><a href="#signup" data-i18n="FB_SIGNUP_EYEBROW">Get early access</a></li>
+            <li><a href="/business/signin" data-i18n="FB_NAV_CTA">Register your caf&eacute;</a></li>
             <li><a data-email href="#">reloy.ir@gmail.com</a></li>
             <li id="footPhone" hidden><a href="#">&mdash;</a></li>
             <li class="foot__addr" data-i18n="FB_ADDR">Karimi 5, Aghdasie 15, Mashhad, Iran</li>
