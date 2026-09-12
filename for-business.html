@@ -16,8 +16,8 @@
 
   <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="for-business.css?v=53" />
-  <script src="for-business.js?v=27" defer></script>
+  <link rel="stylesheet" href="for-business.css?v=56" />
+  <script src="for-business.js?v=36" defer></script>
 </head>
 <body>
 
@@ -488,15 +488,17 @@
     </section>
 
     <!-- ============================================================== pricing -->
-    <section id="pricing" class="band band--paper">
+    <section id="pricing" class="band">
       <div class="wrap">
         <div class="sec-head rv">
           <p class="eyebrow" data-i18n="FB_PRICING_EYEBROW">Pricing</p>
-          <h2 data-i18n-html="FB_PRICING_H2">Grow your regulars.<br />Not your software bill.</h2>
-          <p class="lede" data-i18n="FB_PRICING_LEDE">Every feature, unlimited customers and unlimited stamps for one flat price.</p>
+          <h2 data-i18n-html="FB_PRICING_H2">Everything in one subscription.</h2>
+          <p class="lede" data-i18n="FB_PRICING_LEDE">Unlimited customers, unlimited stamps, no commission. One fixed number a month.</p>
         </div>
         <div class="pricing__grid">
           <div class="plan glass plan--hero rv" id="planCard">
+            <span class="plan__ring" aria-hidden="true"></span>
+            <span class="plan__spot" aria-hidden="true"></span>
             <div class="plan__top">
               <span class="trial-badge" data-trial>Free trial</span>
               <div class="billing" role="group" aria-label="Billing period">
@@ -507,8 +509,8 @@
             </div>
             <div class="plan__price">
               <span class="plan__was" id="planWas" hidden></span>
-              <span class="plan__figure"><span class="plan__amount" id="planAmount">6,000,000</span><span class="plan__unit" data-i18n="FB_TOMAN">Toman</span></span>
-              <span class="plan__per" id="planPer">per month, per café</span>
+              <span class="plan__figure"><span class="plan__amount" id="planAmount">3,000,000</span><span class="plan__unit" data-i18n="FB_TOMAN">Toman</span></span>
+              <span class="plan__per" id="planPer">per month, for your whole brand</span>
               <p class="plan__day" id="planDay"></p>
               <p class="plan__equiv" id="planEquiv" hidden></p>
             </div>
@@ -519,12 +521,12 @@
               <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_2">No contract</span></li>
               <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_TRUST_3">Live in about a week</span></li>
             </ul>
-            <p class="plan__foot" data-i18n-html="FB_PLAN_FOOT">Your trial starts the day your tag goes live at your counter — not the day you sign up. By starting a trial you agree to our <a href="/business-terms">Business Terms</a>.</p>
+            <p class="plan__foot" data-i18n-html="FB_PLAN_FOOT">Your 30 days start from the first stamp you give a customer, not from the day you sign up. By starting a trial you agree to our <a href="/business-terms">Business Terms</a>.</p>
           </div>
           <div class="plan glass plan--features rv" style="--rv-delay:90ms">
-            <h3 data-i18n="FB_FEATURES_H3">Everything included</h3>
+            <h3 data-i18n="FB_FEATURES_H3">What this package includes</h3>
             <p class="plan__sub" data-i18n="FB_FEATURES_SUB">One price. No tier above this one, and nothing held back for it.</p>
-            <ul class="plan__list"><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_1">Your NFC tag, delivered and ready to use</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_2">Staff walked through it on your floor</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_3">Your own card design, logo and reward</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_4">Unlimited customers, unlimited stamps</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_5">The full owner dashboard — visits, regulars, trends</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_6">Staff scanner with real-time stamp confirmation</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_7">Change your reward whenever you want</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_8">No commission on anything you sell</span></li></ul>
+            <ul class="plan__list"><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_1">Your NFC stamp, delivered and set up</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_2">Staff training, if you need it</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_3">Your card and logo, in your customer&rsquo;s pocket</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_4">Set up and customise your own rewards</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_5">Stamping customers&rsquo; cards at the counter</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_6">The numbers that matter about your business</span></li><li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="FB_FEAT_7">A panel for your staff</span></li></ul>
             <p class="plan__note" data-i18n="FB_PLAN_NOTE">No setup fee, no per-tap charge, no per-member fee. The number on the left is the whole bill.</p>
           </div>
         </div>
@@ -603,8 +605,8 @@
 
           <div class="faq__cat rv"><h3 data-i18n="FB_FAQ_CAT2">Money &amp; the business case</h3><span class="faq__cat-rule" aria-hidden="true"></span></div>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q6">Will this actually increase my sales?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A6">Cafés running loyalty programmes overseas do see more repeat visits, so the pattern is real. But nobody can promise you an exact number sight unseen, because every café, menu and neighbourhood is different, and no honest answer skips that. That is exactly what the free trial is for: run it at your own counter, watch your own dashboard, and decide for yourself whether it is actually bringing your customers back before you pay anything.</p></div></details>
-          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q7">How long is the free trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqTrial">The trial runs from the day your NFC tag goes live at your counter, not the day you sign up. Ask us for the current pilot length.</span></p></div></details>
-          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q8">What does it cost after the trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqPrice">A flat monthly fee per café — no per-tap charges and no commission on what you sell. We are finalising the number with our pilot cafés, so ask us and you will get the pilot rate.</span></p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q7">How long is the free trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqTrial">The trial runs from the first stamp you give a customer, not from the day you sign up. Ask us for the current pilot length.</span></p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q8">What does it cost after the trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqPrice">A flat 3,000,000 Toman a month for your whole brand, or 30,000,000 Toman a year (2 months free). No per-tap charges, and no commission on anything you sell.</span></p></div></details>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q9">What if I have more than one location?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A9">Multi-location is in development. The plan is one dashboard for your whole brand with a sub-dashboard underneath it for each branch, every branch connected under the same account, and one bill for the brand rather than one per branch. Today a subscription covers a single café. Ask us where multi-location stands if it matters for your decision to start now.</p></div></details>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q10">Do unclaimed rewards expire?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A10">Yes. Every reward carries an expiry date, 30 days from when it is earned by default. Change that number for your whole café from your dashboard, or set a different one on an individual reward. It is also why the 71% claimed rate on this page means something: it only counts rewards that got redeemed before the clock ran out.</p></div></details>
 

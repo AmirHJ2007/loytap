@@ -20,8 +20,8 @@
      ========================================================================== */
   var SITE = {
     trialDays:    30,                 // e.g. 30  → "30 days free". null → "Free trial"
-    priceMonthly: 6000000,            // Toman per month, per café. null → "Talk to us"
-    priceYearly:  60000000,           // Toman per year, per café — must stay < priceMonthly*12
+    priceMonthly: 3000000,            // Toman per month, per brand. null → "Talk to us"
+    priceYearly:  30000000,           // Toman per year, per brand — must stay < priceMonthly*12
                                        // for the "N months free" badge to read as a real saving
     currency:     "Toman",
     email:        "reloy.ir@gmail.com",
@@ -70,7 +70,7 @@
       FB_FAQ_A4: "Yes, whenever you like, from your dashboard. You control both the discount and how many stamps it takes to earn it. Existing cards pick up the change automatically — nobody has to be issued a new card.",
       FB_FAQ_A5: "Nothing is lost. Their card lives on our server against their mobile number, not on the handset. Your cashier stamps the new phone, they confirm their number, and every stamp they have collected is already there.",
       FB_FAQ_A6: "Cafés running loyalty programmes overseas do see more repeat visits, so the pattern is real. But nobody can promise you an exact number sight unseen, because every café, menu and neighbourhood is different, and no honest answer skips that. That is exactly what the free trial is for: run it at your own counter, watch your own dashboard, and decide for yourself whether it is actually bringing your customers back before you pay anything.",
-      FB_FAQ_A9: "Multi-location is in development. The plan is one dashboard for your whole brand with a sub-dashboard underneath it for each branch, every branch connected under the same account, and one bill for the brand rather than one per branch. Today a subscription covers a single café. Ask us where multi-location stands if it matters for your decision to start now.",
+      FB_FAQ_A9: "One subscription covers your whole brand, however many branches you run. We do not charge per branch. The brand dashboard is still in development: the plan is one view for the brand with a sub-dashboard for each branch, all under the same account. Ask us where it stands if it matters for your decision to start now.",
       FB_FAQ_CAT1: "How it works",
       FB_FAQ_CAT2: "Money & the business case",
       FB_FAQ_CAT3: "Privacy & your customers",
@@ -90,16 +90,15 @@
       FB_FAQ_Q7: "How long is the free trial?",
       FB_FAQ_Q8: "What does it cost after the trial?",
       FB_FAQ_Q9: "What if I have more than one location?",
-      FB_FEATURES_H3: "Everything included",
-      FB_FEATURES_SUB: "One price. No tier above this one, and nothing held back for it.",
-      FB_FEAT_1: "Your NFC tag, delivered and ready to use",
-      FB_FEAT_2: "Staff walked through it on your floor",
-      FB_FEAT_3: "Your own card design, logo and reward",
-      FB_FEAT_4: "Unlimited customers, unlimited stamps",
-      FB_FEAT_5: "The full owner dashboard — visits, regulars, trends",
-      FB_FEAT_6: "Staff scanner with real-time stamp confirmation",
-      FB_FEAT_7: "Change your reward whenever you want",
-      FB_FEAT_8: "No commission on anything you sell",
+      FB_FEATURES_H3: "What this package includes",
+      FB_FEATURES_SUB: "Everything below is in the one price. There is no tier above it.",
+      FB_FEAT_1: "Your NFC stamp, delivered and set up",
+      FB_FEAT_2: "Staff training, if you need it",
+      FB_FEAT_3: "Your card and logo, in your customer’s pocket",
+      FB_FEAT_4: "Set up and customise your own rewards",
+      FB_FEAT_5: "Stamping customers’ cards at the counter",
+      FB_FEAT_6: "The numbers that matter about your business",
+      FB_FEAT_7: "A panel for your staff",
       FB_FOOT_APP_LINK: "The customer app",
       FB_FOOT_BIZ_TERMS: "Business terms",
       FB_FOOT_COL1_H: "The product",
@@ -180,11 +179,11 @@
       FB_NAV_MENU: "Menu",
       FB_NAV_PRICING: "Pricing",
       FB_NEXT_LINE: "Targeting customers with messages and special discounts is in development.",
-      FB_PLAN_FOOT: "Your trial starts the day your tag goes live at your counter — not the day you sign up. By starting a trial you agree to our <a href=\"/business-terms\">Business Terms</a>.",
-      FB_PLAN_NOTE: "No setup fee, no per-tap charge, no per-member fee. The number on the left is the whole bill.",
+      FB_PLAN_FOOT: "Your 30 days start from the first stamp you give a customer, not from the day you sign up. By starting a trial you agree to our <a href=\"/business-terms\">Business Terms</a>.",
+      FB_PLAN_NOTE: "Try it free for 30 days, and buy only once you are sure.",
       FB_PRICING_EYEBROW: "Pricing",
-      FB_PRICING_H2: "Grow your regulars.<br/>Not your software bill.",
-      FB_PRICING_LEDE: "Every feature, unlimited customers and unlimited stamps for one flat price.",
+      FB_PRICING_H2: "Everything in one subscription.",
+      FB_PRICING_LEDE: "Unlimited customers, unlimited stamps, no commission. One fixed number a month.",
       FB_PRIZE_HINT: "Show this to the staff",
       FB_PRIZE_OFF: "off your next order",
       FB_PRIZE_TITLE: "Congratulation!",
@@ -210,9 +209,9 @@
       FB_TEAM_1: "Founder and product builder. Reading computer science at UCL, responsible for building and developing Reloy.",
       FB_TEAM_2: "Co-founder. Reading computer engineering in Mashhad, and the one who moves Reloy forward alongside café owners, behind the counter.",
       FB_TOMAN: "Toman",
-      FB_TRUST_1: "No card needed",
-      FB_TRUST_2: "No contract",
-      FB_TRUST_3: "Live in about a week",
+      FB_TRUST_1: "No setup fee",
+      FB_TRUST_2: "Cancel any time",
+      FB_TRUST_3: "No commission on your sales",
       FB_WHY_EYEBROW: "Why cafés choose Reloy",
       FB_WHY_H2: "It has to survive the morning rush, or it is useless.",
       FB_WHY_LIST_HTML: "<div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 7v5l3 2\"></path></svg></span><div><h3>It does not slow the queue down</h3><p>A press takes about as long as a card payment. The customer holds out their own phone, your cashier presses the stamp to it, and nobody types anything, just one tap to confirm on the panel already open behind the counter.</p></div><span class=\"why__stat\">~2 seconds</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M6 9V3h12v6\"></path><rect height=\"7\" rx=\"2\" width=\"18\" x=\"3\" y=\"9\"></rect><path d=\"M7 16h10v5H7z\"></path></svg></span><div><h3>No more printing paper cards</h3><p>No reprints when the design changes, no boxes of cards behind the counter, no stamp pad drying out.</p></div><span class=\"why__stat\">Zero print cost</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1\"></path><circle cx=\"9.5\" cy=\"7\" r=\"3.5\"></circle><path d=\"M16 11l2 2 4-4\"></path></svg></span><div><h3>Almost nothing asked of the customer</h3><p>A name and a mobile number, once. No app store visit, no password to invent, no email to verify, no storage used on their phone.</p></div><span class=\"why__stat\">2 fields, once</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 9h18l-1.6-5H4.6L3 9Z\"></path><path d=\"M5 9v11h14V9\"></path><path d=\"M9.5 20v-6h5v6\"></path></svg></span><div><h3>Your café stays front and centre</h3><p>Your colours, your logo and your name are on every screen a customer sees. Reloy stays behind the scenes.</p></div><span class=\"why__stat\">Your brand</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 17l6-6 4 4 7-7\"></path><path d=\"M14 7h7v7\"></path></svg></span><div><h3>See when your regulars return</h3><p>Compare 7 or 30 days of real stamp data to spot your busiest days, your strongest hours, and whether repeat visits are growing.</p></div><span class=\"why__stat\">7 or 30 days</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M9.5 3h5v3.5a3 3 0 0 0 .9 2.1L16.5 10h-9l1.1-1.4a3 3 0 0 0 .9-2.1Z\"></path><rect height=\"4\" rx=\"1.5\" width=\"16\" x=\"4\" y=\"13\"></rect><path d=\"M5.5 21h13\"></path></svg></span><div><h3>It still feels like a stamp</h3><p>The tag we send you is a classic stamp with the chip inside. Your staff press it onto the phone the way they always pressed paper, the same ritual your counter already had, without the ink pad.</p></div><span class=\"why__stat\">Still a stamp</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 7h11v9H3z\"></path><path d=\"M14 10h4l3 3v3h-7z\"></path><circle cx=\"7\" cy=\"18\" r=\"2\"></circle><circle cx=\"17\" cy=\"18\" r=\"2\"></circle></svg></span><div><h3>We set it up, not you</h3><p>We send the NFC tag, get your card and reward configured, and show your staff how it works on the floor. You are running in about a week.</p></div><span class=\"why__stat\">~1 week</span></div>",
@@ -245,7 +244,7 @@
       FB_FAQ_A4: "بله، هر وقت خواستید، از داشبوردتان. هم تخفیف و هم تعداد استمپ لازم برای گرفتنش دست شماست. کارت‌های موجود خودکار تغییر را می‌گیرند — نیازی نیست کارت جدیدی صادر شود.",
       FB_FAQ_A5: "چیزی از دست نمی‌رود. کارت او روی سرور ما و بر اساس شماره موبایلش ذخیره است، نه روی گوشی. کارمند شما گوشی جدید را استمپ می‌زند، مشتری شماره‌اش را تأیید می‌کند، و همه استمپ‌هایی که جمع کرده همان‌جا هستند.",
       FB_FAQ_A6: "کافه‌هایی که در دنیا برنامه وفاداری اجرا می‌کنند بازدید تکراری بیشتری می‌بینند، پس این الگو واقعی است. اما کسی نمی‌تواند بدون دیدن کافه شما عدد دقیقی قول بدهد، چون هر کافه، منو و محله‌ای فرق دارد، و جواب صادقانه این را نادیده نمی‌گیرد. دقیقاً برای همین دوره آزمایشی رایگان هست: آن را روی پیشخوان خودتان اجرا کنید، داشبورد خودتان را ببینید، و پیش از پرداخت هر پولی خودتان تصمیم بگیرید که آیا واقعاً مشتری‌هایتان را برمی‌گرداند یا نه.",
-      FB_FAQ_A9: "چند‌شعبه‌ای در دست ساخت است. برنامه این است: یک داشبورد برای کل برند شما با یک زیر‌داشبورد برای هر شعبه، همه شعبه‌ها زیر یک حساب متصل، و یک صورت‌حساب برای کل برند به‌جای یکی برای هر شعبه. امروز یک اشتراک فقط یک کافه را پوشش می‌دهد. اگر برای تصمیم شما اهمیت دارد، از ما درباره وضعیت چند‌شعبه‌ای بپرسید.",
+      FB_FAQ_A9: "یک اشتراک کل برند شما را پوشش می‌دهد، هر تعداد شعبه که داشته باشید. ما به‌ازای هر شعبه هزینه نمی‌گیریم. داشبورد برند هنوز در دست ساخت است: برنامه این است که یک داشبورد برای کل برند باشد با یک زیر‌داشبورد برای هر شعبه، همه زیر یک حساب. اگر برای تصمیم شما اهمیت دارد، از ما درباره وضعیتش بپرسید.",
       FB_FAQ_CAT1: "روش کار",
       FB_FAQ_CAT2: "پول و توجیه کسب‌وکار",
       FB_FAQ_CAT3: "حریم خصوصی و مشتریان شما",
@@ -265,16 +264,15 @@
       FB_FAQ_Q7: "دوره آزمایشی رایگان چقدر طول می‌کشد؟",
       FB_FAQ_Q8: "بعد از دوره آزمایشی چقدر هزینه دارد؟",
       FB_FAQ_Q9: "اگر بیش از یک شعبه داشته باشم چه؟",
-      FB_FEATURES_H3: "همه‌چیز شامل می‌شود",
-      FB_FEATURES_SUB: "یک قیمت. هیچ پلن بالاتری وجود ندارد و چیزی کنار گذاشته نشده.",
-      FB_FEAT_1: "تگ NFC شما، تحویل‌شده و آماده استفاده",
-      FB_FEAT_2: "آموزش پرسنل، در محل کار شما",
-      FB_FEAT_3: "طراحی کارت، لوگو و پاداش مخصوص خودتان",
-      FB_FEAT_4: "مشتری نامحدود، استمپ نامحدود",
-      FB_FEAT_5: "داشبورد کامل صاحب کسب‌وکار — بازدیدها، مشتری ثابت، روندها",
-      FB_FEAT_6: "اسکنر پرسنل با تأیید زنده استمپ",
-      FB_FEAT_7: "هر وقت خواستید پاداش را عوض کنید",
-      FB_FEAT_8: "بدون کمیسیون روی هرچه می‌فروشید",
+      FB_FEATURES_H3: "خدماتی که در این پکیج ارائه می‌دهیم",
+      FB_FEATURES_SUB: "همه‌ی موارد زیر داخل همین یک قیمت است. پلن بالاتری وجود ندارد.",
+      FB_FEAT_1: "تحویل و راه‌اندازی استمپ مجهز به تکنولوژی NFC",
+      FB_FEAT_2: "آموزش پرسنل، در صورت نیاز",
+      FB_FEAT_3: "کارت و لوگوی شما در جیب مشتری",
+      FB_FEAT_4: "توانایی تنظیم و شخصی‌سازی پاداش‌ها",
+      FB_FEAT_5: "استمپ زدن برای مشتری‌ها",
+      FB_FEAT_6: "آمار مهم از وضعیت کسب‌وکار شما",
+      FB_FEAT_7: "پنل پرسنل",
       FB_FOOT_APP_LINK: "اپ مشتری",
       FB_FOOT_BIZ_TERMS: "شرایط کسب‌وکار",
       FB_FOOT_COL1_H: "محصول",
@@ -355,11 +353,11 @@
       FB_NAV_MENU: "منو",
       FB_NAV_PRICING: "قیمت‌گذاری",
       FB_NEXT_LINE: "هدف‌گیری مشتری‌ها با پیام‌ها و تخفیفات خاص در حال ساخت است.",
-      FB_PLAN_FOOT: "دوره آزمایشی شما از روزی شروع می‌شود که تگتان روی پیشخوان فعال شود — نه روزی که ثبت‌نام می‌کنید. با شروع دوره آزمایشی، <a href=\"/business-terms\">شرایط کسب‌وکار</a> ما را می‌پذیرید.",
-      FB_PLAN_NOTE: "بدون هزینه راه‌اندازی، بدون هزینه به‌ازای هر تپ، بدون هزینه به‌ازای هر عضو. عددی که سمت چپ می‌بینید کل صورت‌حساب است.",
+      FB_PLAN_FOOT: "دوره‌ی سی‌روزه از اولین استمپی که برای مشتری می‌زنید شروع می‌شود، نه از زمان ثبت‌نام. با شروع دوره آزمایشی، <a href=\"/business-terms\">شرایط کسب‌وکار</a> را می‌پذیرید.",
+      FB_PLAN_NOTE: "در ۳۰ روز محصول را به‌طور رایگان آزمایش کنید و پس از مطمئن شدن، خرید کنید.",
       FB_PRICING_EYEBROW: "قیمت‌گذاری",
-      FB_PRICING_H2: "مشتری‌های ثابتتان را زیاد کنید.<br/>نه صورت‌حساب نرم‌افزارتان را.",
-      FB_PRICING_LEDE: "همه امکانات، مشتری نامحدود و استمپ نامحدود، با یک قیمت ثابت.",
+      FB_PRICING_H2: "همه‌چیز در یک اشتراک.",
+      FB_PRICING_LEDE: "مشتری نامحدود، استمپ نامحدود، بدون کمیسیون. یک عدد ثابت در ماه.",
       FB_PRIZE_HINT: "این را به پرسنل نشان دهید",
       FB_PRIZE_OFF: "تخفیف روی سفارش بعدی",
       FB_PRIZE_TITLE: "تبریک!",
@@ -385,9 +383,9 @@
       FB_TEAM_1: "بنیان‌گذار و سازنده‌ی محصول. دانشجوی علوم کامپیوتر در UCL و مسئول ساخت و توسعه‌ی ریلوی.",
       FB_TEAM_2: "هم‌بنیان‌گذار. دانشجوی مهندسی کامپیوتر در مشهد و کسی که کنار کافه‌دارها و پشت پیشخوان، ریلوی را جلو می‌برد.",
       FB_TOMAN: "تومان",
-      FB_TRUST_1: "بدون نیاز به کارت",
-      FB_TRUST_2: "بدون قرارداد",
-      FB_TRUST_3: "کمتر از یک هفته فعال می‌شوید",
+      FB_TRUST_1: "بدون هزینه‌ی راه‌اندازی",
+      FB_TRUST_2: "کنسل در هر زمان",
+      FB_TRUST_3: "بدون کمیسیون روی فروش",
       FB_WHY_EYEBROW: "چرا ریلوی را انتخاب کنیم؟",
       FB_WHY_H2: "طراحی‌شده برای شلوغ‌ترین ساعات کافه شما.",
       FB_WHY_LIST_HTML: "<div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 7v5l3 2\"></path></svg></span><div><h3>صف کوتاه‌تر، مشتری راضی‌تر</h3><p>یک تپ کافی است. مشتری استمپش را می‌گیرد و بدون ثبت‌نام‌های طولانی به تجربه‌اش ادامه می‌دهد.</p></div><span class=\"why__stat\">~۳۰ ثانیه</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M6 9V3h12v6\"></path><rect height=\"7\" rx=\"2\" width=\"18\" x=\"3\" y=\"9\"></rect><path d=\"M7 16h10v5H7z\"></path></svg></span><div><h3>وفاداری، بدون کاغذبازی</h3><p>دیگر کارت کاغذی، پانچ و چاپ مجدد لازم نیست. کارت وفاداری همیشه در گوشی مشتری می‌ماند.</p></div><span class=\"why__stat\">هزینه چاپ صفر</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1\"></path><circle cx=\"9.5\" cy=\"7\" r=\"3.5\"></circle><path d=\"M16 11l2 2 4-4\"></path></svg></span><div><h3>کمتر بپرسید، بیشتر نگه دارید</h3><p>نام و شماره موبایل کافی است. یک ثبت‌نام ساده، بدون فرم‌های خسته‌کننده و مراحل اضافه.</p></div><span class=\"why__stat\">۲ فیلد، یک‌بار</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 9h18l-1.6-5H4.6L3 9Z\"></path><path d=\"M5 9v11h14V9\"></path><path d=\"M9.5 20v-6h5v6\"></path></svg></span><div><h3>برند شما، در جیب مشتری</h3><p>لوگو، رنگ‌ها و هویت بصری کافه شما روی کارت دیجیتال مشتری دیده می‌شود؛ هر بار که به Reloy سر می‌زند.</p></div><span class=\"why__stat\">همیشه همراه مشتری</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 17l6-6 4 4 7-7\"></path><path d=\"M14 7h7v7\"></path></svg></span><div><h3>مشتری‌هایتان را بهتر بشناسید</h3><p>رفتار مشتری‌ها را ببینید، زمان‌های شلوغ را پیدا کنید و با داده واقعی برای کافه‌تان تصمیم بگیرید.</p></div><span class=\"why__stat\">۷ یا ۳۰ روز</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M9.5 3h5v3.5a3 3 0 0 0 .9 2.1L16.5 10h-9l1.1-1.4a3 3 0 0 0 .9-2.1Z\"></path><rect height=\"4\" rx=\"1.5\" width=\"16\" x=\"4\" y=\"13\"></rect><path d=\"M5.5 21h13\"></path></svg></span><div><h3>حس واقعی یک مهر، هوشمندی دیجیتال</h3><p>یک مهر چوبی واقعی روی کانتر؛ با یک تپ، استمپ مشتری ثبت می‌شود. ساده، ملموس و متفاوت.</p></div><span class=\"why__stat\">هنوز یک استمپ</span></div><div class=\"why__row rv\"><span aria-hidden=\"true\" class=\"why__ico\"><svg aria-hidden=\"true\" fill=\"none\" height=\"22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" width=\"22\"><path d=\"M3 7h11v9H3z\"></path><path d=\"M14 10h4l3 3v3h-7z\"></path><circle cx=\"7\" cy=\"18\" r=\"2\"></circle><circle cx=\"17\" cy=\"18\" r=\"2\"></circle></svg></span><div><h3>شما کافه را اداره کنید؛ راه‌اندازی با ما</h3><p>از اولین مهر تا اولین مشتری، کنارتان هستیم. مهر اختصاصی کافه‌تان آماده می‌شود، NFC داخل آن قرار می‌گیرد، سیستم وفاداری‌تان تنظیم می‌شود و پرسنل آموزش می‌بینند. بدون دردسر فنی، بدون نیاز به راه‌اندازی توسط شما.</p></div><span class=\"why__stat\">~۱ هفته تا شروع</span></div>",
@@ -501,17 +499,17 @@
     if (faqPrice) {
       faqPrice.textContent = SITE.priceMonthly
         ? (currentLang === "fa"
-            ? "ماهانه " + fmt(SITE.priceMonthly) + " " + currency + " برای هر کافه، یا " + fmt(SITE.priceYearly) + " " + currency + " در سال (" + monthsFree() + " ماه رایگان). بدون هزینه به‌ازای هر تپ، و بدون کمیسیون روی هرچه می‌فروشید."
-            : "A flat " + fmt(SITE.priceMonthly) + " " + currency + " a month per café, or " + fmt(SITE.priceYearly) + " " + currency + " a year (" + monthsFree() + " months free). No per-tap charges, and no commission on anything you sell.")
+            ? "ماهانه " + fmt(SITE.priceMonthly) + " " + currency + " برای کل برند شما، یا " + fmt(SITE.priceYearly) + " " + currency + " در سال (" + monthsFree() + " ماه رایگان). بدون هزینه به‌ازای هر تپ، و بدون کمیسیون روی هرچه می‌فروشید."
+            : "A flat " + fmt(SITE.priceMonthly) + " " + currency + " a month for your whole brand, or " + fmt(SITE.priceYearly) + " " + currency + " a year (" + monthsFree() + " months free). No per-tap charges, and no commission on anything you sell.")
         : (currentLang === "fa"
-            ? "یک هزینه ماهانه ثابت به‌ازای هر کافه — بدون هزینه به‌ازای هر تپ و بدون کمیسیون روی هرچه می‌فروشید. عدد نهایی را با کافه‌های پایلوت خود مشخص می‌کنیم، پس از ما بپرسید و نرخ پایلوت را بگیرید."
-            : "A flat monthly fee per café — no per-tap charges and no commission on what you sell. We are finalising the number with our pilot cafés, so ask us and you will get the pilot rate.");
+            ? "یک هزینه ماهانه ثابت برای کل برند شما، بدون هزینه به‌ازای هر تپ و بدون کمیسیون روی هرچه می‌فروشید. عدد نهایی را با کافه‌های پایلوت خود مشخص می‌کنیم، پس از ما بپرسید و نرخ پایلوت را بگیرید."
+            : "A flat monthly fee for your whole brand, no per-tap charges and no commission on what you sell. We are finalising the number with our pilot cafés, so ask us and you will get the pilot rate.");
     }
     var faqTrial = $("faqTrial");
     if (faqTrial && SITE.trialDays) {
       faqTrial.textContent = currentLang === "fa"
-        ? SITE.trialDays + " روز، از روزی که تگ NFC شما روی پیشخوان فعال شود — نه روزی که ثبت‌نام می‌کنید."
-        : SITE.trialDays + " days, counted from the day your NFC tag goes live at your counter — not the day you sign up.";
+        ? SITE.trialDays + " روز، از اولین استمپی که برای مشتری می‌زنید، نه از روزی که ثبت‌نام می‌کنید."
+        : SITE.trialDays + " days, counted from the first stamp you give a customer, not from the day you sign up.";
     }
 
     $$("[data-email]").forEach(function (a) {
@@ -971,6 +969,30 @@
     });
   }
 
+  /* The price card follows the pointer with a soft ember pool. Percentages
+     rather than pixels so the gradient needs no knowledge of the card's size,
+     and pointer events (not mouse) so a stylus behaves like a cursor. Skipped
+     entirely on touch and for anyone who asked for less motion. */
+  function planSpotlight() {
+    var card = $("planCard");
+    if (!card || !window.matchMedia) return;
+    if (!matchMedia("(hover: hover)").matches) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var queued = false, px = 0, py = 0;
+    card.addEventListener("pointermove", function (e) {
+      var r = card.getBoundingClientRect();
+      px = ((e.clientX - r.left) / r.width) * 100;
+      py = ((e.clientY - r.top) / r.height) * 100;
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () {
+        queued = false;
+        card.style.setProperty("--mx", px.toFixed(1) + "%");
+        card.style.setProperty("--my", py.toFixed(1) + "%");
+      });
+    });
+  }
+
   /* ============================================================= pricing === */
   /* The plan card's monthly/yearly switch. A price change is worth a small
      beat of motion — the figure dips out and the new one rises in, and the
@@ -1002,7 +1024,7 @@
         return {
           monthly: {
             amount: fmt(SITE.priceMonthly),
-            per: "در ماه، به‌ازای هر کافه",
+            per: "در ماه، برای کل برند شما",
             day: perDay(SITE.priceMonthly, 30),
             to: "yearly",
             nudge: "به‌جای آن سالانه پرداخت کنید — <b>" + fmt(SITE.priceYearly) + "</b> به‌جای " +
@@ -1010,7 +1032,7 @@
           },
           yearly: {
             amount: fmt(SITE.priceYearly),
-            per: "در سال، به‌ازای هر کافه",
+            per: "در سال، برای کل برند شما",
             day: perDay(SITE.priceYearly, 365),
             was: fmt(SITE.priceMonthly * 12),
             equiv: "≈ " + fmt(Math.round(SITE.priceYearly / 12)) + " " + currency + " در ماه — <b>" + monthsFree() + " ماه رایگان</b> نسبت به پرداخت ماهانه",
@@ -1022,7 +1044,7 @@
       return {
         monthly: {
           amount: fmt(SITE.priceMonthly),
-          per: "a month, per café",
+          per: "a month, for your whole brand",
           day: perDay(SITE.priceMonthly, 30),
           // the other option, priced out, one click away — the toggle above is
           // easy to miss, and this is the cheaper answer for most cafés
@@ -1032,7 +1054,7 @@
         },
         yearly: {
           amount: fmt(SITE.priceYearly),
-          per: "a year, per café",
+          per: "a year, for your whole brand",
           day: perDay(SITE.priceYearly, 365),
           // what twelve monthly payments would actually cost — a real anchor, not a fake one
           was: fmt(SITE.priceMonthly * 12),
@@ -1145,6 +1167,7 @@
   magnetic();
   howTabs();
   var pricingCtrl = pricingPlan();
+  planSpotlight();
   counters();
   faq();
   var revealsCtrl = reveals();
