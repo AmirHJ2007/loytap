@@ -2553,12 +2553,29 @@ html[dir="rtl"] .btn.is-launch .btn__arrow { animation: btnArrowLaunchRtl 0.42s 
    - .rv blurs 44 elements until they reveal.
    None of it carries meaning, so a phone keeps the layout and loses the cost. */
 @media (max-width: 940px) {
-  .fx__orb { animation: none; will-change: auto; }
+  /* Safari re-rasterises a blurred layer during momentum scroll even when it
+     is not animating, and both of these sit on radial gradients that are
+     already soft — the blur buys almost nothing and costs the most. */
+  .fx__orb { animation: none; will-change: auto; filter: none; }
+  .prize__glow { filter: none; }
+  /* will-change pins a composited layer for the life of the page. Across every
+     button and every word of the hero headline that is a lot of layers for a
+     phone to hold, in exchange for hover lifts a touch device never sees. */
+  .btn, .hero__title .w { will-change: auto; }
+  /* wide shadow blurs repaint over long stretches of scroll */
+  .phone__frame {
+    box-shadow: 0 22px 38px -26px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.16);
+  }
+  .insights__rows > .ins {
+    box-shadow: 0 -6px 16px -10px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
   .nav.is-stuck {
     background: rgba(8,8,10,0.94);
     backdrop-filter: none; -webkit-backdrop-filter: none;
   }
-  .glass { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass, .btn--ghost, .nav__mobile, .scene__cap {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
   .plan__ring,
   .plan--hero::after,
   #pricing::after,
@@ -2571,3 +2588,9 @@ html[dir="rtl"] .btn.is-launch .btn__arrow { animation: btnArrowLaunchRtl 0.42s 
       transform 0.55s var(--e-out) var(--rv-delay, 0ms);
   }
 }
+
+/* An animation off screen still costs frames to composite — the hero alone runs
+   ~39 loops, and they were all still running three sections later. pauseOffscreen()
+   in for-business.js marks a region while it is out of view. Nothing visible
+   changes, because by definition none of it is being looked at. */
+.is-paused, .is-paused * { animation-play-state: paused; }

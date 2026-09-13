@@ -1039,6 +1039,22 @@
     });
   }
 
+  /* Animations keep compositing while scrolled past, which on a phone means the
+     hero's loops are still burning frames when the visitor is well beyond them.
+     Pause each animated region while it is out of view, with a margin so it is
+     always already running by the time it can be seen. */
+  function pauseOffscreen() {
+    if (!("IntersectionObserver" in window)) return;
+    var regions = $$(".demo, .how__grid, #pricing, .next");
+    if (!regions.length) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        e.target.classList.toggle("is-paused", !e.isIntersecting);
+      });
+    }, { rootMargin: "150px 0px" });
+    regions.forEach(function (el) { io.observe(el); });
+  }
+
   /* ============================================================= pricing === */
   /* The plan card's monthly/yearly switch. A price change is worth a small
      beat of motion — the figure dips out and the new one rises in, and the
@@ -1218,6 +1234,7 @@
   howTabs();
   var pricingCtrl = pricingPlan();
   planSpotlight();
+  pauseOffscreen();
   counters();
   faq();
   var revealsCtrl = reveals();
