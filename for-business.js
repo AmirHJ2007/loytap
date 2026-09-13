@@ -115,7 +115,7 @@
       FB_HEAT_TUE: "Tue",
       FB_HEAT_WED: "Wed",
       FB_HERO_EYEBROW: "For cafés & restaurants",
-      FB_HERO_LEDE: "\n            Reloy is a digital stamp card for your counter. Your cashier presses one NFC\n            stamp to the customer's phone, no app store, no download, no password, and\n            their card fills itself. Measure how loyal your customers really are.\n          ",
+      FB_HERO_LEDE: "Reloy is your digital loyalty card. Hold the NFC stamp to a customer's phone and their loyalty card is stamped, with no app to download.",
       FB_HERO_NOTE1: "Simple setup, fully separate from your accounting system.",
       FB_HERO_NOTE2: "NFC tag delivered in under a week.",
       FB_HERO_NOTE3: "Training on how it works, if you need it.",
@@ -208,6 +208,7 @@
       FB_SCENE_U4_P: "Applied — give the customer their discount.",
       FB_TEAM_1: "Founder and product builder. Reading computer science at UCL, responsible for building and developing Reloy.",
       FB_TEAM_2: "Co-founder. Reading computer engineering in Mashhad, and the one who moves Reloy forward alongside café owners, behind the counter.",
+      FB_SWIPE_HINT: "Swipe for the next step",
       FB_TOMAN: "Toman",
       FB_TRUST_1: "No setup fee",
       FB_TRUST_2: "Cancel any time",
@@ -281,15 +282,15 @@
       FB_FOOT_CUST_TERMS: "شرایط و حریم خصوصی مشتری",
       FB_FOOT_LEGAL: "© <span id=\"footYear\">2026</span> ریلوی. تمام حقوق محفوظ است. کارت‌های امتیاز دیجیتال برای کافه‌ها و رستوران‌ها.",
       FB_FOOT_PITCH: "یک کارت امتیاز دیجیتال که روی صفحه اصلی گوشی مشتری شما زندگی می‌کند.\n          یک استمپ پشت پیشخوان، یک تپ در لحظه پرداخت.",
-      FB_HEAT_FRI: "جمعه",
-      FB_HEAT_MON: "دوشنبه",
-      FB_HEAT_SAT: "شنبه",
-      FB_HEAT_SUN: "یکشنبه",
-      FB_HEAT_THU: "پنجشنبه",
-      FB_HEAT_TUE: "سه‌شنبه",
-      FB_HEAT_WED: "چهارشنبه",
+      FB_HEAT_FRI: "ج",
+      FB_HEAT_MON: "د",
+      FB_HEAT_SAT: "ش",
+      FB_HEAT_SUN: "ی",
+      FB_HEAT_THU: "پ",
+      FB_HEAT_TUE: "س",
+      FB_HEAT_WED: "چ",
       FB_HERO_EYEBROW: "برای کافه‌ها و رستوران‌ها",
-      FB_HERO_LEDE: "ریلوی، نگه‌دارنده‌ی کارت وفاداری دیجیتال شماست.<br>کافیه NFC رو به گوشی مشتری نزدیک کنید، بدون نیاز به دانلود اپ، کارت وفاداری‌شون مهر می‌خوره.<br>میزان وفاداری مشتری‌هایتان را بسنجید.",
+      FB_HERO_LEDE: "ریلوی، کارت وفاداری دیجیتال شماست.<br>کافی است NFC را به گوشی مشتری نزدیک کنید تا کارت وفاداری‌شان مهر بخورد، بدون نیاز به دانلود هیچ اپی.",
       FB_HERO_NOTE1: "راه‌اندازی ساده و کاملاً مستقل از سیستم حسابداری شما.",
       FB_HERO_NOTE2: "دریافت تگ NFC در کمتر از یک هفته.",
       FB_HERO_NOTE3: "آموزش روش کار، در صورت نیاز.",
@@ -382,6 +383,7 @@
       FB_SCENE_U4_P: "اعمال شد — تخفیف را به مشتری بدهید.",
       FB_TEAM_1: "بنیان‌گذار و سازنده‌ی محصول. دانشجوی علوم کامپیوتر در UCL و مسئول ساخت و توسعه‌ی ریلوی.",
       FB_TEAM_2: "هم‌بنیان‌گذار. دانشجوی مهندسی کامپیوتر در مشهد و کسی که کنار کافه‌دارها و پشت پیشخوان، ریلوی را جلو می‌برد.",
+      FB_SWIPE_HINT: "برای مرحله‌ی بعد بکشید",
       FB_TOMAN: "تومان",
       FB_TRUST_1: "بدون هزینه‌ی راه‌اندازی",
       FB_TRUST_2: "کنسل در هر زمان",
@@ -761,7 +763,13 @@
     // for-business.css). Hidden above that width, where every step is
     // already visible in the list and clicking one is enough.
     var nav    = $$(".steps__nav", panel)[0];
-    var navCur = nav && $$(".steps__navCur", nav)[0];
+    function syncDots() {
+      if (!dots) return;
+      dots.forEach(function (d, k) {
+        d.classList.toggle("is-on", k === i);
+        d.setAttribute("aria-selected", String(k === i));
+      });
+    }
     var timer  = null;
     var manual = false;
     var i = 0;
@@ -818,7 +826,7 @@
         s.setAttribute("aria-pressed", String(on));
       });
       scenes.forEach(function (s, k) { s.classList.toggle("is-on", k === i); });
-      if (navCur) navCur.textContent = String(i + 1);
+      syncDots();
       syncHeight();
     }
     show(0);
@@ -843,20 +851,58 @@
       show(0);
     }
 
+    /* The hint has done its job the moment the visitor moves the carousel on
+       their own — by swipe, by dot, or by tapping a step. It never comes back. */
+    var hint = $$(".steps__hint", panel)[0];
+    function hintDone() { if (hint) { hint.classList.add("is-done"); hint = null; } }
+
     steps.forEach(function (s, k) {
-      on(s, "click", function () { stop(); show(k); });
+      on(s, "click", function () { hintDone(); stop(); show(k); });
       on(s, "focus", function () { if (!manual) show(k); });
     });
 
+    /* One dot per step, built from the list itself so the count can never drift
+       out of sync with the markup the way a hardcoded "1 / 5" did. */
+    var dots = [];
     if (nav) {
-      $$(".steps__navBtn", nav).forEach(function (b) {
-        var dir = Number(b.dataset.dir);
-        on(b, "click", function () {
-          stop();
-          show((i + dir + steps.length) % steps.length);
-        });
+      nav.innerHTML = "";
+      steps.forEach(function (_, k) {
+        var d = document.createElement("button");
+        d.type = "button";
+        d.className = "steps__dot";
+        d.setAttribute("role", "tab");
+        d.setAttribute("aria-label", String(k + 1));
+        on(d, "click", function () { hintDone(); stop(); show(k); });
+        nav.appendChild(d);
+        dots.push(d);
       });
+      syncDots();
     }
+
+    /* Swipe turns the page. Horizontal intent only — a mostly-vertical drag is
+       the visitor scrolling the page, and .steps' touch-action:pan-y leaves
+       that to the browser. Left always advances, in both directions: the RTL
+       filmstrip argument says otherwise, but the habit every phone teaches is
+       swipe-left-for-next, and that is what people actually reach for. */
+    (function stepSwipe() {
+      if (!window.PointerEvent) return;
+      var x0 = 0, y0 = 0, tracking = false;
+      on(list, "pointerdown", function (e) {
+        if (e.pointerType === "mouse") return;
+        tracking = true; x0 = e.clientX; y0 = e.clientY;
+      });
+      on(list, "pointerup", function (e) {
+        if (!tracking) return;
+        tracking = false;
+        var dx = e.clientX - x0, dy = e.clientY - y0;
+        if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+        var forward = dx < 0;
+        hintDone();
+        stop();
+        show((i + (forward ? 1 : -1) + steps.length) % steps.length);
+      });
+      on(list, "pointercancel", function () { tracking = false; });
+    })();
 
     if ("IntersectionObserver" in window) {
       var io = new IntersectionObserver(function (entries) {
@@ -1027,8 +1073,12 @@
             per: "در ماه، برای کل برند شما",
             day: perDay(SITE.priceMonthly, 30),
             to: "yearly",
-            nudge: "به‌جای آن سالانه پرداخت کنید — <b>" + fmt(SITE.priceYearly) + "</b> به‌جای " +
-                   fmt(SITE.priceMonthly * 12) + ". " + monthsFree() + " ماه رایگان."
+            /* No bare period between two Latin numbers inside RTL text: bidi
+               reorders "36,000,000. 2 ماه" into "36,000,000 .2". Persian words
+               between the figures keep each number in its own run. */
+            nudge: "به‌جای آن سالانه پرداخت کنید، " +
+                   "<span class=\"nb\"><b>" + fmt(SITE.priceYearly) + "</b> به‌جای " + fmt(SITE.priceMonthly * 12) + " تومان،</span> " +
+                   "<span class=\"nb\">یعنی " + monthsFree() + " ماه رایگان.</span>"
           },
           yearly: {
             amount: fmt(SITE.priceYearly),
@@ -1037,7 +1087,7 @@
             was: fmt(SITE.priceMonthly * 12),
             equiv: "≈ " + fmt(Math.round(SITE.priceYearly / 12)) + " " + currency + " در ماه — <b>" + monthsFree() + " ماه رایگان</b> نسبت به پرداخت ماهانه",
             to: "monthly",
-            nudge: "نمی‌خواهید یک‌ساله متعهد شوید؟ <b>" + fmt(SITE.priceMonthly) + "</b> در ماه، بدون قرارداد."
+            nudge: "نمی‌خواهید یک‌ساله متعهد شوید؟ <b>" + fmt(SITE.priceMonthly) + "</b>\u00a0در ماه، بدون قرارداد."
           }
         };
       }

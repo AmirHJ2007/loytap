@@ -16,8 +16,8 @@
 
   <link rel="preload" href="fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="for-business.css?v=56" />
-  <script src="for-business.js?v=36" defer></script>
+  <link rel="stylesheet" href="for-business.css?v=70" />
+  <script src="for-business.js?v=45" defer></script>
 </head>
 <body>
 
@@ -87,9 +87,8 @@
           <p class="eyebrow rv" data-i18n="FB_HERO_EYEBROW">For cafés &amp; restaurants</p>
           <h1 class="hero__title" id="heroTitle" data-i18n-html="FB_HERO_TITLE_HTML"><span class="line"><span class="w" style="--d:60ms">Turn</span> <span class="w" style="--d:115ms">every</span> <span class="w" style="--d:170ms">tap</span></span><span class="line"><span class="w" style="--d:225ms">into</span> <span class="w" style="--d:280ms">a</span> <span class="w" style="--d:335ms">customer</span></span><span class="line"><span class="w" style="--d:400ms">who</span> <span class="w hero__accent" style="--d:455ms">comes back.<svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 8.6C40 3.2 96 2 197 5.8"/></svg></span></span></h1>
           <p class="hero__lede rv" style="--rv-delay:520ms" data-i18n-html="FB_HERO_LEDE">
-            Reloy is a digital stamp card for your counter. Your cashier presses one NFC
-            stamp to the customer's phone, no app store, no download, no password, and
-            their card fills itself. You finally see who keeps coming back, and when.
+            Reloy is your digital loyalty card. Hold the NFC stamp to a customer&rsquo;s phone
+            and their loyalty card is stamped, with no app to download.
           </p>
           <div class="hero__cta rv" style="--rv-delay:620ms">
             <a class="btn btn--primary btn--lg" href="/business/signin" data-magnetic><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
@@ -303,15 +302,8 @@
             <li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_G4_H">Staff confirm the tap on their panel</h3><p data-i18n="FB_HOW_G4_P">The request shows up live on the staff panel. A stamp is only added once staff approve it — that is what stops anyone claiming a free one.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
             <li><button type="button" class="step" aria-pressed="false" data-step="5"><span class="step__n" aria-hidden="true">05</span><span><h3 data-i18n="FB_HOW_G5_H">Every visit after that is one tap</h3><p data-i18n="FB_HOW_G5_P">Tap, stamp added, card updated. No card to carry, no card to lose, no app to open first — fill the card and the reward is theirs.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li>
           </ol>
-          <div class="steps__nav">
-            <button type="button" class="steps__navBtn" data-dir="-1" aria-label="Previous step">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <span class="steps__navCount" aria-hidden="true"><span class="steps__navCur">1</span> / <span class="steps__navTotal">5</span></span>
-            <button type="button" class="steps__navBtn" data-dir="1" aria-label="Next step">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-            </button>
-          </div>
+          <div class="steps__nav" role="tablist" aria-label="Choose a step"></div>
+          <p class="steps__hint" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg><span data-i18n="FB_SWIPE_HINT">Swipe for the next step</span></p>
           <div class="phone rv" aria-hidden="true">
             <div class="phone__frame">
               <div class="phone__screen">
@@ -366,15 +358,8 @@
         <!-- ------------------------------------------------------ using a reward -->
         <div class="how__grid" id="howPanelUse" role="tabpanel" aria-labelledby="howTabUse" hidden>
           <ol class="steps" aria-label="How a customer redeems a reward, step by step"><li><button type="button" class="step is-on" aria-pressed="true" data-step="1"><span class="step__n" aria-hidden="true">01</span><span><h3 data-i18n="FB_HOW_U1_H">They bring up their card</h3><p data-i18n="FB_HOW_U1_P">A completed card turns into a ticket — a QR code and a short backup code, ready to show at the counter.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="2"><span class="step__n" aria-hidden="true">02</span><span><h3 data-i18n="FB_HOW_U2_H">Staff scan it, or type the code</h3><p data-i18n="FB_HOW_U2_P">The staff scanner reads the QR in a beat. Mid-rush and awkward to scan? Staff can type the short code by hand instead.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="3"><span class="step__n" aria-hidden="true">03</span><span><h3 data-i18n="FB_HOW_U3_H">Checked before anything is given</h3><p data-i18n="FB_HOW_U3_P">It is verified against our server instantly — an expired or already-used code is caught right there, before any discount is handed out.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li><li><button type="button" class="step" aria-pressed="false" data-step="4"><span class="step__n" aria-hidden="true">04</span><span><h3 data-i18n="FB_HOW_U4_H">Redeemed — apply the discount</h3><p data-i18n="FB_HOW_U4_P">The screen turns to "Redeemed ✓." Staff apply it on the customer's bill right there at the register.</p></span><span class="step__bar" aria-hidden="true"><span></span></span></button></li></ol>
-          <div class="steps__nav">
-            <button type="button" class="steps__navBtn" data-dir="-1" aria-label="Previous step">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <span class="steps__navCount" aria-hidden="true"><span class="steps__navCur">1</span> / <span class="steps__navTotal">4</span></span>
-            <button type="button" class="steps__navBtn" data-dir="1" aria-label="Next step">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-            </button>
-          </div>
+          <div class="steps__nav" role="tablist" aria-label="Choose a step"></div>
+          <p class="steps__hint" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg><span data-i18n="FB_SWIPE_HINT">Swipe for the next step</span></p>
           <div class="phone rv" aria-hidden="true">
             <div class="phone__frame">
               <div class="phone__screen">

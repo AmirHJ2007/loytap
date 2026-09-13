@@ -516,11 +516,14 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 .hero__lede { font-size: clamp(17px, 1.5vw, 20px); color: var(--fg-dim); max-width: 46ch; margin-top: 26px; }
 .hero__cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 36px; }
 .hero__notes { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
+/* start, not center: centring puts the tick in the gutter between lines as
+   soon as a note wraps to two, instead of beside the sentence it marks. The
+   nudge re-centres it on that first line. */
 .hero__note {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: flex-start; gap: 10px;
   font-size: 14.5px; color: var(--fg-faint);
 }
-.hero__note svg { color: var(--ember); flex: none; }
+.hero__note svg { color: var(--ember); flex: none; margin-top: 3px; }
 
 /* ---------------------------------------------------------- the live card - */
 /* This is the wallet's own card component (styles.css/app.js buildCard),
@@ -1005,23 +1008,43 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 /* prev/next + "N / total" — only meaningful once .steps below 940px
    shows one step at a time (see that media query), so hidden above it
    where every step already sits in the list and is its own click target. */
-.steps__nav { display: none; }
+.steps__nav, .steps__hint { display: none; }
 @media (max-width: 940px) {
-  .steps__nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
-  .steps__navBtn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; border-radius: 999px; padding: 0;
-    border: 1px solid var(--line); background: var(--surface); color: var(--fg-dim);
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s var(--e-out);
+  /* Swipe turns the page (see stepSwipe in for-business.js); these are the
+     position indicator, and a tap target for anyone who would rather jump. The
+     active one stretches to a pill so the current step is legible at a glance
+     without a "3 / 5" readout to parse. */
+  /* ltr even in Persian: swipe-left advances (see stepSwipe), so progress runs
+     left to right and the first step's dot has to be the leftmost one. */
+  .steps__nav { display: flex; direction: ltr; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; }
+  .steps__dot {
+    width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px;
+    background: rgba(255,255,255,0.22); cursor: pointer;
+    transition: background-color 0.35s var(--e-out), width 0.35s var(--e-spring);
   }
-  .steps__navBtn:hover { background: var(--surface-2); color: var(--fg); border-color: var(--line-2); }
-  .steps__navBtn:active { transform: scale(0.92); }
-  .steps__navCount {
-    font-family: var(--f-mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
-    color: var(--fg-faint); min-width: 40px; text-align: center;
+  .steps__dot:hover { background: rgba(255,255,255,0.4); }
+  .steps__dot.is-on { width: 24px; background: var(--ember); }
+  /* Swipe is invisible until someone tries it, so say so — and animate the
+     arrow in the direction the gesture actually goes. It retires itself the
+     first time the visitor drives the carousel by any means (see stepSwipe). */
+  .steps__hint {
+    /* between the phone and the cards (see .phone's order below): it explains
+       the gesture at the moment the eye crosses from one to the other. Tight
+       margins so it reads as a caption on the gap, not a band of its own. */
+    order: -1; display: flex; align-items: center; justify-content: center; gap: 7px;
+    margin: 0 0 4px; font-size: 12.5px; color: var(--fg-faint);
+    transition: opacity 0.5s var(--e-out), height 0.5s var(--e-out), margin 0.5s var(--e-out);
   }
-  .steps__navCur { color: var(--fg); }
+  .steps__hint svg { flex: none; animation: swipeHint 1.9s ease-in-out infinite; }
+  @keyframes swipeHint {
+    0%, 100% { transform: translateX(3px); opacity: 0.45; }
+    50%      { transform: translateX(-4px); opacity: 1; }
+  }
+  .steps__hint.is-done { opacity: 0; height: 0; margin: 0; pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { .steps__hint svg { animation: none; } }
+
+  /* horizontal gestures belong to the carousel, vertical ones to the page */
+  .steps { touch-action: pan-y; }
 }
 
 /* the phone that keeps pace with the step list */
@@ -1264,7 +1287,10 @@ section { position: relative; background: var(--bg); color: var(--fg); }
   .phone { margin-top: calc(-54px - clamp(28px, 4vw, 44px)); }
 }
 @media (max-width: 940px) {
-  .how__grid { grid-template-columns: 1fr; }
+  /* stacked, the rows sit much closer than the two desktop columns need to —
+     30px between a phone, a one-line caption and the card reads as three
+     detached blocks rather than one control. */
+  .how__grid { grid-template-columns: 1fr; row-gap: 14px; }
   /* the base .phone width is sized for the desktop sticky column, where
      fitting the viewport just means not overflowing it — stacked here
      above the step card instead of beside it, that leaves the card
@@ -1279,7 +1305,7 @@ section { position: relative; background: var(--bg); color: var(--fg); }
      measuring that height correctly) for the gap to .steps, the card
      itself, the gap to .steps__nav, and .steps__nav, inside a 100vh-66px
      (fixed header) budget, with a small margin held back. */
-  .phone { position: relative; top: 0; order: -1; margin-bottom: 8px; width: min(78vw, calc(48vh * 0.462)); }
+  .phone { position: relative; top: 0; order: -2; margin-bottom: 0; width: min(86vw, calc(58vh * 0.462)); }
   /* stacked under the phone, the pill reads better centered than pinned to
      the start edge — .how__tabs is inline-flex (shrink-to-fit) so switching
      to flex + a fit-content width lets margin-inline:auto center the box */
@@ -1434,6 +1460,33 @@ section { position: relative; background: var(--bg); color: var(--fg); }
    number — was set in 13px under a chart. Here the chart sits beside the
    words, the words are readable, and each group ends in a decision. */
 .insights__rows { display: grid; gap: clamp(24px, 3vw, 40px); counter-reset: ins; }
+
+/* ---- the three panels as a deck ----------------------------------------- */
+/* Each card pins under the header and the next rides up over it, leaving a lip
+   of the one beneath, so the section reads as a deck being dealt.
+   Mobile only, and only on a tall enough screen. A sticky card taller than the
+   viewport pins the moment its top reaches the offset and then never releases,
+   so its lower half sits permanently below the fold and cannot be scrolled to.
+   The cards here run 683-834px; the tallest that actually pins (the second, at
+   761px) needs ~827px of room, hence the min-height guard. Short phones keep
+   ordinary scrolling, which is correct rather than a compromise. */
+@media (max-width: 940px) and (min-height: 840px) {
+  /* block, not grid: a grid item's sticky containing block is its own grid
+     area, so each card could only stick within its own row — i.e. not at all.
+     The child selector also outranks the plain `.ins` rule below, which sets
+     position:relative at equal specificity and would otherwise win on order. */
+  .insights__rows { display: block; }
+  .insights__rows > .ins { position: sticky; }
+  .insights__rows > .ins + .ins { margin-top: clamp(24px, 3vw, 40px); }
+  .insights__rows > .ins:nth-child(1) { top: 54px; }
+  .insights__rows > .ins:nth-child(2) { top: 66px; }
+  .insights__rows > .ins:nth-child(3) { top: 78px; }
+  /* the covered card deepens its shadow so the lip reads as depth, not a seam */
+  .insights__rows > .ins { box-shadow: 0 34px 66px -34px rgba(38,28,12,0.55), 0 -10px 30px -18px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.07); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .insights__rows > .ins { position: relative; top: auto; }
+}
 .ins {
   position: relative; overflow: hidden; counter-increment: ins;
   /* The panels run on ink inside the paper band. The thing they are showing is
@@ -1492,7 +1545,10 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 .ins__eyebrow::before {
   content: counter(ins, decimal-leading-zero);
   flex: none; width: 32px; height: 32px; border-radius: 50%;
-  display: grid; place-items: center;
+  /* line-height:1 so the grid centres the digits themselves — with the
+     inherited body leading the line box is taller than the glyphs and they
+     sit visibly low in the circle. Same for the FAQ and initials badges. */
+  display: grid; place-items: center; line-height: 1;
   font-family: var(--f-display); font-size: 15px; font-weight: 600;
   letter-spacing: 0; font-variation-settings: "SOFT" 40, "WONK" 1;
   color: var(--ember-deep);
@@ -2014,9 +2070,12 @@ section { position: relative; background: var(--bg); color: var(--fg); }
    it, and it answers the question the toggle silently poses. */
 /* block, not flex: an inline <b> inside a flex button becomes its own flex
    item and the sentence breaks into columns */
+/* the two clauses each stay whole, so the line break falls between them rather
+   than splitting a figure from its unit */
+.plan__nudge .nb { white-space: nowrap; }
 .plan__nudge {
   display: block; position: relative; width: 100%;
-  margin-top: -6px; padding: 14px 42px 14px 16px;
+  margin-top: -6px; padding: 14px 34px 14px 14px;
   font: inherit; font-size: 14px; line-height: 1.5; text-align: start;
   color: rgba(244,243,240,0.72);
   background: rgba(240,169,74,0.07);
@@ -2124,7 +2183,7 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 .about__person { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }
 .about__ini {
   width: 46px; height: 46px; border-radius: 50%; flex: none;
-  display: grid; place-items: center;
+  display: grid; place-items: center; line-height: 1;
   font-family: var(--f-mono); font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
   color: var(--ember);
   background: rgba(240,169,74,0.12); border: 1px solid rgba(240,169,74,0.38);
@@ -2163,7 +2222,7 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 .faq__cat::before {
   content: counter(faqcat, decimal-leading-zero);
   flex: none; width: 38px; height: 38px; border-radius: 50%;
-  display: grid; place-items: center;
+  display: grid; place-items: center; line-height: 1;
   font-family: var(--f-display); font-size: 16px; font-weight: 600;
   letter-spacing: 0; font-variation-settings: "SOFT" 40, "WONK" 1;
   color: var(--accent);
@@ -2383,13 +2442,29 @@ section[id] { scroll-margin-top: 92px; }
    a *physical* left/right (an absolutely-positioned icon, a fixed padding
    side) which direction:rtl does not touch by itself.
    ========================================================================== */
-html[dir="rtl"] .plan__nudge { padding: 14px 16px 14px 42px; }
+html[dir="rtl"] .plan__nudge { padding: 14px 14px 14px 34px; }
 html[dir="rtl"] .plan__nudge::after { content: "←"; right: auto; left: 16px; }
 html[dir="rtl"] .plan__nudge:hover::after { transform: translate(-4px, -50%); }
 
 /* the spinning background wordmark sits behind the card demo, which mirrors
    to the right side of the hero in RTL — move the ghost logo to match. */
+/* 1.06 is tuned for Fraunces, whose Latin caps sit in a shallow band. Vazirmatn
+   carries taller ascenders and real descenders, so the same ratio jams two
+   Persian lines into each other — most visible on any heading that wraps. */
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] h4 { line-height: 1.24; }
+
 html[dir="rtl"] .hero__ghost { left: auto; right: -8vw; }
+/* The stacked mobile layout centres the watermark (see the max-width:860px
+   block), but that never takes effect in Persian: this RTL section is both
+   more specific and later in the file, so the rule above wins. Rather than
+   leave the mobile rule quietly dead, place the mark deliberately for the
+   narrow layout — a little further right, off the stacked copy. */
+@media (max-width: 860px) {
+  html[dir="rtl"] .hero__ghost { right: -14vw; }
+}
 
 /* the ember glow pools are placed with a physical inset + an off-centre
    radial-gradient position, so direction:rtl doesn't move them on its own —
@@ -2425,6 +2500,15 @@ html[dir="rtl"] .faq__cat-rule {
   background: linear-gradient(270deg, rgba(240,169,74,0.5), transparent);
 }
 html[dir="rtl"] .js .faq__cat-rule { transform-origin: right; }
+/* line-height:1 centres the line box, but Vazirmatn's descent is 0.54em against
+   Fraunces' 0.26em, so its baseline sits lower and the digits ride ~0.11em above
+   the middle of a round badge. Padding shifts grid-centred content down by half
+   its value, so 0.22em lands them dead centre. Measured from the two fonts' own
+   metrics, and Latin needs no correction at all — hence RTL only. */
+html[dir="rtl"] .ins__eyebrow::before,
+html[dir="rtl"] .faq__cat::before,
+html[dir="rtl"] .about__ini { padding-top: 0.22em; }
+
 html[dir="rtl"] .ins__eyebrow::after {
   background: linear-gradient(270deg, rgba(240,169,74,0.4), transparent);
 }
