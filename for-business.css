@@ -2537,3 +2537,37 @@ html[dir="rtl"] .btn.is-launch .btn__arrow { animation: btnArrowLaunchRtl 0.42s 
   46%  { transform: scaleX(-1) translateX(-8px); }
   100% { transform: scaleX(-1) translateX(0); opacity: 1; }
 }
+
+/* ============================================================================
+   MOBILE PERFORMANCE
+   ========================================================================== */
+/* Scrolling on iOS was janky, and the causes are all decorative:
+   - .fx__orb is a ~500px fixed element carrying blur(90px) while animating
+     scale(). A blur cannot be cached across a scale change, so the whole
+     blurred gradient re-renders every frame, and being fixed it does that for
+     the entire length of the page. Freezing the animation lets it composite
+     once and stay put.
+   - .nav's backdrop-filter re-blurs whatever passes beneath it, every frame,
+     for the whole scroll. A near-opaque bar reads the same and costs nothing.
+   - the ring, sheen, stage and sweep loops repaint large areas continuously.
+   - .rv blurs 44 elements until they reveal.
+   None of it carries meaning, so a phone keeps the layout and loses the cost. */
+@media (max-width: 940px) {
+  .fx__orb { animation: none; will-change: auto; }
+  .nav.is-stuck {
+    background: rgba(8,8,10,0.94);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .glass { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .plan__ring,
+  .plan--hero::after,
+  #pricing::after,
+  .next__sweep { animation: none; }
+  /* keep the reveal, drop the part of it that costs the most */
+  .js .rv { filter: none; }
+  .js .rv {
+    transition:
+      opacity   0.5s var(--e-out) var(--rv-delay, 0ms),
+      transform 0.55s var(--e-out) var(--rv-delay, 0ms);
+  }
+}
