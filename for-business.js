@@ -280,8 +280,8 @@
       FB_FOOT_COL2_H: "در تماس باشید",
       FB_FOOT_COL3_H: "نکات حقوقی",
       FB_FOOT_CUST_TERMS: "شرایط و حریم خصوصی مشتری",
-      FB_FOOT_LEGAL: "© <span id=\"footYear\">2026</span> ریلوی. تمام حقوق محفوظ است. کارت‌های امتیاز دیجیتال برای کافه‌ها و رستوران‌ها.",
-      FB_FOOT_PITCH: "یک کارت امتیاز دیجیتال که روی صفحه اصلی گوشی مشتری شما زندگی می‌کند.\n          یک استمپ پشت پیشخوان، یک تپ در لحظه پرداخت.",
+      FB_FOOT_LEGAL: "© <span id=\"footYear\">2026</span> ریلوی. تمام حقوق محفوظ است. کارت‌های وفاداری دیجیتال برای کافه‌ها و رستوران‌ها.",
+      FB_FOOT_PITCH: "یک کارت وفاداری دیجیتال که روی صفحه اصلی گوشی مشتری شما زندگی می‌کند.\n          یک استمپ پشت پیشخوان، یک تپ در لحظه پرداخت.",
       FB_HEAT_FRI: "ج",
       FB_HEAT_MON: "د",
       FB_HEAT_SAT: "ش",
@@ -405,7 +405,19 @@
      pricing card's own refreshLang() re-run so numbers/plan copy pick up the
      new language too. */
   var LANG_KEY = "loytap_lang";
+  /* The URL is the authority: /fa/business and /en/business are separate pages
+     so each language can be indexed and shared. localStorage only decides for a
+     visitor who somehow arrives without a prefix. */
+  function langFromPath() {
+    var m = location.pathname.match(/^\/(fa|en)(\/|$)/);
+    return m ? m[1] : null;
+  }
   function getLang() {
+    var fromPath = langFromPath();
+    if (fromPath) {
+      try { localStorage.setItem(LANG_KEY, fromPath); } catch (e) {}
+      return fromPath;
+    }
     try { var v = localStorage.getItem(LANG_KEY); if (v === "en" || v === "fa") return v; } catch (e) {}
     return "fa";
   }
@@ -442,8 +454,17 @@
     $$(".lang-switch__btn").forEach(function (b) {
       on(b, "click", function () {
         if (b.dataset.lang === currentLang) return;
-        currentLang = b.dataset.lang;
-        try { localStorage.setItem(LANG_KEY, currentLang); } catch (e) {}
+        var next = b.dataset.lang;
+        try { localStorage.setItem(LANG_KEY, next); } catch (e) {}
+        /* On a language-pathed page the switch is a navigation, so the URL
+           keeps matching the language on screen and stays shareable. Anywhere
+           else it falls back to swapping in place. */
+        if (langFromPath()) {
+          location.href = location.pathname.replace(/^\/(fa|en)/, "/" + next) +
+                          location.search + location.hash;
+          return;
+        }
+        currentLang = next;
         applyI18n();
         onChange && onChange();
       });
@@ -1220,8 +1241,37 @@
     return { refreshLang: refreshLang };
   }
 
+
+  /* Both language paths receive identical HTML, so the page has to name its own
+     canonical URL rather than ship a static one that would be wrong for one of
+     them. Paired with the hreflang alternates in the markup. */
+  (function canonical() {
+    var m = location.pathname.match(/^\/(fa|en)(\/.*)?$/);
+    if (!m) return;
+    var link = document.querySelector('link[rel="canonical"]') || document.createElement("link");
+    link.rel = "canonical";
+    link.href = location.origin + location.pathname;
+    if (!link.parentNode) document.head.appendChild(link);
+  })();
+
+  /* On a language path, links to the other translated pages have to carry the
+     prefix. Without it "/business-terms" hits the bare-path redirect and an
+     English reader lands on the Persian copy. Exact page paths only, so
+     /business/signin — which has no translations — is left alone. */
+  function localiseLinks() {
+    var lang = langFromPath();
+    if (!lang) return;
+    var translated = /^\/(business|terms|business-terms)(\?|#|$)/;
+    $$('a[href^="/"]').forEach(function (a) {
+      var href = a.getAttribute("href");
+      if (!translated.test(href)) return;
+      a.setAttribute("href", "/" + lang + href);
+    });
+  }
+
   /* ================================================================ go ==== */
   applyI18n();
+  localiseLinks();
   fillCommercials();
   heroTitle();
   ctaButtons();

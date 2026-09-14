@@ -5,7 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache" />
   <title>Reloy · Business Terms</title>
-  <link rel="stylesheet" href="fonts.css" />
+  <!-- Each language is its own URL, so tell crawlers they are translations of
+       one page rather than duplicates. The self-referencing canonical is set at
+       runtime, since the server sends identical HTML to both language paths. -->
+  <link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business-terms" />
+  <link rel="alternate" hreflang="en" href="https://reloy.ir/en/business-terms" />
+  <link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business-terms" />
+  <link rel="stylesheet" href="/fonts.css" />
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -277,6 +283,6 @@
     </div>
   </main>
 
-  <script src="legal-lang.js?v=2"></script>
+  <script src="/legal-lang.js?v=4"></script>
 </body>
 </html>

@@ -15,8 +15,18 @@
 // scope, so a module-level `const` reads back as "not defined" at request
 // time (see headers.pb.js for the same note).
 
-routerAdd("GET", "/business", (e) => {
+// /business now lives at a language path so each translation has its own
+// indexable, shareable URL; the bare path sends visitors to the default.
+// 302 rather than 301 while the default is still a decision we might revisit
+// — a 301 would sit in browsers' caches long after we changed our minds.
+routerAdd("GET", "/fa/business", (e) => {
   return e.fileFS($os.dirFS("pb_public"), "for-business.html");
+});
+routerAdd("GET", "/en/business", (e) => {
+  return e.fileFS($os.dirFS("pb_public"), "for-business.html");
+});
+routerAdd("GET", "/business", (e) => {
+  return e.redirect(302, "/fa/business");
 });
 
 routerAdd("GET", "/for-business.html", (e) => {
@@ -68,16 +78,36 @@ routerAdd("GET", "/analytics.html", (e) => {
   return e.redirect(301, "/owner#analytics");
 });
 
-routerAdd("GET", "/terms", (e) => {
+// /terms now lives at a language path so each translation has its own
+// indexable, shareable URL; the bare path sends visitors to the default.
+// 302 rather than 301 while the default is still a decision we might revisit
+// — a 301 would sit in browsers' caches long after we changed our minds.
+routerAdd("GET", "/fa/terms", (e) => {
   return e.fileFS($os.dirFS("pb_public"), "terms.html");
+});
+routerAdd("GET", "/en/terms", (e) => {
+  return e.fileFS($os.dirFS("pb_public"), "terms.html");
+});
+routerAdd("GET", "/terms", (e) => {
+  return e.redirect(302, "/fa/terms");
 });
 
 routerAdd("GET", "/terms.html", (e) => {
   return e.redirect(301, "/terms");
 });
 
-routerAdd("GET", "/business-terms", (e) => {
+// /business-terms now lives at a language path so each translation has its own
+// indexable, shareable URL; the bare path sends visitors to the default.
+// 302 rather than 301 while the default is still a decision we might revisit
+// — a 301 would sit in browsers' caches long after we changed our minds.
+routerAdd("GET", "/fa/business-terms", (e) => {
   return e.fileFS($os.dirFS("pb_public"), "business-terms.html");
+});
+routerAdd("GET", "/en/business-terms", (e) => {
+  return e.fileFS($os.dirFS("pb_public"), "business-terms.html");
+});
+routerAdd("GET", "/business-terms", (e) => {
+  return e.redirect(302, "/fa/business-terms");
 });
 
 routerAdd("GET", "/business-terms.html", (e) => {

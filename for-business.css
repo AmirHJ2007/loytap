@@ -1305,7 +1305,7 @@ section { position: relative; background: var(--bg); color: var(--fg); }
      measuring that height correctly) for the gap to .steps, the card
      itself, the gap to .steps__nav, and .steps__nav, inside a 100vh-66px
      (fixed header) budget, with a small margin held back. */
-  .phone { position: relative; top: 0; order: -2; margin-bottom: 0; width: min(86vw, calc(58vh * 0.462)); }
+  .phone { position: relative; top: 0; order: -2; margin-bottom: 0; width: min(90vw, calc(64vh * 0.462)); }
   /* stacked under the phone, the pill reads better centered than pinned to
      the start edge — .how__tabs is inline-flex (shrink-to-fit) so switching
      to flex + a fit-content width lets margin-inline:auto center the box */
@@ -1461,32 +1461,6 @@ section { position: relative; background: var(--bg); color: var(--fg); }
    words, the words are readable, and each group ends in a decision. */
 .insights__rows { display: grid; gap: clamp(24px, 3vw, 40px); counter-reset: ins; }
 
-/* ---- the three panels as a deck ----------------------------------------- */
-/* Each card pins under the header and the next rides up over it, leaving a lip
-   of the one beneath, so the section reads as a deck being dealt.
-   Mobile only, and only on a tall enough screen. A sticky card taller than the
-   viewport pins the moment its top reaches the offset and then never releases,
-   so its lower half sits permanently below the fold and cannot be scrolled to.
-   The cards here run 683-834px; the tallest that actually pins (the second, at
-   761px) needs ~827px of room, hence the min-height guard. Short phones keep
-   ordinary scrolling, which is correct rather than a compromise. */
-@media (max-width: 940px) and (min-height: 840px) {
-  /* block, not grid: a grid item's sticky containing block is its own grid
-     area, so each card could only stick within its own row — i.e. not at all.
-     The child selector also outranks the plain `.ins` rule below, which sets
-     position:relative at equal specificity and would otherwise win on order. */
-  .insights__rows { display: block; }
-  .insights__rows > .ins { position: sticky; }
-  .insights__rows > .ins + .ins { margin-top: clamp(24px, 3vw, 40px); }
-  .insights__rows > .ins:nth-child(1) { top: 54px; }
-  .insights__rows > .ins:nth-child(2) { top: 66px; }
-  .insights__rows > .ins:nth-child(3) { top: 78px; }
-  /* the covered card deepens its shadow so the lip reads as depth, not a seam */
-  .insights__rows > .ins { box-shadow: 0 34px 66px -34px rgba(38,28,12,0.55), 0 -10px 30px -18px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.07); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .insights__rows > .ins { position: relative; top: auto; }
-}
 .ins {
   position: relative; overflow: hidden; counter-increment: ins;
   /* The panels run on ink inside the paper band. The thing they are showing is
@@ -2153,7 +2127,9 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 /* The seal sits above the prose rather than in a side column, so the text runs
    flush to the card's start edge instead of being indented past it. Narrower
    card than the two-column version to hold the same measure. */
-.about__head { display: flex; align-items: center; gap: 16px; }
+/* eyebrow at the reading-start, mark at the reading-end — so Persian puts the
+   words right and the logo left, and English mirrors it without a second rule */
+.about__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .about__head .eyebrow { margin: 0; }
 .about__seal {
   width: 86px; height: 86px; border-radius: 50%; display: grid; place-items: center; flex: none;
@@ -2566,8 +2542,8 @@ html[dir="rtl"] .btn.is-launch .btn__arrow { animation: btnArrowLaunchRtl 0.42s 
   .phone__frame {
     box-shadow: 0 22px 38px -26px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.16);
   }
-  .insights__rows > .ins {
-    box-shadow: 0 -6px 16px -10px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.07);
+  .ins {
+    box-shadow: 0 18px 34px -24px rgba(38,28,12,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
   }
   .nav.is-stuck {
     background: rgba(8,8,10,0.94);
