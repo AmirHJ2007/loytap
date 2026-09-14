@@ -2440,6 +2440,10 @@ html[dir="rtl"] .hero__ghost { left: auto; right: -8vw; }
    narrow layout — a little further right, off the stacked copy. */
 @media (max-width: 860px) {
   html[dir="rtl"] .hero__ghost { right: -14vw; }
+  /* English gets the mirror of it: the copy stacks left-aligned here, so the
+     mark sits left too. left/right and margin-inline all need overriding,
+     because the centring rule sets all three. */
+  html[dir="ltr"] .hero__ghost { left: -14vw; right: auto; margin-inline: 0; }
 }
 
 /* the ember glow pools are placed with a physical inset + an off-centre
