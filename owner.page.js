@@ -43,9 +43,6 @@
       if (n >= 4) opt.textContent = t("OWNER_QTY_COPIES", { n });
     });
 
-    try { $("ownerName").textContent = localStorage.getItem("loytap_name") || t("OWNER_NAME_FALLBACK"); } catch (e) {}
-    $("ownHi").innerHTML = t("OWNER_HI_HTML", { name: esc($("ownerName").textContent) });
-
     let cafeId = "";
 
     async function loadCafe() {
@@ -54,7 +51,6 @@
         const d = await r.json();
         if (r.ok) {
           cafeId = d.id || "";
-          $("cafeName").textContent = d.cafe_name || t("OWNER_CAFE_FALLBACK");
           $("staffCode").textContent = d.staff_code || "—";
           $("setOwnerName").textContent = d.name || t("OWNER_NAME_FALLBACK");
           $("setOwnerPhone").textContent = d.phone || "—";
@@ -413,7 +409,6 @@
         });
         const d = await r.json();
         if (r.ok) {
-          $("cafeName").textContent = d.cafe_name || t("OWNER_CAFE_FALLBACK");
           $("setCafeName").textContent = d.cafe_name || t("OWNER_CAFE_FALLBACK");
           savedCafeName = d.cafe_name || ""; savedTagline = d.tagline || "Cafe"; savedAccent = d.accent || "#171717";
           showIdentitySummary();
@@ -621,12 +616,12 @@
     $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("/signin"); };
 
     // ---------------- analytics tab ----------------
-    // Ported verbatim from the old standalone analytics.page.js (analytics.html
-    // is now folded into this page as a fourth tab) — only its DOM anchors
-    // changed: #content -> #anContent and #cafeName -> #anCafeName, since this
-    // page already has its own #cafeName (the header banner on Settings). It
-    // fetches /owner/stats lazily, the first time this tab is opened (see
-    // loadAnalytics()/setOwnerTab below), not on every dashboard load.
+    // Ported from the old standalone analytics.page.js (analytics.html is now
+    // folded into this page as a fourth tab); its #content anchor became
+    // #anContent here. The tab has no heading of its own — the cards say what
+    // they are — so it opens straight into the deck. It fetches /owner/stats
+    // lazily, the first time this tab is opened (see loadAnalytics()/
+    // setOwnerTab below), not on every dashboard load.
     const plural1 = (n, one, many) => t(n === 1 ? one : many);
     const stampWord = (n) => plural1(n, "AN_STAMP_LC_ONE", "AN_STAMP_LC_MANY");
     // a "13-16" time-slot range reorders to "16-13" when embedded in Persian text —
@@ -761,14 +756,16 @@
     function setupCrowded(c) {
       const card = $("hmCard");
       const max = c.max ? c.max.count : 0;
-      const cellBg = (v) => (!max || v === 0) ? "rgba(20,20,20,0.045)" : `rgba(20,20,20,${(0.14 + 0.76 * (v / max)).toFixed(3)})`;
+      // 0..1 intensity per cell; .hm__cell turns it into an alpha on the
+      // panel accent, so the colour lives in one place in the stylesheet
+      const cellV = (v) => (!max || v === 0) ? "0" : (0.12 + 0.88 * (v / max)).toFixed(3);
       const days = c.days.map(dow);
 
       let cells = `<div class="hm__corner"></div>` + c.slots.map((s) => `<div class="hm__sl">${esc(s)}</div>`).join("");
       c.grid.forEach((rowvals, r) => {
         cells += `<div class="hm__dl">${esc(days[r])}</div>`;
         cells += rowvals.map((v, s) =>
-          `<button class="hm__cell" data-r="${r}" data-s="${s}" data-v="${v}" style="background:${cellBg(v)}" title="${esc(t("AN_HM_CELL_TITLE", { day: days[r], slot: isolateLTR(c.slots[s]), v, stampWord: stampWord(v) }))}"></button>`
+          `<button class="hm__cell" data-r="${r}" data-s="${s}" data-v="${v}" style="--v:${cellV(v)}" title="${esc(t("AN_HM_CELL_TITLE", { day: days[r], slot: isolateLTR(c.slots[s]), v, stampWord: stampWord(v) }))}"></button>`
         ).join("");
       });
 
@@ -838,8 +835,15 @@
         body = `<p class="empty">${t("AN_NL_EMPTY", { days: nl.windowDays })}</p>`;
       } else {
         const newW = (nl.new / nl.active) * 100;
+        // Taken off newRate rather than computed from nl.loyal: both come from
+        // the same rounding, so pct(new) + pct(loyal) can land on 99 or 101 —
+        // wrong-looking for two halves of one bar that add up by definition.
+        const loyalRate = 100 - nl.newRate;
         body = `
-          <div class="nl-top"><div class="nl-v"><span class="count" data-count-to="${nl.newRate}" data-count-suffix="%">0%</span><span class="i18n-rtl">${t("AN_NL_NEW_LABEL")}</span></div></div>
+          <div class="nl-top">
+            <div class="nl-v"><span class="count" data-count-to="${nl.newRate}" data-count-suffix="%">0%</span><span class="i18n-rtl">${t("AN_NL_NEW_LABEL")}</span></div>
+            <div class="nl-v"><span class="count" data-count-to="${loyalRate}" data-count-suffix="%">0%</span><span class="i18n-rtl">${t("AN_NL_LOYAL_LABEL")}</span></div>
+          </div>
           <div class="nl-bar">
             <div class="nl-bar__seg nl-bar__seg--new" style="width:${newW}%"></div>
             <div class="nl-bar__seg nl-bar__seg--loyal" style="width:${100 - newW}%"></div>
@@ -860,6 +864,74 @@
       card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
     }
 
+    // ---- selected-point marker, shared by the two line charts ----
+    // Drawn inside the SVG so it is expressed in viewBox units and scales with
+    // the chart — no pixel measuring, unlike the activity chart's dot, whose
+    // bars are real DOM elements. Sits between the line and the dots so the
+    // transparent hit circles stay clickable on top of it.
+    function chartMarkerSVG(padT, ih) {
+      return `<g class="cb-marker" aria-hidden="true">
+        <line class="cb-marker__rule" x1="0" y1="${padT}" x2="0" y2="${(padT + ih).toFixed(1)}"/>
+        <g class="cb-marker__pt"><circle class="cb-marker__ring" r="5.5"/><circle class="cb-marker__core" r="1.9"/></g>
+      </g>`;
+    }
+
+    // x rides on the outer group, y on the inner one — two transitions with
+    // slightly different curves, which reads as a small arc rather than a slide.
+    function moveChartMarker(card, x, y, animate) {
+      const m = card.querySelector(".cb-marker");
+      const pt = m && m.querySelector(".cb-marker__pt");
+      if (!m || !pt) return;
+      // a day with no reading has no point to mark — park the marker instead
+      if (x == null) { m.classList.remove("is-on"); return; }
+      if (!animate) { m.style.transition = "none"; pt.style.transition = "none"; }
+      m.style.transform = "translateX(" + x + "px)";
+      pt.style.transform = "translateY(" + y + "px)";
+      if (!animate) {
+        m.getBoundingClientRect();
+        m.style.transition = ""; pt.style.transition = "";
+      } else {
+        restartAnim(m, "is-pop");
+      }
+      m.classList.add("is-on");
+    }
+
+    // Wire one line chart's points up to its headline, sub-line and caption.
+    // Both cards behaved identically before — a tap rewrote the caption and
+    // nothing else, so the big number kept showing the last day whatever you
+    // touched. read(i) returns what that day should display.
+    function wireChartSelection(card, hitSel, capEl, read) {
+      let cur = -1;
+      const num = card.querySelector(".cb-today__v .count");
+      const unitEl = card.querySelector(".cb-today__u");
+      const subEl = card.querySelector(".cb-today__k span");
+      const select = (i, animate) => {
+        if (i === cur) return;
+        const dir = cur === -1 || i > cur ? 1 : -1;
+        const d = read(i);
+        cur = i;
+        moveChartMarker(card, d.x, d.y, animate);
+        if (num) {
+          if (d.value == null) { num.textContent = "—"; }
+          else if (animate) countBetween(num, parseFloat(num.textContent) || 0, d.value, 420, d.decimals, d.suffix);
+          else num.textContent = (d.decimals ? d.value.toFixed(d.decimals) : String(Math.round(d.value))) + (d.suffix || "");
+        }
+        if (unitEl) unitEl.textContent = d.unit || "";
+        if (subEl) {
+          subEl.innerHTML = d.sub;
+          subEl.style.setProperty("--dir", dir);
+          if (animate) restartAnim(subEl, "is-swap");
+        }
+        if (capEl) {
+          capEl.innerHTML = d.cap;
+          capEl.style.setProperty("--dir", dir);
+          if (animate) restartAnim(capEl, "is-swap");
+        }
+      };
+      card.querySelectorAll(hitSel).forEach((el) => el.onclick = () => select(+el.dataset.i, true));
+      return select;
+    }
+
     // ---- comeback rate: today's number + a 14-day line chart ----
     function cbLineChart(series) {
       const W = 320, H = 132, padL = 6, padR = 6, padT = 10, padB = 20;
@@ -876,8 +948,8 @@
       }).join("");
       const dots = pts.map((p, i) => {
         const last = i === n - 1;
-        return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last ? 3.4 : 2}" fill="${last ? "#171717" : "rgba(20,20,20,0.55)"}"/>`
-          + `<circle class="cb-hit" data-i="${i}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="11" fill="transparent"><title>${esc(series[i].label)}: ${series[i].rate}%</title></circle>`;
+        return `<circle class="cb-dot${last ? " cb-dot--last" : ""}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last ? 3.4 : 2}"/>`
+          + `<circle class="cb-hit" data-i="${i}" data-x="${p[0].toFixed(1)}" data-y="${p[1].toFixed(1)}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="11" fill="transparent"><title>${esc(series[i].label)}: ${series[i].rate}%</title></circle>`;
       }).join("");
       const xi = [0, Math.floor((n - 1) / 2), n - 1];
       const xlab = xi.map((i) =>
@@ -887,7 +959,7 @@
         ${grid}
         <path class="chart-area" d="${area}" fill="rgba(20,20,20,0.07)"/>
         <path class="chart-line" pathLength="1" d="${path}" fill="none" stroke="#171717" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        ${dots}${xlab}
+        ${chartMarkerSVG(padT, ih)}${dots}${xlab}
       </svg>`;
     }
 
@@ -910,10 +982,17 @@
         <p class="cb-cap" id="cbCap"></p>`;
       const info = card.querySelector(".cb-info");
       card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
-      const cap = $("cbCap");
-      const setCap = (i) => { const x = s[i]; cap.innerHTML = t("AN_CB_CAP_HTML", { days: cb.windowDays, label: isolateLTR(esc(x.label)), rate: x.rate, returners: x.returners, newMembers: x.newMembers }); };
-      setCap(s.length - 1);
-      card.querySelectorAll(".cb-hit").forEach((el) => el.onclick = () => setCap(+el.dataset.i));
+      const hits = card.querySelectorAll(".cb-hit");
+      const select = wireChartSelection(card, ".cb-hit", $("cbCap"), (i) => {
+        const x = s[i], hit = hits[i];
+        return {
+          x: +hit.dataset.x, y: +hit.dataset.y,
+          value: x.rate, decimals: 0, suffix: "%",
+          sub: t("AN_CB_RETURNERS", { returners: x.returners, newMembers: x.newMembers }),
+          cap: t("AN_CB_CAP_HTML", { days: cb.windowDays, label: isolateLTR(esc(x.label)), rate: x.rate, returners: x.returners, newMembers: x.newMembers }),
+        };
+      });
+      select(s.length - 1, false);  // today, parked without a transition
     }
 
     // ---- visit rhythm: median gap between visits + a 14-day line chart ----
@@ -938,8 +1017,8 @@
       const dots = series.map((s, i) => {
         if (s.value == null) return "";
         const last = i === n - 1;
-        return `<circle cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="${last ? 3.4 : 2}" fill="${last ? "#171717" : "rgba(20,20,20,0.55)"}"/>`
-          + `<circle class="vr-hit" data-i="${i}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="11" fill="transparent"><title>${esc(s.label)}: ${s.value}d</title></circle>`;
+        return `<circle class="cb-dot${last ? " cb-dot--last" : ""}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="${last ? 3.4 : 2}"/>`
+          + `<circle class="vr-hit" data-i="${i}" data-x="${X(i).toFixed(1)}" data-y="${Y(s.value).toFixed(1)}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="11" fill="transparent"><title>${esc(s.label)}: ${s.value}d</title></circle>`;
       }).join("");
       const xi = [0, Math.floor((n - 1) / 2), n - 1];
       const xlab = xi.map((i) =>
@@ -948,7 +1027,7 @@
       return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visit rhythm, last 14 days">
         ${grid}
         <path class="chart-line" pathLength="1" d="${path.trim()}" fill="none" stroke="#171717" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        ${dots}${xlab}
+        ${chartMarkerSVG(padT, ih)}${dots}${xlab}
       </svg>`;
     }
 
@@ -966,22 +1045,33 @@
           ${t("AN_VR_INFO_HTML", { days: vr.windowDays })}
         </div>
         <div class="cb-today">
-          <div class="cb-today__v">${last.value == null ? "—" : `<span class="count" data-count-to="${last.value}" data-count-decimals="${Number.isInteger(last.value) ? 0 : 1}">0</span>`}${last.value == null ? "" : `<span class="cb-today__u">${unit(last.value)}</span>`}</div>
+          <!-- both spans are always present, even on a day with no reading, so
+               picking a different point can fill them in (the old markup left
+               them out entirely and the headline could never recover) -->
+          <div class="cb-today__v"><span class="count"${last.value == null ? "" : ` data-count-to="${last.value}" data-count-decimals="${Number.isInteger(last.value) ? 0 : 1}"`}>${last.value == null ? "—" : "0"}</span><span class="cb-today__u">${last.value == null ? "" : unit(last.value)}</span></div>
           <div class="cb-today__k">${t("AN_TODAY_LAST_DAYS", { days: vr.windowDays })}<span>${t("AN_VR_CUSTOMERS_MEASURED", { n: last.customers, customerWord: customerWord(last.customers) })}</span></div>
         </div>
         <div class="cb-chart">${vrLineChart(s)}</div>
         <p class="cb-cap" id="vrCap"></p>`;
       const info = card.querySelector(".cb-info");
       card.querySelector(".info-btn").onclick = () => { info.hidden = !info.hidden; };
-      const cap = $("vrCap");
-      const setCap = (i) => {
-        const x = s[i];
-        cap.innerHTML = x.value == null
-          ? t("AN_VR_CAP_EMPTY_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)) })
-          : t("AN_VR_CAP_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)), value: x.value, unit: unit(x.value), n: x.customers, customerWord: customerWord(x.customers) });
-      };
-      setCap(s.length - 1);
-      card.querySelectorAll(".vr-hit").forEach((el) => el.onclick = () => setCap(+el.dataset.i));
+      // a day with no reading has no dot and so no hit circle — index by date
+      // rather than by position in the NodeList
+      const hits = {};
+      card.querySelectorAll(".vr-hit").forEach((el) => { hits[el.dataset.i] = el; });
+      const select = wireChartSelection(card, ".vr-hit", $("vrCap"), (i) => {
+        const x = s[i], hit = hits[i];
+        return {
+          x: hit ? +hit.dataset.x : null, y: hit ? +hit.dataset.y : null,
+          value: x.value, decimals: Number.isInteger(x.value) ? 0 : 1, suffix: "",
+          unit: x.value == null ? "" : unit(x.value),
+          sub: t("AN_VR_CUSTOMERS_MEASURED", { n: x.customers, customerWord: customerWord(x.customers) }),
+          cap: x.value == null
+            ? t("AN_VR_CAP_EMPTY_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)) })
+            : t("AN_VR_CAP_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)), value: x.value, unit: unit(x.value), n: x.customers, customerWord: customerWord(x.customers) }),
+        };
+      });
+      select(s.length - 1, false);  // today, parked without a transition
     }
 
     // ---- interactive daily stamp activity card ----
@@ -1008,7 +1098,7 @@
       const bars = data.days.map((x, i) => {
         const h = (x.stamps / max * 100).toFixed(1);
         let lab = actPeriod === 7 ? dow(x.dow) : ((i % 5 === 0 || i === data.days.length - 1) ? x.date.slice(8) : "");
-        return `<button class="act-bar${x.date === actSel ? " is-sel" : ""}" data-date="${x.date}" title="${esc(translateLabel(x.label))}"><span class="act-bar__fill" style="height:${h}%"></span><span class="act-bar__lab">${esc(lab)}</span></button>`;
+        return `<button class="act-bar${x.date === actSel ? " is-sel" : ""}" data-date="${x.date}" data-i="${i}" title="${esc(translateLabel(x.label))}"><span class="act-bar__fill" style="height:${h}%"></span><span class="act-bar__lab">${esc(lab)}</span></button>`;
       }).join("");
       return `
         <h2 class="card__title">${t("AN_ACT_TITLE")} <button class="info-btn" type="button" aria-label="${t("AN_ARIA_INFO")}">i</button></h2>
@@ -1028,7 +1118,7 @@
             <div class="act-sel__stat"><b>${sel.rewards}</b><span>${plural1(sel.rewards, "AN_REWARD_ONE", "AN_REWARD_MANY")}</span><i class="i18n-rtl">${t("AN_30DAY_AVG", { n: mRewards })}</i></div>
           </div>
         </div>
-        <div class="act-chart"><span class="act-ymax">${max}</span><div class="act-bars">${bars}</div></div>
+        <div class="act-chart"><span class="act-ymax">${max}</span><span class="act-cursor" aria-hidden="true"></span><div class="act-bars">${bars}</div></div>
         <div class="act-stats">
           <div><b>${data.stamps}</b><span>${t("AN_STAMP_MANY")}</span></div>
           <div><b>${data.members}</b><span>${t("AN_MEMBER_MANY")}</span></div>
@@ -1037,30 +1127,117 @@
         <p class="act-cmp ${cmpCls}">${esc(cmpTxt)}</p>`;
     }
 
+    const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Replay a one-shot entrance class on an element that is already in the DOM.
+    // Removing and re-adding in the same frame is a no-op without the forced
+    // reflow in between, so the animation would only ever play once.
+    function restartAnim(el, cls) {
+      el.classList.remove(cls);
+      if (reduceMotion()) return;
+      el.getBoundingClientRect();  // forces the reflow; works on SVG nodes too, unlike offsetWidth
+      el.classList.add(cls);
+    }
+
+    // Roll a figure from where it currently reads to its new value. countUp()
+    // above always starts at zero, which is right for a card appearing for the
+    // first time and wrong for swapping between two days — 22 → 16 should count
+    // down, not drop to 0 and climb back.
+    function countBetween(el, from, to, dur, dec, suf) {
+      const d = dec || 0, s = suf || "";
+      const show = (v) => (d ? v.toFixed(d) : String(Math.round(v))) + s;
+      if (reduceMotion() || from === to) { el.textContent = show(to); return; }
+      const t0 = performance.now();
+      (function tick(now) {
+        const p = Math.min(1, (now - t0) / dur);
+        const e = 1 - Math.pow(1 - p, 3);  // easeOutCubic, same curve as countUp
+        el.textContent = show(from + (to - from) * e);
+        if (p < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    }
+
+    // Park the ink dot above the selected bar. Both the bar and its fill are
+    // static, so .act-chart (position: relative) is their offsetParent and the
+    // two measurements share its origin. animate=false snaps it there without a
+    // transition, for a fresh render or a resize.
+    function placeActCursor(card, btn, animate) {
+      const cur = card.querySelector(".act-cursor");
+      if (!cur) return;
+      const fill = btn && btn.querySelector(".act-bar__fill");
+      // no layout yet (panel still hidden) — leave the dot off rather than at 0,0
+      if (!fill || !btn.offsetWidth) { cur.style.opacity = "0"; return; }
+      const xy = "translate(" + (btn.offsetLeft + btn.offsetWidth / 2) + "px," + fill.offsetTop + "px)";
+      if (animate) {
+        cur.style.transform = xy;
+      } else {
+        cur.style.transition = "none";
+        cur.style.transform = xy;
+        void cur.offsetWidth;
+        cur.style.transition = "";
+      }
+      cur.style.opacity = "1";
+    }
+
+    // Picking a day patches the card in place instead of re-rendering it. The
+    // old handler reassigned innerHTML, which replaced the very elements the
+    // transitions run on — so the ink, the dot and the figures had nothing to
+    // animate from. Only the selection changes here: bar heights, the totals row
+    // and the comparison line all belong to the 7/30 window, not to one day.
+    function selectActivityDay(date) {
+      const card = $("actCard");
+      if (!card || !ACT) return;
+      const data = actPeriod === 30 ? ACT.d30 : ACT.d7;
+      const sel = data.days.find((x) => x.date === date);
+      const btn = card.querySelector('.act-bar[data-date="' + date + '"]');
+      if (!sel || !btn || date === actSel) return;
+      const prev = card.querySelector(".act-bar.is-sel");
+      const dir = prev && parseInt(btn.dataset.i, 10) < parseInt(prev.dataset.i, 10) ? -1 : 1;
+      actSel = date;
+
+      if (prev) prev.classList.remove("is-sel");
+      btn.classList.add("is-sel");
+      placeActCursor(card, btn, true);
+
+      const head = card.querySelector(".act-sel__head b");
+      if (head) {
+        head.textContent = translateLabel(sel.label);
+        head.style.setProperty("--dir", dir);
+        restartAnim(head, "is-swap");
+      }
+      const vals = [sel.stamps, sel.members, sel.rewards];
+      card.querySelectorAll(".act-sel__stat").forEach((s, i) => {
+        const b = s.querySelector("b");
+        if (b) countBetween(b, parseInt(b.textContent, 10) || 0, vals[i], 420);
+        restartAnim(s, "is-swap");
+      });
+    }
+
     function renderActivity() {
       const card = $("actCard");
       if (!card || !ACT) return;
       card.innerHTML = activityCardHTML(actPeriod === 30 ? ACT.d30 : ACT.d7);
       card.querySelectorAll(".act-toggle button").forEach((b) => b.onclick = () => { actPeriod = parseInt(b.dataset.p, 10); actSel = null; renderActivity(); });
-      card.querySelectorAll(".act-bar").forEach((b) => b.onclick = () => { actSel = b.dataset.date; renderActivity(); });
+      card.querySelectorAll(".act-bar").forEach((b) => b.onclick = () => selectActivityDay(b.dataset.date));
       const ib = card.querySelector(".info-btn");
       if (ib) ib.onclick = () => { actInfoOpen = !actInfoOpen; card.querySelector(".cb-info").hidden = !actInfoOpen; };
+      placeActCursor(card, card.querySelector(".act-bar.is-sel"), false);
     }
+
+    // the dot is positioned in pixels, so it has to be re-measured when the bars
+    // are re-laid out
+    addEventListener("resize", () => {
+      const card = $("actCard");
+      if (card) placeActCursor(card, card.querySelector(".act-bar.is-sel"), false);
+    });
 
     function setupActivity(activity) { ACT = activity; actPeriod = 7; actSel = null; renderActivity(); }
 
     let analyticsLoaded = false;
     async function loadAnalytics() {
-      try { $("anCafeName").textContent = t("OWNER_CAFE_FALLBACK"); } catch (e) {}
-      try {
-        const cn = localStorage.getItem("loytap_cafe"); if (cn) $("anCafeName").textContent = cn;
-      } catch (e) {}
       try {
         const res = await fetch(API + "/owner/stats", { method: "POST", headers: { Authorization: token } });
         if (!res.ok) { $("anContent").innerHTML = `<div class="card glass"><p class="empty">${t("AN_ERR_LOAD_FAILED")}</p></div>`; return; }
-        const data = await res.json();
-        if (data.cafe) $("anCafeName").textContent = data.cafe;
-        renderAnalytics(data);
+        renderAnalytics(await res.json());
       } catch (e) {
         $("anContent").innerHTML = `<div class="card glass"><p class="empty">${t("AUTH_ERR_SERVER_UNREACHABLE")}</p></div>`;
       }
@@ -1078,11 +1255,6 @@
       tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
       for (const k in panelBtns) panelBtns[k].classList.toggle("is-active", k === name);
       for (const k in panels) panels[k].hidden = k !== name;
-      // the café name / "Owner Dashboard" / "Hello, ___" banner only stays on
-      // the Settings tab — Card, Discounts and Analytics all want the full screen
-      const showHeader = name === "settings";
-      $("ownHeaderBlock").hidden = !showHeader;
-      $("own").classList.toggle("no-header", !showHeader);
       // fetch /owner/stats only the first time the owner actually opens this
       // tab, not on every dashboard load — analytics is a heavier call than
       // café/rewards and most sessions never visit it
