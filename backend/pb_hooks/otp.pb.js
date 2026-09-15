@@ -74,8 +74,6 @@ routerAdd("POST", "/otp/request", (e) => {
     } catch (err) {}
   }
 
-  const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-
   let bud = null;
   try { bud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:phone} && purpose = 'otp'", { phone }); } catch (err) { bud = null; }
 
@@ -144,24 +142,10 @@ routerAdd("POST", "/otp/request", (e) => {
     return e.json(status, { error: msg });
   };
 
-  if (kavKey) {
-    const tmpl = $os.getenv("KAVENEGAR_TEMPLATE") || "loytap";
-    let res = null;
-    try {
-      res = $http.send({
-        url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + code + "&template=" + tmpl,
-        method: "GET",
-        timeout: 10,
-      });
-    } catch (err) {
-      return abort(502, "Could not send SMS", "Kavenegar send failed: " + String(err));
-    }
-    // a 200-shaped failure is still a failure — never assume it arrived
-    if (!res || res.statusCode < 200 || res.statusCode >= 300) {
-      return abort(502, "Could not send SMS", "Kavenegar send rejected, status " + String(res && res.statusCode));
-    }
-    return e.json(200, { ok: true });
-  }
+  const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, code);
+  if (sent.ok) return e.json(200, { ok: true });
+  // a provider that merely failed must NOT fall through to the dev branch below
+  if (sent.configured) return abort(502, "Could not send SMS", sent.error);
 
   // local dev: explicit opt-in only. OTP_DEV_MODE is never set in production, so
   // a missing API key can never turn this endpoint into "tell me any number's code".
@@ -174,7 +158,7 @@ routerAdd("POST", "/otp/request", (e) => {
   return abort(
     503,
     "Sign-in is temporarily unavailable. Please try again later.",
-    "otp blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+    "otp blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
   );
 });
 
@@ -292,25 +276,11 @@ routerAdd("POST", "/otp/verify", (e) => {
 
     const ttl = Math.round(TTL_MS / 1000);
     const msg = "Too many incorrect codes. We've sent you a new one.";
-    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-    if (kavKey) {
-      let res = null;
-      try {
-        res = $http.send({
-          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
-          method: "GET",
-          timeout: 10,
-        });
-      } catch (err) {
-        $app.logger().error("Kavenegar send failed", "error", String(err));
-        return restart();
-      }
-      // a 200-shaped failure is still a failure — never assume it arrived
-      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
-        $app.logger().error("Kavenegar resend rejected, status " + String(res && res.statusCode));
-        return restart();
-      }
-      return e.json(429, { error: msg, regenerated: true, ttl });
+    const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, fresh);
+    if (sent.ok) return e.json(429, { error: msg, regenerated: true, ttl });
+    if (sent.configured) {
+      $app.logger().error("otp resend failed", "error", sent.error);
+      return restart();
     }
 
     // same explicit dev opt-in as /otp/request — with no provider and no opt-in
@@ -319,7 +289,7 @@ routerAdd("POST", "/otp/verify", (e) => {
       $app.logger().info("OTP regenerated (dev)", "phone", phone, "code", fresh);
       return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
     }
-    $app.logger().error("otp regenerate blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
+    $app.logger().error("otp regenerate blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
     return restart();
   }
 

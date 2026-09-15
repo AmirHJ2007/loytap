@@ -138,19 +138,11 @@ routerAdd("POST", "/owner/register", (e) => {
 
     const ttl = Math.round(TTL_MS / 1000);
     const msg = "Too many incorrect codes. We've sent you a new one.";
-    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-    if (kavKey) {
-      try {
-        $http.send({
-          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
-          method: "GET",
-          timeout: 10,
-        });
-      } catch (err) {
-        $app.logger().error("register SMS resend failed", "error", String(err));
-        return restart();
-      }
-      return e.json(429, { error: msg, regenerated: true, ttl });
+    const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, fresh);
+    if (sent.ok) return e.json(429, { error: msg, regenerated: true, ttl });
+    if (sent.configured) {
+      $app.logger().error("register SMS resend failed", "error", sent.error);
+      return restart();
     }
 
     // no provider: only echo the code when dev mode is explicitly opted into.
@@ -159,7 +151,7 @@ routerAdd("POST", "/owner/register", (e) => {
       $app.logger().info("register OTP regenerated (dev)", "phone", phone, "code", fresh);
       return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
     }
-    $app.logger().error("register OTP blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
+    $app.logger().error("register OTP blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
     return restart();
   }
   $app.delete(otp);
@@ -432,24 +424,10 @@ routerAdd("POST", "/owner/login", (e) => {
     return e.json(status, { error: msg });
   };
 
-  const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-  if (kavKey) {
-    let res = null;
-    try {
-      res = $http.send({
-        url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + code + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
-        method: "GET",
-        timeout: 10,
-      });
-    } catch (err) {
-      return abort(502, "Could not send the code. Please try again.", "owner login SMS send failed: " + String(err));
-    }
-    // a 200-shaped failure is still a failure — never assume it arrived
-    if (!res || res.statusCode < 200 || res.statusCode >= 300) {
-      return abort(502, "Could not send the code. Please try again.", "owner login SMS rejected, status " + String(res && res.statusCode));
-    }
-    return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000) });
-  }
+  const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, code);
+  if (sent.ok) return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000) });
+  // a provider that merely failed must NOT fall through to the dev branch below
+  if (sent.configured) return abort(502, "Could not send the code. Please try again.", "owner login SMS: " + sent.error);
 
   // local dev: explicit opt-in only. OTP_DEV_MODE is never set in production,
   // so this branch cannot silently turn owner 2FA back into no 2FA.
@@ -463,7 +441,7 @@ routerAdd("POST", "/owner/login", (e) => {
   return abort(
     503,
     "Sign-in is temporarily unavailable. Please try again later.",
-    "owner login blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+    "owner login blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
   );
 });
 
@@ -590,25 +568,11 @@ routerAdd("POST", "/owner/login/verify", (e) => {
 
     const ttl = Math.round(TTL_MS / 1000);
     const msg = "Too many incorrect codes. We've sent you a new one.";
-    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-    if (kavKey) {
-      let res = null;
-      try {
-        res = $http.send({
-          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
-          method: "GET",
-          timeout: 10,
-        });
-      } catch (err) {
-        $app.logger().error("owner login SMS resend failed", "error", String(err));
-        return restart();
-      }
-      // a 200-shaped failure is still a failure — never assume it arrived
-      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
-        $app.logger().error("owner login SMS resend rejected, status " + String(res && res.statusCode));
-        return restart();
-      }
-      return e.json(429, { error: msg, regenerated: true, ttl });
+    const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, fresh);
+    if (sent.ok) return e.json(429, { error: msg, regenerated: true, ttl });
+    if (sent.configured) {
+      $app.logger().error("owner login SMS resend failed", "error", sent.error);
+      return restart();
     }
 
     // same explicit dev opt-in as /owner/login — no provider and no opt-in means
@@ -774,23 +738,10 @@ routerAdd("POST", "/owner/forgot-password", (e) => {
     return e.json(status, { error: msg });
   };
 
-  const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-  if (kavKey) {
-    let res = null;
-    try {
-      res = $http.send({
-        url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + code + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
-        method: "GET",
-        timeout: 10,
-      });
-    } catch (err) {
-      return abort(502, "Could not send the code. Please try again.", "owner password reset SMS send failed: " + String(err));
-    }
-    if (!res || res.statusCode < 200 || res.statusCode >= 300) {
-      return abort(502, "Could not send the code. Please try again.", "owner password reset SMS rejected, status " + String(res && res.statusCode));
-    }
-    return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000) });
-  }
+  const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, code);
+  if (sent.ok) return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000) });
+  // a provider that merely failed must NOT fall through to the dev branch below
+  if (sent.configured) return abort(502, "Could not send the code. Please try again.", "owner password reset SMS: " + sent.error);
 
   if ($os.getenv("OTP_DEV_MODE") === "1") {
     $app.logger().info("owner password reset OTP (dev)", "phone", phone, "code", code);
@@ -800,7 +751,7 @@ routerAdd("POST", "/owner/forgot-password", (e) => {
   return abort(
     503,
     "Password reset is temporarily unavailable. Please try again later.",
-    "owner password reset blocked: no SMS provider — set KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+    "owner password reset blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
   );
 });
 
@@ -895,24 +846,11 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
 
     const ttl = Math.round(TTL_MS / 1000);
     const msg = "Too many incorrect codes. We've sent you a new one.";
-    const kavKey = $os.getenv("KAVENEGAR_API_KEY");
-    if (kavKey) {
-      let res = null;
-      try {
-        res = $http.send({
-          url: "https://api.kavenegar.com/v1/" + kavKey + "/verify/lookup.json?receptor=0" + phone + "&token=" + fresh + "&template=" + ($os.getenv("KAVENEGAR_TEMPLATE") || "loytap"),
-          method: "GET",
-          timeout: 10,
-        });
-      } catch (err) {
-        $app.logger().error("owner password reset SMS resend failed", "error", String(err));
-        return restart();
-      }
-      if (!res || res.statusCode < 200 || res.statusCode >= 300) {
-        $app.logger().error("owner password reset SMS resend rejected, status " + String(res && res.statusCode));
-        return restart();
-      }
-      return e.json(429, { error: msg, regenerated: true, ttl });
+    const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, fresh);
+    if (sent.ok) return e.json(429, { error: msg, regenerated: true, ttl });
+    if (sent.configured) {
+      $app.logger().error("owner password reset SMS resend failed", "error", sent.error);
+      return restart();
     }
 
     if ($os.getenv("OTP_DEV_MODE") === "1") {
