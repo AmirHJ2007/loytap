@@ -20,7 +20,9 @@ COPY backend/pb_hooks/      /pb/pb_hooks/
 COPY backend/pb_migrations/ /pb/pb_migrations/
 
 # Frontend assets — copied as real files (pb_public/ symlinks don't survive into an image).
-COPY *.html *.js *.css *.png *.jpg manifest*.json /pb/pb_public/
+# *.txt carries the Enamad ownership file (72433515.txt) — an empty file Enamad
+# fetches at the domain root to prove we control the site. It must stay reachable.
+COPY *.html *.js *.css *.png *.jpg *.txt manifest*.json /pb/pb_public/
 # Self-hosted fonts (woff2) so typography works where Google Fonts is blocked.
 COPY fonts/ /pb/pb_public/fonts/
 
