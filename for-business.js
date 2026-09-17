@@ -24,7 +24,7 @@
     priceYearly:  30000000,           // Toman per year, per brand — must stay < priceMonthly*12
                                        // for the "N months free" badge to read as a real saving
     currency:     "Toman",
-    email:        "reloy.ir@gmail.com",
+    email:        "info@reloy.ir",
     phone:        "0930 628 9746",
     // social handles, with or without the @. null hides that icon entirely
     // rather than shipping a dead link.
