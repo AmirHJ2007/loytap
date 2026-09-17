@@ -1,8 +1,8 @@
 {
-  "name": "Reloy",
-  "short_name": "Reloy",
-  "description": "Reloy loyalty wallet",
-  "start_url": "/",
+  "name": "Reloy Staff",
+  "short_name": "Reloy Staff",
+  "description": "Reloy staff scanner",
+  "start_url": "/staff",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

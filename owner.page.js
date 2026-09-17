@@ -23,9 +23,17 @@
           try { localStorage.setItem("loytap_token", token); } catch (e) {}
           return;
         }
-      } catch (e) {}
-      // no live token to refresh — same wall-clock expiry as before, just
-      // caught here on page load instead of silently on the next fetch
+      } catch (e) {
+        // A network failure is NOT the server rejecting the token: a bad token
+        // comes back as a 401/403 response, never a throw. Wiping the session
+        // here signed people out whenever the request simply could not be made
+        // — worst of all on a home-screen launch, where the page can load
+        // before the connection is up. Keep the session, carry on with the
+        // token we have, and let a genuine problem surface on the next call.
+        return;
+      }
+      // the server actually turned this token down — it is dead, not merely
+      // unreachable, so clear it rather than loop on a session that cannot work
       ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"]
         .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
       location.replace("/signin");

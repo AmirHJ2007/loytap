@@ -1,8 +1,8 @@
 {
-  "name": "Reloy",
-  "short_name": "Reloy",
-  "description": "Reloy loyalty wallet",
-  "start_url": "/",
+  "name": "Reloy Owner",
+  "short_name": "Reloy Owner",
+  "description": "Reloy owner dashboard",
+  "start_url": "/owner",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
