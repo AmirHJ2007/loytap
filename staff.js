@@ -41,7 +41,7 @@ applyI18n();
   // unreachable, so clear it rather than loop on a session that cannot work
   ["loytap_token", "loytap_staff", "loytap_owner", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
     .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-  location.replace("/signin");
+  location.replace("/business/signin");
 })();
 
 const PERSIAN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿‌‏]/g;

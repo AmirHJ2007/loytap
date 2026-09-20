@@ -36,7 +36,7 @@
       // unreachable, so clear it rather than loop on a session that cannot work
       ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"]
         .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
-      location.replace("/signin");
+      location.replace("/business/signin");
     })();
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -621,7 +621,7 @@
       finally { box.classList.remove("is-busy"); }
     };
 
-    $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("/signin"); };
+    $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("/business/signin"); };
 
     // ---------------- analytics tab ----------------
     // Ported from the old standalone analytics.page.js (analytics.html is now
