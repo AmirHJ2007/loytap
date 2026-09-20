@@ -1,7 +1,8 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 // "A new café just registered" — an email to whoever runs Reloy, not to the
-// owner who registered.
+// owner who registered. Carries what you need to actually onboard them: the
+// staff code and the URL to write to their NFC tag.
 //
 // The queue this writes to, and why it is a queue rather than a direct send,
 // is explained in 1700000028_mail_outbox.js. Short version: the notification
@@ -15,29 +16,59 @@
 // ---------------------------------------------------------------------------
 // queue it
 // ---------------------------------------------------------------------------
-// cafe_card is created in exactly one place at runtime — /owner/register in
-// owner.pb.js — so "a cafe_card was created" IS "an owner registered", with no
-// flag to keep in sync. AfterCreateSuccess rather than AfterCreate: the record
-// has really committed by then, so we can never email about a registration
-// that later rolled back.
+// HOOKED ON nfc_tags, NOT cafe_card. /owner/register writes its records in a
+// fixed order (owner.pb.js): users, users, cafe_card, staff_codes,
+// reward_options, nfc_tags. The café card comes third, so a hook there fires
+// before the staff code and the tag exist and cannot report either — which is
+// the whole point of this email. The tag is written last, so by the time it
+// lands every piece of the café is on disk.
+//
+// AfterCreateSuccess rather than AfterCreate: the record has really committed
+// by then, so we can never email about a registration that later rolled back.
+//
+// Guarded on being the café's FIRST tag. Today /owner/register is the only
+// code that creates one, so one tag means one registration — but if a
+// "add another tag" feature ever lands, this keeps it from announcing a café
+// that registered months ago.
 //
 // Everything here is wrapped: a notification that throws would take the
 // owner's registration down with it, which is exactly backwards.
 onRecordAfterCreateSuccess((e) => {
   try {
-    const card = e.record;
-    const cafeName = card.getString("cafe_name") || "(unnamed)";
+    const tag = e.record;
+    const cafeId = tag.getString("cafe");
+    if (!cafeId) return;
 
-    // the owner's own details live on the linked users record, not the card
+    // second or later tag for this café — not a registration
+    let tagCount = 0;
+    try { tagCount = $app.countRecords("nfc_tags", $dbx.hashExp({ cafe: cafeId })); } catch (err) { tagCount = 1; }
+    if (tagCount > 1) return;
+
+    let cafeName = "(unnamed)";
     let ownerName = "—", ownerEmail = "—", ownerPhone = "—";
     try {
-      const owner = $app.findRecordById("users", card.getString("owner_user"));
-      if (owner) {
-        ownerName = owner.getString("name") || "—";
-        ownerEmail = owner.getString("email") || "—";
-        ownerPhone = owner.getString("phone") || "—";
+      const card = $app.findRecordById("cafe_card", cafeId);
+      if (card) {
+        cafeName = card.getString("cafe_name") || "(unnamed)";
+        const owner = $app.findRecordById("users", card.getString("owner_user"));
+        if (owner) {
+          ownerName = owner.getString("name") || "—";
+          ownerEmail = owner.getString("email") || "—";
+          ownerPhone = owner.getString("phone") || "—";
+        }
       }
     } catch (err) {}
+
+    let staffCode = "—";
+    try {
+      const sc = $app.findFirstRecordByFilter("staff_codes", "cafe = {:c}", { c: cafeId });
+      if (sc) staffCode = sc.getString("code");
+    } catch (err) {}
+
+    // The tap URL the café's NFC tag has to carry. reloy.ir rather than
+    // app.reloy.ir on purpose: index.guard.js lets a ?t= code override the
+    // marketing-site redirect, so a tap reaches the wallet even signed out.
+    const tapUrl = "https://reloy.ir/?t=" + tag.getString("code");
 
     let total = 0;
     try { total = $app.countRecords("cafe_card"); } catch (err) { total = 0; }
@@ -46,8 +77,7 @@ onRecordAfterCreateSuccess((e) => {
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 
     const row = new Record($app.findCollectionByNameOrId("mail_outbox"));
-    // NOTIFY_EMAIL so the address can change without a redeploy; the default is
-    // the Cloudflare-routed info@reloy.ir, which forwards to the Gmail inbox.
+    // NOTIFY_EMAIL so the address can change without a redeploy.
     row.set("to", $os.getenv("NOTIFY_EMAIL") || "info@reloy.ir");
     row.set("subject", "New café on Reloy: " + cafeName);
     row.set("body", [
@@ -57,8 +87,12 @@ onRecordAfterCreateSuccess((e) => {
       "<tr><td><b>Owner</b></td><td>", esc(ownerName), "</td></tr>",
       "<tr><td><b>Email</b></td><td>", esc(ownerEmail), "</td></tr>",
       "<tr><td><b>Phone</b></td><td>", esc(ownerPhone), "</td></tr>",
+      "<tr><td><b>Staff code</b></td><td><code>", esc(staffCode), "</code></td></tr>",
       "<tr><td><b>Registered</b></td><td>", esc(new Date().toISOString()), "</td></tr>",
       "</table>",
+      "<h3>Write this to their NFC tag</h3>",
+      "<p><a href='", esc(tapUrl), "'>", esc(tapUrl), "</a></p>",
+      "<p style='color:#666'>Treat that link as a secret — anyone holding the code can trigger a stamp for this café without the tag.</p>",
       "<p>That makes <b>", total, "</b> café", total === 1 ? "" : "s", " on Reloy.</p>",
     ].join(""));
     row.set("sent", false);
@@ -67,7 +101,7 @@ onRecordAfterCreateSuccess((e) => {
   } catch (err) {
     try { $app.logger().error("could not queue the new-café notification", "err", String(err)); } catch (e2) {}
   }
-}, "cafe_card");
+}, "nfc_tags");
 
 // ---------------------------------------------------------------------------
 // drain it
