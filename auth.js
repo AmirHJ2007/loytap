@@ -48,7 +48,17 @@ $("modeTabs").addEventListener("click", (e) => {
 function syncFields() {
   const registering = mode === "register";
   $("fieldName").hidden = !registering;
-  $("sendBtn").textContent = registering ? t("AUTH_BTN_CREATE_ACCOUNT") : t("AUTH_BTN_SEND");
+  const btn = $("sendBtn");
+  const next = registering ? t("AUTH_BTN_CREATE_ACCOUNT") : t("AUTH_BTN_SEND");
+  // only nod when the label actually changes — syncFields also runs on load
+  // and after every live re-validation, and a button twitching on each
+  // keystroke would be worse than no animation at all
+  if (btn.textContent !== next) {
+    btn.textContent = next;
+    btn.classList.remove("btn--swap");
+    void btn.offsetWidth;            // reflow, so the animation restarts
+    btn.classList.add("btn--swap");
+  }
 }
 
 // ---------------- phone step ----------------
@@ -67,13 +77,101 @@ function prettyPhone(v) {
   return `+98 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`.trim();
 }
 
-$("phone").addEventListener("input", () => $("phoneErr").hidden = true);
+// ---------------- live field validation ----------------
+// The old behaviour was: say nothing until Send is pressed, then reveal an
+// error paragraph. Worse, an empty name in register mode only called .focus()
+// — the button appeared to do nothing at all. Both now report inline.
+//
+// WHEN a field complains matters as much as that it does. Complaining on every
+// keystroke means "912" is scolded as an invalid number while it is still being
+// typed. So: stay quiet until the field is left (blur) or Send is pressed —
+// then, once a field has been marked bad, re-check on every keystroke so the
+// error clears the instant it is fixed rather than making them press Send to
+// find out. Fields are only ever marked good→bad on blur, never mid-typing.
+function setFieldError(input, errEl, message) {
+  const field = input.closest(".field");
+  if (field) field.classList.add("is-bad");
+  input.setAttribute("aria-invalid", "true");
+  if (errEl) {
+    if (message) errEl.textContent = message;
+    errEl.hidden = false;
+  }
+}
+function clearFieldError(input, errEl) {
+  const field = input.closest(".field");
+  if (field) field.classList.remove("is-bad");
+  input.removeAttribute("aria-invalid");
+  if (errEl) errEl.hidden = true;
+}
+// returns whether the field is currently valid, and shows/hides its error.
+// `force` marks an empty-but-untouched field bad too — what Send wants, and
+// what a blur does not (leaving a field you never typed in is not an error yet).
+function checkName(force) {
+  const input = $("name"), err = $("nameErr");
+  if (mode !== "register") { clearFieldError(input, err); return true; }
+  const empty = !input.value.trim();
+  if (empty && (force || input.dataset.touched === "1")) {
+    setFieldError(input, err, t("AUTH_ERR_NAME_REQUIRED"));
+    return false;
+  }
+  if (!empty) clearFieldError(input, err);
+  return !empty;
+}
+function checkPhone(force) {
+  const input = $("phone"), err = $("phoneErr");
+  const raw = input.value.trim();
+  if (!raw) {
+    if (force) { setFieldError(input, err, t("AUTH_ERR_PHONE")); return false; }
+    clearFieldError(input, err);
+    return false;
+  }
+  if (!validPhone(raw)) {
+    if (force || input.dataset.touched === "1") setFieldError(input, err, t("AUTH_ERR_PHONE"));
+    return false;
+  }
+  clearFieldError(input, err);
+  return true;
+}
+
+// Judging only on blur meant a field you typed badly and then submitted from
+// looked exactly like the old submit-only behaviour — you never left it, so it
+// never spoke. So it also judges WHILE you type, just not on every keystroke:
+// a short idle pause means "912" is not called an invalid number while the
+// rest of it is still on its way. Becoming valid is reported instantly, with
+// no pause, because there is never a reason to make someone wait to be told
+// they got it right.
+const VALIDATE_IDLE_MS = 550;
+function wireLiveCheck(input, check) {
+  let timer = null;
+  input.addEventListener("blur", () => { clearTimeout(timer); input.dataset.touched = "1"; check(false); });
+  input.addEventListener("input", () => {
+    if (check(false)) { clearTimeout(timer); return; }   // valid now — say so at once
+    clearTimeout(timer);
+    if (!input.value.trim()) return;                      // don't scold an empty box
+    timer = setTimeout(() => { input.dataset.touched = "1"; check(false); }, VALIDATE_IDLE_MS);
+  });
+}
+wireLiveCheck($("phone"), checkPhone);
+wireLiveCheck($("name"), checkName);
+// switching between Sign in / Register hides the name field; drop its complaint
+const _syncFields = syncFields;
+syncFields = function () { _syncFields(); checkName(false); };
 
 $("sendBtn").addEventListener("click", () => requestCode());
 
 async function requestCode() {
-  if (mode === "register" && !$("name").value.trim()) { $("name").focus(); return; }
-  if (!validPhone($("phone").value)) { $("phoneErr").hidden = false; return; }
+  // check BOTH before returning, so a form with two problems shows two errors
+  // rather than making them fix one, press Send, and discover the next.
+  const nameOk = checkName(true);
+  const phoneOk = checkPhone(true);
+  if (!nameOk || !phoneOk) {
+    const first = !nameOk ? $("name") : $("phone");
+    first.dataset.touched = "1";
+    first.focus();
+    const shakeTarget = first === $("phone") ? $("phone").closest(".phone") : first;
+    if (shakeTarget) { shakeTarget.classList.remove("shake"); void shakeTarget.offsetWidth; shakeTarget.classList.add("shake"); }
+    return;
+  }
 
   const phone = normalizePhone($("phone").value);
   $("sendBtn").disabled = true;

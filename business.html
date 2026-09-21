@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="/fonts.css" />
-  <link rel="stylesheet" href="/auth.css?v=42" />
-  <script src="/i18n.js?v=29"></script>
+  <link rel="stylesheet" href="/auth.css?v=48" />
+  <script src="/i18n.js?v=31"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -65,6 +65,7 @@
             <span class="phone__cc">🇮🇷 +98</span>
             <input id="ownerPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
           </div>
+          <p class="field__err" id="ownerPhoneErr" hidden data-i18n="AUTH_ERR_PHONE_INVALID">Enter a valid mobile number.</p>
         </div>
         <div class="field">
           <label for="ownerPass" data-i18n="AUTH_LABEL_PASSWORD">Password</label>
@@ -157,6 +158,7 @@
         <div class="field">
           <label for="cCafe" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</label>
           <input id="cCafe" type="text" maxlength="40" placeholder="e.g. Aurora" data-i18n-placeholder="AUTH_PH_BUSINESS_NAME" />
+          <p class="field__err" id="cCafeErr" hidden data-i18n="AUTH_ERR_BUSINESS_NAME_REQUIRED">Enter your business's name.</p>
         </div>
         <div class="field">
           <label data-i18n="AUTH_LABEL_BUSINESS_TYPE">Business type</label>
@@ -169,6 +171,7 @@
         <div class="field">
           <label for="cName" data-i18n="AUTH_LABEL_YOUR_NAME">Your name</label>
           <input id="cName" type="text" maxlength="40" placeholder="Owner name" data-i18n-placeholder="AUTH_PH_OWNER_NAME" />
+          <p class="field__err" id="cNameErr" hidden data-i18n="AUTH_ERR_OWNER_NAME_REQUIRED">Enter the owner's name.</p>
         </div>
         <div class="field">
           <label for="cPhone" data-i18n="AUTH_LABEL_PHONE">Mobile number</label>
@@ -176,18 +179,26 @@
             <span class="phone__cc">🇮🇷 +98</span>
             <input id="cPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="912 345 6789" data-i18n-placeholder="AUTH_PH_PHONE" />
           </div>
+          <p class="field__err" id="cPhoneErr" hidden data-i18n="AUTH_ERR_PHONE_INVALID">Enter a valid mobile number.</p>
         </div>
         <div class="field">
           <label for="cEmail" data-i18n="AUTH_LABEL_EMAIL">Email</label>
           <input id="cEmail" type="email" autocomplete="email" placeholder="you@example.com" data-i18n-placeholder="AUTH_PH_EMAIL" />
+          <p class="field__err" id="cEmailErr" hidden data-i18n="AUTH_ERR_EMAIL_INVALID">Enter a valid email address.</p>
         </div>
         <div class="field">
           <label for="cPass"><span data-i18n="AUTH_LABEL_PASSWORD">Password</span> <span class="opt" data-i18n="AUTH_OPT_MIN6">(min 6)</span></label>
           <input id="cPass" type="password" autocomplete="new-password" placeholder="••••••••" />
+          <p class="field__err" id="cPassErr" hidden data-i18n="AUTH_ERR_PASSWORD_SHORT">Password must be at least 6 characters.</p>
         </div>
         <div class="field">
           <label for="cPassConfirm" data-i18n="AUTH_LABEL_CONFIRM_PASSWORD">Confirm password</label>
           <input id="cPassConfirm" type="password" autocomplete="new-password" placeholder="••••••••" />
+          <p class="field__err" id="cPassConfirmErr" hidden data-i18n="AUTH_ERR_PASSWORD_MISMATCH">Passwords do not match.</p>
+        </div>
+        <!-- form-level errors from the server (duplicate email, unreachable, …);
+             field-level problems now report on the field itself -->
+        <div class="field field--formerr">
           <p class="field__err" id="createErr" hidden></p>
         </div>
         <button class="btn btn--primary" id="createBtn" type="button" data-i18n="AUTH_BTN_CREATE_BUSINESS">Create business</button>
@@ -226,6 +237,6 @@
     </div>
   </main>
 
-  <script src="/business.js?v=13"></script>
+  <script src="/business.js?v=15"></script>
 </body>
 </html>

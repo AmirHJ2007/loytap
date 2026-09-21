@@ -120,10 +120,12 @@ body {
 .lang-switch__btn {
   font-family: var(--font-body); font-weight: 700; font-size: 12px; padding: 5px 12px;
   border: 1px solid rgba(255,255,255,0.5); border-radius: 20px; background: rgba(255,255,255,0.25);
-  color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease;
+  color: var(--ink-dim); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s var(--ease-spring);
 }
 html[lang="en"] .lang-switch__btn[data-lang="en"],
 html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: #fff; border-color: #171717; }
+.lang-switch__btn:active { transform: scale(0.93); }
 
 /* segmented (role) — glass pill */
 .seg {
@@ -132,7 +134,8 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
   border-radius: 13px; margin-bottom: 18px;
   animation: fadeUp 0.6s var(--ease-spring) 0.16s both;
 }
-.seg__btn { font-family: var(--font-heading); font-weight: 600; font-size: 15px; padding: 12px; border: none; border-radius: 10px; background: transparent; color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+.seg__btn { font-family: var(--font-heading); font-weight: 600; font-size: 15px; padding: 12px; border: none; border-radius: 10px; background: transparent; color: var(--ink-dim); cursor: pointer; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s var(--ease-spring); }
+.seg__btn:active { transform: scale(0.96); }
 .seg--3 { grid-template-columns: 1fr 1fr 1fr; margin-bottom: 0; }
 .seg--3 .seg__btn { font-size: 12px; padding: 10px 4px; }
 .seg__btn.is-on { background: #171717; color: #ffffff; box-shadow: 0 6px 16px -8px rgba(20,20,20,0.5); }
@@ -140,9 +143,23 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 
 /* tabs (sign in / register) */
 .tabs { display: flex; gap: 18px; margin-bottom: 16px; border-bottom: 1.5px solid rgba(20,20,20,0.1); animation: fadeUp 0.6s var(--ease-spring) 0.2s both; }
-.tabs__btn { position: relative; font-family: var(--font-heading); font-weight: 600; font-size: 16px; padding: 4px 2px 10px; border: none; background: none; color: var(--ink-faint); cursor: pointer; }
+.tabs__btn { position: relative; font-family: var(--font-heading); font-weight: 600; font-size: 16px; padding: 4px 2px 10px; border: none; background: none; color: var(--ink-faint); cursor: pointer; transition: color 0.25s ease, transform 0.25s var(--ease-spring); }
+@media (hover: hover) and (pointer: fine) {
+  .tabs__btn:hover { color: var(--ink-dim); }
+  .tabs__btn:hover::after { transform: scaleX(0.4); opacity: 0.25; }
+}
+.tabs__btn:active { transform: scale(0.96); }
 .tabs__btn.is-on { color: var(--ink); }
-.tabs__btn.is-on::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 2.5px; border-radius: 2px; background: #171717; }
+/* The underline lives on EVERY tab, not just the active one, and is scaled to
+   nothing until its tab turns on — so switching tabs animates the bar growing
+   out from the centre instead of teleporting. A hover shows a faint stub of it
+   so the target reads as clickable before you commit. */
+.tabs__btn::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 2.5px; border-radius: 2px;
+  background: #171717; transform: scaleX(0); opacity: 0;
+  transition: transform 0.32s var(--ease-spring), opacity 0.22s ease;
+}
+.tabs__btn.is-on::after { transform: scaleX(1); opacity: 1; }
 
 /* fields — glassy inputs */
 .field { margin-bottom: 14px; animation: fadeUp 0.6s var(--ease-spring) 0.24s both; }
@@ -165,7 +182,22 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 .phone { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; direction: ltr; }
 .phone__cc { font-weight: 700; font-size: 15px; color: var(--ink-dim); white-space: nowrap; font-size: 16px; }
 .phone input { border: none; background: none; padding: 15px 16px 15px 6px; letter-spacing: 1px; direction: ltr; text-align: left; }
-.field__err { margin: 6px 2px 0; font-size: 12px; color: var(--bad); font-weight: 700; }
+/* ---- inline validation ---- */
+/* The error paragraph used to just un-hide. It now slides down as it appears,
+   so a message arriving while you look elsewhere on the form still catches the
+   eye, and the field it belongs to turns red at the same moment. */
+.field__err { margin: 6px 2px 0; font-size: 12px; color: var(--bad); font-weight: 700; animation: errIn 0.28s var(--ease-spring) both; }
+@keyframes errIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* .is-bad sits on the .field so it can reach the input AND the phone wrapper,
+   which carries its own border (see .phone above). */
+.field.is-bad input,
+.field.is-bad .phone { border-color: var(--bad); background: rgba(192,80,63,0.07); }
+.field.is-bad input:focus,
+.field.is-bad .phone:focus-within { border-color: var(--bad); background: rgba(192,80,63,0.1); box-shadow: 0 0 0 3px rgba(192,80,63,0.14); }
+.field.is-bad label { color: var(--bad); }
+.field label { transition: color 0.2s ease; }
+.field input, .phone { transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
 /* a confirmation, not a warning — e.g. "password updated" after forgot-password
    finishes and drops the owner back on this step. Same weight as .field__err
    so it doesn't jump around the layout, just without sounding alarmed. */
@@ -186,17 +218,78 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 .otp input.filled { border-color: #171717; background: rgba(255,255,255,0.75); }
 
 /* buttons — solid charcoal, matches the wallet's Stamp button */
-.btn { display: block; width: 100%; text-align: center; text-decoration: none; box-sizing: border-box; font-family: var(--font-heading); font-weight: 700; font-size: 17px; border: none; border-radius: 15px; padding: 16px 22px; cursor: pointer; transition: transform 0.14s ease, box-shadow 0.3s ease, opacity 0.3s ease; margin-top: 6px; }
-.btn:active { transform: translateY(1px) scale(0.99); }
+.btn {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: block; width: 100%; text-align: center; text-decoration: none; box-sizing: border-box;
+  font-family: var(--font-heading); font-weight: 700; font-size: 17px;
+  border: none; border-radius: 15px; padding: 16px 22px; cursor: pointer; margin-top: 6px;
+  transition: transform 0.22s var(--ease-spring), box-shadow 0.3s ease, background 0.25s ease, opacity 0.3s ease;
+}
+/* lift on hover, press through it on click. translateZ(0) keeps the lift on its
+   own layer so the shadow transition doesn't repaint the card behind it. */
 .btn--primary { color: #ffffff; background: #171717; box-shadow: 0 14px 28px -10px rgba(20,20,20,0.55), inset 0 1px 0 rgba(255,255,255,0.15); }
-.btn--primary:hover { background: #000000; box-shadow: 0 18px 34px -10px rgba(20,20,20,0.65), inset 0 1px 0 rgba(255,255,255,0.15); }
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover { background: #000000; transform: translateY(-2px) translateZ(0); box-shadow: 0 22px 38px -12px rgba(20,20,20,0.7), inset 0 1px 0 rgba(255,255,255,0.22); }
+}
+.btn:active { transform: translateY(1px) scale(0.985); transition-duration: 0.08s; }
+
+/* a light sweeps across on hover — ::before so it sits above the background but
+   below the label, and skewed so the edge reads as a highlight, not a wipe */
+.btn::before {
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -80%; width: 55%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.28), transparent);
+  transform: skewX(-18deg); opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover::before { animation: btnSheen 0.75s ease-out; }
+}
+/* touch has no hover, so the sheen runs on the press instead — the one moment
+   a phone user actually gives us */
+.btn--primary:active::before { animation: btnSheen 0.6s ease-out; }
+@keyframes btnSheen {
+  from { left: -80%; opacity: 1; }
+  to   { left: 130%; opacity: 0; }
+}
+
+/* the ring that blooms out from a click — no JS, no ripple coordinates, just a
+   circle scaled from the middle. :active re-triggers it on every press. */
+.btn::after {
+  content: ""; position: absolute; z-index: -1; left: 50%; top: 50%; width: 12px; height: 12px;
+  margin: -6px 0 0 -6px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.45), rgba(255,255,255,0) 70%);
+  transform: scale(0); opacity: 0;
+}
+.btn--primary:active::after { animation: btnBloom 0.5s ease-out; }
+@keyframes btnBloom {
+  from { transform: scale(0); opacity: 0.9; }
+  to   { transform: scale(26); opacity: 0; }
+}
+
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,255,255,0.9), 0 0 0 6px #171717; }
+
+/* auth.js disables these only while a request is in flight (send code, verify),
+   so "disabled" here always means "working" — the drifting shimmer says so
+   without needing a spinner element or a class for the JS to toggle. */
+.btn--primary:disabled, .btn--primary[disabled] {
+  cursor: progress; transform: none; opacity: 0.85;
+  background-image: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.22) 42%, transparent 64%);
+  background-size: 220% 100%;
+  animation: btnWorking 1.15s linear infinite;
+  box-shadow: 0 10px 22px -12px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.btn--primary:disabled::before, .btn--primary:disabled::after { animation: none; opacity: 0; }
+@keyframes btnWorking { from { background-position: 140% 0; } to { background-position: -60% 0; } }
 
 .fine { margin: 12px 0 0; text-align: center; font-size: 11px; color: var(--ink-faint); line-height: 1.5; }
 .fine a { color: var(--ink-dim); }
 .fine.demo { color: var(--ink); font-weight: 700; }
 .fine.fine--hint { color: var(--ink-dim); font-weight: 600; }
 
-.back { background: none; border: none; color: var(--ink-dim); font-family: var(--font-body); font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 12px; }
+.back { background: none; border: none; color: var(--ink-dim); font-family: var(--font-body); font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; margin-bottom: 12px; transition: color 0.2s ease, transform 0.25s var(--ease-spring); }
+/* the label starts with an arrow, so sliding the whole button left on hover
+   reads as the arrow leading you back */
+
+.back:active { transform: translateX(-3px) scale(0.97); }
 .step__title { font-family: var(--font-heading); font-weight: 700; font-size: 20px; margin: 0 0 4px; }
 .step__sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-dim); }
 .step__sub b { color: var(--ink); }
@@ -241,17 +334,30 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 .otp.shake { animation: shakeX 0.45s ease; }
 
 .link-btn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--ink); font-family: var(--font-heading); font-weight: 700; font-size: 17px; cursor: pointer; }
-.link-btn:hover { text-decoration: underline; }
+/* underline wipes in from the left instead of blinking on — a background
+   gradient sized to 0 width, grown on hover, so there is nothing to lay out */
+.link-btn {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat; background-position: 0 100%; background-size: 0% 2px;
+  transition: background-size 0.3s var(--ease-spring), transform 0.2s var(--ease-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .link-btn:hover { text-decoration: none; background-size: 100% 2px; }
+  .back:hover { color: var(--ink); transform: translateX(-3px); }
+}
+/* on touch the underline draws itself on the tap instead */
+.link-btn:active { text-decoration: none; background-size: 100% 2px; }
+.link-btn:active { transform: scale(0.97); }
 /* small inline link, e.g. "Forgot password?" tucked under a field — quieter
    than .link-btn, which is meant for the bottom-of-page mode switch */
 .link-small { display: block; margin: 8px 2px 0; background: none; border: none; padding: 0; color: var(--ink-dim); font-family: var(--font-body); font-weight: 600; font-size: 12.5px; cursor: pointer; text-align: right; }
 html[dir="rtl"] .link-small { text-align: left; }
-.link-small:hover { color: var(--ink); text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) { .link-small:hover { color: var(--ink); text-decoration: underline; } }
 
 .opt { color: var(--ink-faint); font-weight: 600; }
 .swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 4px 10px -4px rgba(20,20,20,0.5); transition: transform 0.12s ease; }
-.swatch:hover { transform: scale(1.08); }
+@media (hover: hover) and (pointer: fine) { .swatch:hover { transform: scale(1.08); } }
 .swatch.is-on { box-shadow: 0 0 0 3px var(--ink), 0 4px 10px -4px rgba(20,20,20,0.5); }
 /* Free colour picker, last in the swatch row. Shows a colour wheel until one is
    chosen, then the colour the card will actually use — which is the picked hue
@@ -359,11 +465,11 @@ html[dir="rtl"] .link-small { text-align: left; }
   border-radius: 10px; padding: 9px 14px; border: 1px solid rgba(23,23,23,0.18);
   background: rgba(255,255,255,0.5); color: var(--ink); transition: transform 0.12s ease, background 0.2s ease;
 }
-.logo-btn:hover { background: rgba(255,255,255,0.75); }
+@media (hover: hover) and (pointer: fine) { .logo-btn:hover { background: rgba(255,255,255,0.75); } }
 .logo-btn--ghost { background: none; border-color: transparent; color: var(--ink-dim); }
-.logo-btn--ghost:hover { color: var(--bad); background: none; }
+@media (hover: hover) and (pointer: fine) { .logo-btn--ghost:hover { color: var(--bad); background: none; } }
 .logo-btn--primary { background: var(--ink); border-color: var(--ink); color: #fff; }
-.logo-btn--primary:hover { background: #000000; }
+@media (hover: hover) and (pointer: fine) { .logo-btn--primary:hover { background: #000000; } }
 .logo-hint { flex: 1 0 100%; margin: 4px 0 0; font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
 
 /* position-in-circle modal, opened after picking a logo photo */
@@ -388,7 +494,116 @@ html[dir="rtl"] .link-small { text-align: left; }
 .crop-modal__actions { display: flex; gap: 10px; margin-top: 10px; }
 .crop-modal__actions button { flex: 1; margin-top: 0; }
 
+
+/* ================= appearance & selection (touch-first) =================
+   A phone never hovers. What it does is arrive at a screen, tap a choice, and
+   watch things appear — so that is where the motion belongs. */
+
+/* ---- steps arriving ----
+   go() in auth.js (showBizStep in business.js) only flips [hidden], so every
+   move between phone -> code -> done was a hard cut. The step now slides up as
+   it takes over. [hidden] wins the display fight, so this only ever runs on
+   the step that just became visible. */
+.step:not([hidden]) { animation: stepIn 0.42s var(--ease-spring) both; }
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* the six code boxes cascade in behind their step rather than all landing at
+   once — the eye follows the row left to right, which is where you type */
+.step:not([hidden]) .otp input { animation: otpBoxIn 0.4s var(--ease-spring) both; }
+.step:not([hidden]) .otp input:nth-child(1) { animation-delay: 0.10s; }
+.step:not([hidden]) .otp input:nth-child(2) { animation-delay: 0.15s; }
+.step:not([hidden]) .otp input:nth-child(3) { animation-delay: 0.20s; }
+.step:not([hidden]) .otp input:nth-child(4) { animation-delay: 0.25s; }
+.step:not([hidden]) .otp input:nth-child(5) { animation-delay: 0.30s; }
+.step:not([hidden]) .otp input:nth-child(6) { animation-delay: 0.35s; }
+@keyframes otpBoxIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.86); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---- a field revealing itself ----
+   Tapping Register adds the name box by clearing [hidden] (syncFields in
+   auth.js). It inherits .field's fadeUp, but that animation already ran and
+   finished at page load, so it never replayed — the box simply appeared from
+   nowhere mid-form. Keyed on :not([hidden]) instead, it plays on the reveal,
+   and replays on every toggle because the element passes through display:none
+   in between, which resets it. The id beats .field's own rule. */
+#fieldName:not([hidden]) { animation: fieldReveal 0.42s var(--ease-spring) both; }
+@keyframes fieldReveal {
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---- the button changing job ----
+   "Send code" becomes "Create account" when the mode flips. Swapping the text
+   under the reader's eye with nothing else moving reads as a glitch, so the
+   button gives a small nod as it changes. auth.js re-adds .btn--swap to
+   retrigger it. */
+.btn--swap { animation: btnSwap 0.34s var(--ease-spring); }
+@keyframes btnSwap {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+/* ---- a digit landing ----
+   .filled only changed colour before. A quick pop confirms the keypress on a
+   phone keyboard, where the box is often hidden behind your own thumb. */
+.step:not([hidden]) .otp input.filled { animation: otpPop 0.26s var(--ease-spring); }
+@keyframes otpPop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+/* ---- choosing an option ----
+   .seg__btn.is-on used to just swap to a dark background — instant, with no
+   sense that YOU caused it. The dark pill now springs up from underneath.
+   A pseudo-element rather than the button's own background so the label is
+   never scaled with it. */
+.seg__btn { position: relative; z-index: 0; }
+.seg__btn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 10px;
+  background: #171717; box-shadow: 0 6px 16px -8px rgba(20,20,20,0.5);
+  transform: scale(0.72); opacity: 0;
+  transition: transform 0.34s var(--ease-spring), opacity 0.2s ease;
+}
+.seg__btn.is-on { background: transparent; box-shadow: none; }
+.seg__btn.is-on::before { transform: scale(1); opacity: 1; }
+
+/* ---- tapping a field ----
+   focus is what a phone has instead of hover: the label lifts into the accent
+   colour so you can see which box the keyboard belongs to. */
+.field label { display: inline-block; transition: color 0.2s ease, transform 0.25s var(--ease-spring); }
+.field:focus-within label { color: var(--ink); transform: translateY(-1px); }
+
+/* ---- language pills ---- */
+.lang-switch__btn { position: relative; }
+html[lang="en"] .lang-switch__btn[data-lang="en"],
+html[lang="fa"] .lang-switch__btn[data-lang="fa"] { animation: pillOn 0.3s var(--ease-spring); }
+@keyframes pillOn { 0% { transform: scale(0.84); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
 @media (prefers-reduced-motion: reduce) {
   .bg::before, .bg::after, .stain, .auth__card::after { animation: none; }
   .auth__card, .auth__brand, .seg, .tabs, .field, .done__icon { animation: none; opacity: 1; transform: none; }
+  /* the button feedback above: drop the movement, keep the colour changes so
+     hover and press are still legible without anything sliding or pulsing */
+  .btn, .btn:hover, .btn:active,
+  .tabs__btn:active, .link-btn:active, .back:hover, .back:active,
+  .seg__btn:active, .lang-switch__btn:active { transform: none; }
+  .btn::before, .btn::after,
+  .btn--primary:hover::before, .btn--primary:active::after { animation: none; opacity: 0; }
+  .btn--primary:disabled, .btn--primary[disabled] { animation: none; background-image: none; }
+  .tabs__btn::after { transition: none; }
+  .link-btn { transition: none; }
+  .field__err { animation: none; }
+  .step:not([hidden]), .step:not([hidden]) .otp input,
+  .otp input.filled, .lang-switch__btn { animation: none; }
+  .seg__btn::before { transition: none; }
+  .field:focus-within label { transform: none; }
+  .btn--primary:active::before, .link-btn:active { animation: none; }
+  #fieldName:not([hidden]), .btn--swap { animation: none; }
 }

@@ -82,11 +82,100 @@ $("bizSeg").addEventListener("click", (e) => {
   showBizStep(b.dataset.mode);
 });
 
+
+// ---------------- live field validation ----------------
+// Before this, every field on this page reported the same way: nothing until
+// the button was pressed, then one shared message. The register form was the
+// worst of it — six fields pointing at a single #createErr paragraph pinned
+// below the confirm-password box, so "enter your business's name" appeared
+// six fields away from the name box, and nothing ever turned red. Worse,
+// validation returned on the FIRST problem, so fixing one revealed the next.
+//
+// Each field now owns its message and its own red state. On timing: a field
+// stays quiet while you first type in it (nobody wants "invalid email" at
+// "s@"), complains on blur or on submit, and from then on re-checks every
+// keystroke so a fix is acknowledged without pressing the button again.
+function setFieldError(input, errEl, message) {
+  const field = input.closest(".field");
+  if (field) field.classList.add("is-bad");
+  input.setAttribute("aria-invalid", "true");
+  if (errEl) { if (message) errEl.textContent = message; errEl.hidden = false; }
+}
+function clearFieldError(input, errEl) {
+  const field = input.closest(".field");
+  if (field) field.classList.remove("is-bad");
+  input.removeAttribute("aria-invalid");
+  if (errEl) errEl.hidden = true;
+}
+// `test` returns "" when the value is fine, or the message to show.
+// `force` (submit) complains about an untouched empty field; a blur does not.
+function makeCheck(inputId, errId, test) {
+  return function (force) {
+    const input = $(inputId), errEl = errId ? $(errId) : null;
+    const msg = test(input.value);
+    if (!msg) { clearFieldError(input, errEl); return true; }
+    if (force || input.dataset.touched === "1") setFieldError(input, errEl, msg);
+    return false;
+  };
+}
+// Judging only on blur meant a field you typed badly and then submitted from
+// looked exactly like the old submit-only behaviour — you never left it, so it
+// never spoke. So it also judges WHILE you type, just not on every keystroke:
+// a short idle pause means "s@" is not called an invalid email while the rest
+// of it is still on its way. Becoming valid is reported instantly, with no
+// pause at all, because there is never a reason to make someone wait to be
+// told they got it right.
+const VALIDATE_IDLE_MS = 550;
+function wireCheck(inputId, check) {
+  const input = $(inputId);
+  if (!input) return;
+  let timer = null;
+  input.addEventListener("blur", () => { clearTimeout(timer); input.dataset.touched = "1"; check(false); });
+  input.addEventListener("input", () => {
+    // valid now? say so immediately and cancel any pending complaint
+    if (check(false)) { clearTimeout(timer); return; }
+    // still wrong — complain once they pause, but never about an empty box
+    // they are only part-way through clearing
+    clearTimeout(timer);
+    if (!input.value.trim()) return;
+    timer = setTimeout(() => { input.dataset.touched = "1"; check(false); }, VALIDATE_IDLE_MS);
+  });
+}
+// marks + focuses + shakes the first failing field, so submit lands you on it
+function failFirst(checks) {
+  const results = checks.map((c) => c.fn(true));
+  const i = results.indexOf(false);
+  if (i === -1) return true;
+  const input = $(checks[i].id);
+  input.dataset.touched = "1";
+  input.focus();
+  const shake = input.closest(".phone") || input;
+  shake.classList.remove("shake"); void shake.offsetWidth; shake.classList.add("shake");
+  return false;
+}
+
+const checkCafeCode  = makeCheck("cafeCode", "cafeCodeErr", (v) => v.trim() ? "" : t("AUTH_ERR_CODE_REQUIRED"));
+const checkOwnerPhone= makeCheck("ownerPhone", "ownerPhoneErr", (v) => validPhone(v) ? "" : t("AUTH_ERR_PHONE_INVALID"));
+const checkOwnerPass = makeCheck("ownerPass", "ownerErr", (v) => v ? "" : t("AUTH_ERR_PASSWORD_REQUIRED"));
+const checkCCafe     = makeCheck("cCafe", "cCafeErr", (v) => v.trim() ? "" : t("AUTH_ERR_BUSINESS_NAME_REQUIRED"));
+const checkCName     = makeCheck("cName", "cNameErr", (v) => v.trim() ? "" : t("AUTH_ERR_OWNER_NAME_REQUIRED"));
+const checkCPhone    = makeCheck("cPhone", "cPhoneErr", (v) => validPhone(v) ? "" : t("AUTH_ERR_PHONE_INVALID"));
+const checkCEmail    = makeCheck("cEmail", "cEmailErr", (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? "" : t("AUTH_ERR_EMAIL_INVALID"));
+const checkCPass     = makeCheck("cPass", "cPassErr", (v) => v.length >= 6 ? "" : t("AUTH_ERR_PASSWORD_SHORT"));
+const checkCPassConfirm = makeCheck("cPassConfirm", "cPassConfirmErr", (v) => v === $("cPass").value ? "" : t("AUTH_ERR_PASSWORD_MISMATCH"));
+
+[["cafeCode", checkCafeCode], ["ownerPhone", checkOwnerPhone], ["ownerPass", checkOwnerPass],
+ ["cCafe", checkCCafe], ["cName", checkCName], ["cPhone", checkCPhone], ["cEmail", checkCEmail],
+ ["cPass", checkCPass], ["cPassConfirm", checkCPassConfirm]].forEach(([id, fn]) => wireCheck(id, fn));
+// editing the first password re-judges the confirm box, so the mismatch
+// clears the moment they match rather than only when confirm is edited
+$("cPass").addEventListener("input", () => { if ($("cPassConfirm").dataset.touched === "1") checkCPassConfirm(false); });
+
 // ---- Staff sign in with the shared code (no phone/registration) ----
 async function cafeLogin() {
   const input = $("cafeCode");
   const code = input.value.trim();
-  if (!code) { input.focus(); return; }
+  if (!failFirst([{ id: "cafeCode", fn: checkCafeCode }])) return;
   $("cafeEnterBtn").disabled = true;
   $("cafeCodeErr").hidden = true;
   try {
@@ -125,10 +214,12 @@ $("cafeCode").addEventListener("keydown", (e) => { if (e.key === "Enter") cafeLo
 let ownerCreds = null;
 
 async function ownerLogin() {
-  if (!validPhone($("ownerPhone").value)) {
-    flashToast(t("AUTH_TOAST_INVALID_NUMBER_TITLE"), t("AUTH_TOAST_INVALID_NUMBER_MSG"), document.querySelector("#stepOwner .phone"));
-    return;
-  }
+  // was a floating toast for the phone and no check at all on the password —
+  // both now mark their own field, like every other form on this page
+  if (!failFirst([
+    { id: "ownerPhone", fn: checkOwnerPhone },
+    { id: "ownerPass", fn: checkOwnerPass },
+  ])) return;
   ownerCreds = { phone: normalizePhone($("ownerPhone").value), password: $("ownerPass").value };
   requestOwnerOtp();
 }
@@ -534,11 +625,17 @@ async function requestCreateOtp() {
   const passwordConfirm = $("cPassConfirm").value;
   const err = (msg) => { $("createErr").textContent = msg; $("createErr").hidden = false; };
   $("createErr").hidden = true;
-  if (!cafe_name) { $("cCafe").focus(); return err(t("AUTH_ERR_BUSINESS_NAME_REQUIRED")); }
-  if (!validPhone($("cPhone").value)) { $("cPhone").focus(); return err(t("AUTH_ERR_PHONE_INVALID")); }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("cEmail").focus(); return err(t("AUTH_ERR_EMAIL_INVALID")); }
-  if (password.length < 6) { $("cPass").focus(); return err(t("AUTH_ERR_PASSWORD_SHORT")); }
-  if (password !== passwordConfirm) { $("cPassConfirm").focus(); return err(t("AUTH_ERR_PASSWORD_MISMATCH")); }
+  // every field is judged, so a form with three problems shows three — and
+  // each message sits on its own field instead of all of them sharing one
+  // paragraph at the bottom of the form
+  if (!failFirst([
+    { id: "cCafe", fn: checkCCafe },
+    { id: "cName", fn: checkCName },
+    { id: "cPhone", fn: checkCPhone },
+    { id: "cEmail", fn: checkCEmail },
+    { id: "cPass", fn: checkCPass },
+    { id: "cPassConfirm", fn: checkCPassConfirm },
+  ])) return;
 
   const phone = normalizePhone($("cPhone").value);
   $("createBtn").disabled = true;
