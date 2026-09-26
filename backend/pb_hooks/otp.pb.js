@@ -28,6 +28,15 @@
 // re-reports the code already in flight instead of sending a second one.
 // Impatient double-taps and page reloads cost nothing.
 //
+// Three caps, not one, because they stop different things. The per-number cap
+// stops one phone being spammed. The per-IP cap below stops one script walking
+// the numbering plan — five messages each across thousands of numbers is what
+// actually empties a paid provider's balance, and the per-number cap is blind
+// to it. The daily total in sms.js is the backstop for when the attacker
+// rotates addresses. This is the only send path open to an arbitrary number:
+// /owner/login and /owner/forgot-password both require an existing account
+// (and a password, for login) before anything is sent.
+//
 // The cap lives in sms_budgets, NOT on the otp_codes row: the code row is
 // deleted on every mint, on success and on lockout, and a counter kept there
 // would be wiped with it. See 1700000021_sms_budgets.js.
@@ -36,7 +45,7 @@
 //                               there is no provider AND OTP_DEV_MODE=1
 //   400 invalid phone
 //   404 { error, notRegistered:true }   mode:"signin" for an unknown number
-//   429 { error, retry_after }   send cap reached for this number
+//   429 { error, retry_after }   send cap reached (this number, or this IP)
 //   502 SMS provider refused
 //   503 nothing can deliver a code (no KAVENEGAR_API_KEY, no OTP_DEV_MODE)
 routerAdd("POST", "/otp/request", (e) => {
@@ -44,6 +53,20 @@ routerAdd("POST", "/otp/request", (e) => {
   const RESEND_COOLDOWN_MS = 60 * 1000;
   const MAX_SENDS = 5;
   const SEND_WINDOW_MS = 15 * 60 * 1000;
+  // The per-IP cap. MAX_SENDS stops one number being spammed; this stops one
+  // script walking the whole numbering plan five messages at a time, which the
+  // per-phone cap does nothing about and which is what actually drains a paid
+  // provider's balance. Tunable without a redeploy, like the daily ceiling in
+  // sms.js, because the right value depends on how many customers share a café
+  // wifi NAT — too low and a busy shop locks itself out.
+  const MAX_IP_SENDS = (() => {
+    const n = parseInt($os.getenv("OTP_MAX_SENDS_PER_IP") || "", 10);
+    return isNaN(n) || n < 1 ? 15 : n;
+  })();
+  const IP_WINDOW_MS = 60 * 60 * 1000;
+  // NB: must stay >= the longest window above, or the prune below hands a live
+  // bucket a free reset. At exactly IP_WINDOW_MS a pruned row was going to roll
+  // over on its next read anyway, so the two being equal is correct, not lucky.
   const PRUNE_AFTER_MS = 60 * 60 * 1000;
 
   const now = Date.now();
@@ -66,10 +89,13 @@ routerAdd("POST", "/otp/request", (e) => {
     if (!exists) return e.json(404, { error: "This number isn't registered yet", notRegistered: true });
   }
 
-  // opportunistic prune — budgets whose window is an hour past are dead
+  // opportunistic prune — budgets whose window is an hour past are dead.
+  // purpose != 'otp_global' is load-bearing, not tidiness: that row is the
+  // DAILY ceiling from sms.js, and a 24-hour counter deleted every hour is not
+  // a ceiling at all — it would reset to zero all day and cap nothing.
   if (Math.random() < 0.05) {
     try {
-      const stale = $app.findRecordsByFilter("sms_budgets", "window_start < {:cut}", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
+      const stale = $app.findRecordsByFilter("sms_budgets", "window_start < {:cut} && purpose != 'otp_global'", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
       for (const r of stale) $app.delete(r);
     } catch (err) {}
   }
@@ -98,6 +124,38 @@ routerAdd("POST", "/otp/request", (e) => {
     try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
     return e.json(429, {
       error: "Too many codes requested for this number. Please wait a few minutes and try again.",
+      retry_after: Math.ceil(left / 1000),
+    });
+  }
+
+  // ---- and the same cap again, keyed on the caller instead of the number ----
+  //
+  // !! e.realIP() only reports the true client address if Settings >
+  // trustedProxy is configured (headers: ["X-Forwarded-For"]). Unconfigured,
+  // behind Liara's edge, it falls back to remoteIP() — the proxy's address, the
+  // same value for every visitor — and this cap becomes a single shared bucket
+  // that locks out all customers at once. trustedproxy.pb.js warns at boot.
+  // Same caveat staff.pb.js carries for its login lockout.
+  let ip = "";
+  try { ip = String(e.realIP() || ""); } catch (err) { ip = ""; }
+  if (!ip) { try { ip = String(e.remoteIP() || ""); } catch (err) { ip = ""; } }
+  // no address at all → one shared bucket rather than no cap. The prefix is why
+  // "*" and the 10-digit phone keys can never collide with an IP key.
+  const ipKey = "ip:" + (ip || "unknown");
+
+  let ipBud = null;
+  try { ipBud = $app.findFirstRecordByFilter("sms_budgets", "phone = {:k} && purpose = 'otp_ip'", { k: ipKey }); } catch (err) { ipBud = null; }
+  let ipSends = ipBud ? ipBud.getInt("sends") : 0;
+  let ipWinStart = ipBud ? msOf(ipBud.get("window_start")) : 0;
+  if (!ipWinStart || now - ipWinStart > IP_WINDOW_MS) { ipSends = 0; ipWinStart = now; } // window rolled over
+  if (ipSends >= MAX_IP_SENDS) {
+    const left = ipWinStart + IP_WINDOW_MS - now;
+    try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
+    $app.logger().warn("otp per-IP cap reached", "ip", ipKey, "sends", ipSends, "limit", MAX_IP_SENDS);
+    // deliberately the same wording as the per-number 429: which of the two
+    // caps a caller tripped is not something an attacker should get told
+    return e.json(429, {
+      error: "Too many codes requested. Please wait a few minutes and try again.",
       retry_after: Math.ceil(left / 1000),
     });
   }
@@ -133,6 +191,18 @@ routerAdd("POST", "/otp/request", (e) => {
   bud.set("window_start", dbTime(winStart));
   bud.set("last_sent", dbTime(now));
   try { $app.save(bud); } catch (err) { $app.logger().error("otp budget save failed", "error", String(err)); }
+
+  // the IP bucket is spent on the same terms, and for the same reason: an
+  // attacker who can make the provider fail must not get the attempt back
+  if (!ipBud) {
+    ipBud = new Record($app.findCollectionByNameOrId("sms_budgets"));
+    ipBud.set("phone", ipKey);
+    ipBud.set("purpose", "otp_ip");
+  }
+  ipBud.set("sends", ipSends + 1);
+  ipBud.set("window_start", dbTime(ipWinStart));
+  ipBud.set("last_sent", dbTime(now));
+  try { $app.save(ipBud); } catch (err) { $app.logger().error("otp ip budget save failed", "error", String(err)); }
 
   // nothing was delivered → tear the code row down, so a failed send can never
   // leave a live code sitting there that only an attacker (or nobody) can use

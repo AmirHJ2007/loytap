@@ -339,7 +339,9 @@ routerAdd("POST", "/owner/login", (e) => {
       for (const r of stale) $app.delete(r);
     } catch (err) {}
     try {
-      const spent = $app.findRecordsByFilter("sms_budgets", "window_start < {:cut}", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
+      // purpose != 'otp_global' for the reason otp.pb.js spells out: that row is
+      // sms.js's DAILY cost ceiling, and an hourly prune would reset it all day.
+      const spent = $app.findRecordsByFilter("sms_budgets", "window_start < {:cut} && purpose != 'otp_global'", "", 200, 0, { cut: dbTime(now - PRUNE_AFTER_MS) });
       for (const r of spent) $app.delete(r);
     } catch (err) {}
   }

@@ -15,7 +15,11 @@ onBootstrap((e) => {
   try {
     if ($os.getenv("OTP_DEV_MODE") !== "1") return;
 
-    const hasProvider = !!$os.getenv("KAVENEGAR_API_KEY");
+    // both providers, or this alarm goes quiet on the one actually in use —
+    // it checked only Kavenegar while sms.js prefers Faraz
+    const hasProvider =
+      !!(($os.getenv("FARAZSMS_API_KEY") && $os.getenv("FARAZSMS_PATTERN_CODE"))) ||
+      !!$os.getenv("KAVENEGAR_API_KEY");
 
     // dev mode AND a real SMS provider means this is almost certainly a real
     // deployment with the flag left on by mistake — the codes are live
