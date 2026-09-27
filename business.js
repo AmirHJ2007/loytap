@@ -56,6 +56,67 @@ function wrongCodeMsg(data) {
   return tErr(data, "AUTH_ERR_CODE_INVALID");
 }
 
+
+// ---- how long a code is still good for, shared by all three code steps -----
+//
+// Mirrors auth.js: the server gives every code three minutes (TTL_MS in
+// otp.pb.js / owner.pb.js), and until now nothing on the page said so. The only
+// clock shown was the 60-second resend cooldown, so an expired code was
+// indistinguishable from a live one until you typed it and were told it was
+// wrong — which reads as the app rejecting a correct code.
+const CODE_TTL_S = 180;
+const lifeTimers = {};
+
+function startLife(key) {
+  stopLife(key);
+  const life = $(key + "OtpLife"), box = $(key + "Otp"), err = $(key + "OtpErr");
+  if (!life || !box) return;
+  let left = CODE_TTL_S;
+  const render = () => {
+    const mm = Math.floor(left / 60), ss = left % 60;
+    life.textContent = t("AUTH_OTP_EXPIRES_IN", { s: mm + ":" + String(ss).padStart(2, "0") });
+    life.classList.toggle("low", left <= 30);
+  };
+  box.classList.remove("is-expired", "is-bad");
+  if (err) err.classList.remove("is-expired");
+  life.hidden = false;
+  render();
+  lifeTimers[key] = setInterval(() => {
+    left -= 1;
+    if (left <= 0) { stopLife(key); expireCode(key); return; }
+    render();
+  }, 1000);
+}
+
+function stopLife(key) {
+  if (lifeTimers[key]) clearInterval(lifeTimers[key]);
+  lifeTimers[key] = null;
+  const life = $(key + "OtpLife"); if (life) life.hidden = true;
+}
+
+function expireCode(key) {
+  const box = $(key + "Otp"), err = $(key + "OtpErr"), res = $(key + "Resend");
+  if (box) { box.classList.add("is-expired"); box.classList.remove("is-bad"); }
+  const fill = { owner: fillOwnerOtp, forgot: fillForgotOtp, create: fillCreateOtp }[key];
+  if (fill) fill("");
+  if (err) { err.textContent = t("AUTH_OTP_EXPIRED"); err.classList.add("is-expired"); err.hidden = false; }
+  if (res) {
+    res.classList.add("ready", "urgent");
+    res.textContent = t("AUTH_RESEND_NOW");
+    // the cooldown is 60s and the code lives 180s, so a resend is always
+    // available by the time this fires
+    res.onclick = { owner: requestOwnerOtp, forgot: requestForgotCode, create: requestCreateOtp }[key] || null;
+  }
+}
+
+// a rejected code should be felt, not just read
+function rejectOtp(key) {
+  const box = $(key + "Otp");
+  if (!box) return;
+  box.classList.add("is-bad");
+  box.classList.remove("reject"); void box.offsetWidth; box.classList.add("reject");
+}
+
 // ---------------- account type: Staff / Owner ----------------
 function showBizStep(mode) {
   const staff = mode === "staff";
@@ -254,6 +315,8 @@ async function requestOwnerOtp() {
     $("stepOwner").hidden = true;
     $("stepOwnerOtp").hidden = false;
     startOwnerResend();
+    startLife("owner");
+    $("ownerResend").classList.remove("urgent");
     ownerOtpInputs[0].focus();
   } catch (err) {
     errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
@@ -289,6 +352,7 @@ ownerOtpInputs.forEach((inp, i) => {
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < ownerOtpInputs.length - 1) ownerOtpInputs[i + 1].focus();
     $("ownerOtpErr").hidden = true;
+    $("ownerOtp").classList.remove("is-bad");
   });
   inp.addEventListener("keydown", (e) => {
     if (e.key === "Backspace" && !inp.value && i > 0) ownerOtpInputs[i - 1].focus();
@@ -333,6 +397,7 @@ function burnOwnerOtp(data) {
   if (data.regenerated) {
     fillOwnerOtp("");                        // the old code no longer works — wipe the boxes
     stopOwnerResend(); startOwnerResend();   // a new code just went out, so the cooldown restarts
+    startLife("owner");
     $("ownerOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
     $("ownerOtpErr").hidden = false;
     flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("ownerOtp"));
@@ -367,11 +432,14 @@ async function verifyOwnerLogin() {
     if (!res.ok) {
       // 429 = too many wrong codes, the old one is burnt (see burnOwnerOtp)
       if (res.status === 429) { burnOwnerOtp(data); return; }
+      $("ownerOtpErr").classList.remove("is-expired");
       $("ownerOtpErr").textContent = wrongCodeMsg(data);
       $("ownerOtpErr").hidden = false;
+      rejectOtp("owner");
       return;
     }
     stopOwnerResend();
+    stopLife("owner");
     try {
       localStorage.setItem("loytap_token", data.token || "");
       localStorage.setItem("loytap_role", data.role || "admin");
@@ -443,6 +511,8 @@ async function requestForgotCode() {
     $("stepForgotPhone").hidden = true;
     $("stepForgotOtp").hidden = false;
     startForgotResend();
+    startLife("forgot");
+    $("forgotResend").classList.remove("urgent");
     forgotOtpInputs[0].focus();
   } catch (err) {
     errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
@@ -482,6 +552,7 @@ forgotOtpInputs.forEach((inp, i) => {
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < forgotOtpInputs.length - 1) forgotOtpInputs[i + 1].focus();
     $("forgotOtpErr").hidden = true;
+    $("forgotOtp").classList.remove("is-bad");
   });
   inp.addEventListener("keydown", (e) => {
     if (e.key === "Backspace" && !inp.value && i > 0) forgotOtpInputs[i - 1].focus();
@@ -548,6 +619,7 @@ function burnForgotPassword(data) {
   if (data.regenerated) {
     fillForgotOtp("");
     stopForgotResend(); startForgotResend();
+    startLife("forgot");
     $("stepForgotNew").hidden = true;
     $("stepForgotOtp").hidden = false;
     $("forgotOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
@@ -587,10 +659,13 @@ async function submitNewPassword() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 429) { burnForgotPassword(data); return; }
+      $("forgotOtpErr").classList.remove("is-expired");
       err(wrongCodeMsg(data));
+      rejectOtp("forgot");
       return;
     }
     // done — back to the ordinary sign-in step, exactly the flow this was built for
+    stopLife("forgot");
     $("stepForgotNew").hidden = true;
     $("stepOwner").hidden = false;
     $("ownerPhone").value = $("forgotPhone").value;
@@ -682,6 +757,8 @@ async function requestCreateOtp() {
     $("stepCreate").hidden = true;
     $("stepCreateOtp").hidden = false;
     startCreateResend();
+    startLife("create");
+    $("createResend").classList.remove("urgent");
     createOtpInputs[0].focus();
   } catch (e) {
     err(t("AUTH_ERR_SERVER_UNREACHABLE"));
@@ -715,6 +792,7 @@ createOtpInputs.forEach((inp, i) => {
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < createOtpInputs.length - 1) createOtpInputs[i + 1].focus();
     $("createOtpErr").hidden = true;
+    $("createOtp").classList.remove("is-bad");
   });
   inp.addEventListener("keydown", (e) => {
     if (e.key === "Backspace" && !inp.value && i > 0) createOtpInputs[i - 1].focus();
@@ -758,6 +836,7 @@ function burnCreateOtp(data) {
   if (data.regenerated) {
     fillCreateOtp("");                         // the old code no longer works — wipe the boxes
     stopCreateResend(); startCreateResend();   // a new code just went out, so the cooldown restarts
+    startLife("create");
     $("createOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
     $("createOtpErr").hidden = false;
     flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("createOtp"));
@@ -798,11 +877,14 @@ async function createCafe() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 429) { burnCreateOtp(data); return; }
+      $("createOtpErr").classList.remove("is-expired");
       $("createOtpErr").textContent = res.status === 401 ? wrongCodeMsg(data) : tErr(data, "AUTH_ERR_CREATE_FAILED");
       $("createOtpErr").hidden = false;
+      rejectOtp("create");
       return;
     }
     stopCreateResend();
+    stopLife("create");
     try {
       localStorage.setItem("loytap_token", data.token || "");
       localStorage.setItem("loytap_role", data.role || "admin");

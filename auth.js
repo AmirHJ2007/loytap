@@ -203,7 +203,9 @@ async function requestCode() {
     }
     $("otpPhone").textContent = prettyPhone($("phone").value);
     go("otp");
+    $("resend").classList.remove("urgent");
     startResend();
+    startLife();
     otpInputs[0].focus();
   } catch (err) {
     errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE_BACKEND");
@@ -264,6 +266,7 @@ otpInputs.forEach((inp, i) => {
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < otpInputs.length - 1) otpInputs[i + 1].focus();
     $("otpErr").hidden = true;
+    $("otp").classList.remove("is-bad");
   });
   inp.addEventListener("keydown", (e) => {
     if (e.key === "Backspace" && !inp.value && i > 0) otpInputs[i - 1].focus();
@@ -276,7 +279,7 @@ otpInputs.forEach((inp, i) => {
   });
 });
 
-$("backBtn").addEventListener("click", () => { stopResend(); go("phone"); });
+$("backBtn").addEventListener("click", () => { stopResend(); stopLife(); go("phone"); });
 
 $("verifyBtn").addEventListener("click", async () => {
   const code = otpInputs.map((i) => i.value).join("");
@@ -292,9 +295,13 @@ $("verifyBtn").addEventListener("click", async () => {
     if (!res.ok) {
       // 429 = too many wrong codes, the old one is burnt (see burnOtp)
       if (res.status === 429) { burnOtp(data); return; }
-      $("otpErr").textContent = wrongCodeMsg(data); $("otpErr").hidden = false; return;
+      $("otpErr").classList.remove("is-expired");
+      $("otpErr").textContent = wrongCodeMsg(data); $("otpErr").hidden = false;
+      rejectOtp();
+      return;
     }
     stopResend();
+    stopLife();
     signedUser = data.user || null;
     try {
       localStorage.setItem("loytap_token", data.token || "");
@@ -328,6 +335,8 @@ function burnOtp(data) {
   if (data.regenerated) {
     fillOtp("");                 // the old code no longer works — wipe the boxes
     stopResend(); startResend(); // a new code just went out, so the cooldown restarts
+    startLife();                 // ...and it gets its own fresh three minutes
+    $("resend").classList.remove("urgent");
     $("otpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
     $("otpErr").hidden = false;
     flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("otp"));
@@ -365,6 +374,63 @@ function startResend() {
   }, 1000);
 }
 function stopResend() { if (resendTimer) clearInterval(resendTimer); resendTimer = null; $("resend").onclick = null; }
+
+// ---- how long the code in the user's hand is still good for ----------------
+//
+// The server gives a code three minutes (TTL_MS in otp.pb.js). Nothing on the
+// page used to say so. The only timer shown was the 60-second resend cooldown,
+// so a code that had quietly died looked exactly like one that still worked,
+// and the only way to find out was to type it and be told it was wrong — which
+// reads as "the app rejected my correct code", not "it expired".
+const CODE_TTL_S = 180;
+let lifeTimer = null;
+
+function startLife() {
+  stopLife();
+  let left = CODE_TTL_S;
+  const life = $("otpLife");
+  const render = () => {
+    const mm = Math.floor(left / 60), ss = left % 60;
+    life.textContent = t("AUTH_OTP_EXPIRES_IN", { s: mm + ":" + String(ss).padStart(2, "0") });
+    life.classList.toggle("low", left <= 30); // turns red for the last half-minute
+  };
+  $("otp").classList.remove("is-expired", "is-bad");
+  $("otpErr").classList.remove("is-expired");
+  life.hidden = false;
+  render();
+  lifeTimer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) { stopLife(); expireCode(); return; }
+    render();
+  }, 1000);
+}
+function stopLife() { if (lifeTimer) clearInterval(lifeTimer); lifeTimer = null; $("otpLife").hidden = true; }
+
+// Past its window: stop inviting typing, say plainly what happened, and promote
+// the one action that helps. The resend cooldown is 60s and the code lives 180s,
+// so by definition a new one can be requested the moment this fires.
+function expireCode() {
+  $("otp").classList.add("is-expired");
+  $("otp").classList.remove("is-bad");
+  fillOtp("");
+  $("otpErr").textContent = t("AUTH_OTP_EXPIRED");
+  $("otpErr").classList.add("is-expired");
+  $("otpErr").hidden = false;
+  stopResend();
+  const r = $("resend");
+  r.classList.add("ready", "urgent");
+  r.textContent = t("AUTH_RESEND_NOW");
+  r.onclick = () => { requestCode(); };
+}
+
+// A rejected code should be felt, not just read: the row jerks and goes red.
+// Re-adding the class after a reflow restarts the animation on a second wrong
+// try, which otherwise would not replay.
+function rejectOtp() {
+  const box = $("otp");
+  box.classList.add("is-bad");
+  box.classList.remove("reject"); void box.offsetWidth; box.classList.add("reject");
+}
 
 // ---------------- done ----------------
 function finish() {

@@ -9,6 +9,13 @@
   --terra-deep: #171717;
   --ok: #171717;
   --bad: #171717;
+  /* A true red, for things that went wrong. --bad above is charcoal:
+     fine as a border, but it makes an error message read as ordinary
+     body text, and a rejected code has to announce itself. The value
+     is the one .field.is-bad already tinted its backgrounds with. */
+  --danger: #c0503f;
+  --danger-soft: rgba(192, 80, 63, 0.12);
+  --danger-ring: rgba(192, 80, 63, 0.22);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
   /* glass tokens (match the wallet's monochrome glass) */
   --glass-fill: rgba(255, 255, 255, 0.34);
@@ -186,7 +193,7 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 /* The error paragraph used to just un-hide. It now slides down as it appears,
    so a message arriving while you look elsewhere on the form still catches the
    eye, and the field it belongs to turns red at the same moment. */
-.field__err { margin: 6px 2px 0; font-size: 12px; color: var(--bad); font-weight: 700; animation: errIn 0.28s var(--ease-spring) both; }
+.field__err { margin: 6px 2px 0; font-size: 12.5px; color: var(--danger); font-weight: 700; animation: errIn 0.28s var(--ease-spring) both; }
 @keyframes errIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* .is-bad sits on the .field so it can reach the input AND the phone wrapper,
@@ -207,15 +214,31 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 #otpPhone, #ownerOtpPhone, #createOtpPhone { direction: ltr; unicode-bidi: isolate; }
 
 /* otp */
-.otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 8px 0 4px; direction: ltr; }
+.otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0 4px; direction: ltr; }
 .otp input {
-  width: 100%; aspect-ratio: 1; text-align: center; font-family: var(--font-heading); font-weight: 700; font-size: 24px; color: var(--ink);
+  /* Taller than wide, and sized from the box rather than the font. A square box
+     at this font size leaves ~34px of inner height for a 24px heading face whose
+     ascenders and descenders need more than that, so the digits were clipping.
+     padding:0 + line-height:1 hand the glyph the whole box; the browser default
+     padding on an <input> was quietly eating 2px of it. min-width:0 stops a grid
+     item refusing to shrink below its content on a narrow phone. */
+  width: 100%; min-width: 0; aspect-ratio: 4 / 5; min-height: 54px;
+  padding: 0; line-height: 1; box-sizing: border-box;
+  text-align: center; font-family: var(--font-heading); font-weight: 700; font-size: 26px; color: var(--ink);
   background: rgba(255,255,255,0.42); backdrop-filter: blur(6px);
-  border: 1.5px solid rgba(255,255,255,0.55); border-radius: 12px; outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--ease-spring);
+  border: 1.5px solid rgba(255,255,255,0.55); border-radius: 13px; outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--ease-spring), box-shadow 0.2s ease;
 }
-.otp input:focus { border-color: #171717; transform: scale(1.05); }
+.otp input:focus { border-color: #171717; transform: scale(1.06); box-shadow: 0 6px 18px -8px rgba(20,20,20,0.5); }
 .otp input.filled { border-color: #171717; background: rgba(255,255,255,0.75); }
+
+/* the digits a wrong code left behind, still on screen while the message reads */
+.otp.is-bad input { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.otp.is-bad input:focus { box-shadow: 0 0 0 3px var(--danger-ring); }
+
+/* Expired: the code is gone, so the boxes should stop inviting typing. Kept
+   readable rather than greyed into illegibility — this is a nudge, not a wall. */
+.otp.is-expired input { opacity: 0.45; border-style: dashed; }
 
 /* buttons — solid charcoal, matches the wallet's Stamp button */
 .btn {
@@ -293,9 +316,54 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { background: #171717; color: 
 .step__title { font-family: var(--font-heading); font-weight: 700; font-size: 20px; margin: 0 0 4px; }
 .step__sub { margin: 0 0 12px; font-size: 13px; color: var(--ink-dim); }
 .step__sub b { color: var(--ink); }
-.resend { text-align: center; font-size: 12px; color: var(--ink-dim); margin: 12px 0 0; }
-.resend b { color: var(--ink); }
-.resend.ready { cursor: pointer; color: var(--ink); font-weight: 700; }
+/* While counting down it stays quiet text — there is nothing to press yet.
+   The moment it becomes available it turns into an actual pill button, because
+   "I never got the code" is the single most common thing to go wrong here and
+   the way out should not look like a caption. */
+.resend {
+  display: block; width: fit-content; margin: 14px auto 0; padding: 0;
+  text-align: center; font-size: 12.5px; color: var(--ink-dim);
+  border: 1.5px solid transparent; border-radius: 999px; background: none;
+  transition: color 0.25s ease, background 0.3s ease, border-color 0.3s ease,
+              padding 0.3s var(--ease-spring), font-size 0.25s ease, box-shadow 0.3s ease;
+}
+.resend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.resend.ready {
+  cursor: pointer; font-weight: 700; font-size: 14px; color: var(--ink);
+  padding: 11px 22px; border-color: rgba(23,23,23,0.22);
+  background: rgba(255,255,255,0.55); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px -12px rgba(20,20,20,0.45);
+  animation: resendPop 0.45s var(--ease-spring) both;
+}
+/* one slow sweep to catch the eye as it arrives, then it stops — a control that
+   pulses forever becomes noise you stop seeing, and this one sits under a form */
+.resend.ready::after {
+  content: ""; position: absolute; inset: 0; border-radius: 999px; pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.85) 50%, transparent 65%);
+  background-size: 260% 100%;
+  animation: resendSweep 1.5s ease 0.35s 2 both;
+}
+.resend.ready { position: relative; overflow: hidden; isolation: isolate; }
+@media (hover: hover) and (pointer: fine) {
+  .resend.ready:hover { background: rgba(255,255,255,0.8); border-color: rgba(23,23,23,0.42); transform: translateY(-1px); }
+}
+.resend.ready:active { transform: translateY(1px) scale(0.98); }
+
+/* once the code is dead, resending is the only way forward — so say so loudly */
+.resend.urgent { color: #ffffff; background: var(--danger); border-color: var(--danger);
+  box-shadow: 0 12px 26px -12px rgba(192,80,63,0.75); animation: resendPulse 1.8s ease-in-out infinite; }
+@media (hover: hover) and (pointer: fine) {
+  .resend.urgent:hover { background: #a94435; border-color: #a94435; }
+}
+.resend.urgent::after { display: none; }
+
+@keyframes resendPop { from { opacity: 0; transform: translateY(6px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes resendSweep { from { background-position: 140% 0; } to { background-position: -60% 0; } }
+@keyframes resendPulse {
+  0%, 100% { box-shadow: 0 12px 26px -12px rgba(192,80,63,0.75), 0 0 0 0 rgba(192,80,63,0.42); }
+  55%      { box-shadow: 0 12px 26px -12px rgba(192,80,63,0.75), 0 0 0 9px rgba(192,80,63,0); }
+}
 
 .done__icon {
   width: 64px; height: 64px; border-radius: 50%; background: #171717; color: #fff; display: grid; place-items: center; margin: 6px auto 14px;
@@ -606,4 +674,80 @@ html[lang="fa"] .lang-switch__btn[data-lang="fa"] { animation: pillOn 0.3s var(-
   .field:focus-within label { transform: none; }
   .btn--primary:active::before, .link-btn:active { animation: none; }
   #fieldName:not([hidden]), .btn--swap { animation: none; }
+}
+
+
+/* ==========================================================================
+   Verification-code feedback
+   The code step is where people get stuck, so its messages are louder than an
+   ordinary field error: bigger type, real red, and an entrance you cannot miss
+   while glancing between your SMS app and this screen.
+   ========================================================================== */
+
+#otpErr, #ownerOtpErr, #forgotOtpErr, #createOtpErr {
+  margin: 12px 0 0; padding: 11px 14px;
+  font-size: 14px; font-weight: 700; line-height: 1.45; text-align: center;
+  color: var(--danger); background: var(--danger-soft);
+  border: 1.5px solid var(--danger-ring); border-radius: 12px;
+  animation: otpErrIn 0.5s var(--ease-spring) both;
+}
+@keyframes otpErrIn {
+  0%   { opacity: 0; transform: translateY(-8px) scale(0.94); }
+  55%  { opacity: 1; transform: translateY(2px)  scale(1.03); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* The expired message is a different kind of bad news: nothing was typed
+   wrongly, the clock simply ran out. Amber-neutral rather than red, so it does
+   not read as an accusation. */
+#otpErr.is-expired, #ownerOtpErr.is-expired,
+#forgotOtpErr.is-expired, #createOtpErr.is-expired {
+  color: var(--ink); background: rgba(23,23,23,0.055); border-color: rgba(23,23,23,0.16);
+}
+
+/* An expired code makes Verify pointless, and a big black button outranking the
+   red one sends the eye to the wrong place. Dim it until a new code arrives;
+   startLife() clears .is-expired, which restores this automatically. */
+.otp.is-expired ~ .btn--primary { opacity: 0.4; pointer-events: none; filter: saturate(0.4); }
+
+/* the quiet line that counts a live code down, above the boxes */
+.otp-life {
+  margin: 2px 0 0; text-align: center; font-size: 12px; color: var(--ink-faint);
+  font-variant-numeric: tabular-nums; transition: color 0.3s ease;
+}
+.otp-life.low { color: var(--danger); font-weight: 700; }
+.otp-life[hidden] { display: none; }
+
+/* A harder shake than the form fields get, plus a red flash across the row, so
+   a rejected code registers even in peripheral vision. */
+@keyframes otpReject {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-11px); }
+  30% { transform: translateX(11px); }
+  45% { transform: translateX(-7px); }
+  60% { transform: translateX(7px); }
+  78% { transform: translateX(-3px); }
+}
+.otp.reject { animation: otpReject 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+
+/* ---- the responsive rule this stylesheet never had -----------------------
+   Every size above was written at desktop width. On a 390px phone the card's
+   38px side padding left the six boxes about 39px wide, which is what was
+   clipping the digits. Give the card its space back and tighten the gap. */
+@media (max-width: 460px) {
+  .auth__card { padding: 30px 18px 26px; border-radius: 22px; }
+  .otp { gap: 6px; }
+  .otp input { font-size: 24px; min-height: 50px; border-radius: 11px; }
+  .step__title { font-size: 19px; }
+  #otpErr, #ownerOtpErr, #forgotOtpErr, #createOtpErr { font-size: 13.5px; padding: 10px 12px; }
+}
+@media (max-width: 340px) {
+  .auth__card { padding: 26px 13px 22px; }
+  .otp { gap: 5px; }
+  .otp input { font-size: 21px; min-height: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp.reject, .resend.ready, .resend.urgent { animation: none; }
+  .resend.ready::after { display: none; }
 }

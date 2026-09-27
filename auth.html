@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="auth.css?v=48" />
-  <script src="i18n.js?v=32"></script>
+  <link rel="stylesheet" href="auth.css?v=49" />
+  <script src="i18n.js?v=33"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -74,10 +74,10 @@
           <input inputmode="numeric" maxlength="1" aria-label="Digit 5" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 6" />
         </div>
+        <p class="otp-life" id="otpLife" hidden></p>
         <p class="field__err" id="otpErr" hidden data-i18n="AUTH_OTP_ERR_INCOMPLETE">Please enter all 6 digits.</p>
         <button class="btn btn--primary" id="verifyBtn" type="button" data-i18n="AUTH_BTN_VERIFY">Verify</button>
         <p class="resend" id="resend">Resend code in <b id="resendT">60</b>s</p>
-        <p class="fine demo" data-i18n="AUTH_DEV_NOTE">Dev mode: no SMS yet — the code is filled in for you.</p>
       </section>
 
       <!-- STEP 3: done -->
@@ -90,6 +90,6 @@
     </div>
   </main>
 
-  <script src="auth.js?v=30"></script>
+  <script src="auth.js?v=31"></script>
 </body>
 </html>
