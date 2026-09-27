@@ -404,7 +404,9 @@ async function handleTap(tagCode) {
     if (!r.ok) throw new Error((res && res.error) || "stamp failed");
   } catch (err) {
     busy = false;
-    if (res && res.error) toast(res.error);
+    // tErr picks the translated string for res.code and only falls back to the
+    // server's English when this build has no entry for it (see i18n.js)
+    if (res && (res.code || res.error)) toast(tErr(res, "ERR_SAVE_FAILED"));
     return;
   }
   const c = res.cafe || {};

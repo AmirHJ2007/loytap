@@ -376,6 +376,67 @@ const STRINGS = {
     DOW_THU: "Thu",
     DOW_FRI: "Fri",
     DOW_SAT: "Sat",
+
+    // ---- server error codes -------------------------------------------
+    // Keyed by the `code` the backend sends beside its English `error`
+    // text; see tErr() below. A code with no entry here falls back to
+    // that English text, so an untranslated new error degrades to the
+    // old behaviour rather than to a blank message.
+    ERR_INVALID_PHONE: "Invalid phone number.",
+    ERR_PHONE_REQUIRED: "Enter a valid mobile number.",
+    ERR_INVALID_PHONE_OR_CODE: "Invalid phone or code.",
+    ERR_EMAIL_REQUIRED: "Enter a valid email address.",
+    ERR_PASSWORD_TOO_SHORT: "Password must be at least 6 characters.",
+    ERR_CAFE_NAME_REQUIRED: "Enter your café's name.",
+    ERR_CODE_REQUIRED: "Enter the 6-digit code sent to your phone.",
+    ERR_PASSWORD_REQUIRED: "Enter your password.",
+    ERR_CODE_INVALID: "Invalid or expired code.",
+    ERR_CODE_INVALID_RETRY: "Invalid or expired code — try again.",
+    ERR_CODE_INCORRECT: "Incorrect code.",
+    ERR_CODE_BURNED_RESTART: "Too many incorrect codes. Please start again.",
+    ERR_CODE_BURNED_SIGNIN: "Too many incorrect codes. Please sign in again to get a new one.",
+    ERR_CODE_BURNED_REQUEST: "Too many incorrect codes. Please request a new one.",
+    ERR_SMS_CAP_PHONE: "Too many codes requested for this number. Please wait a few minutes and try again.",
+    ERR_SMS_CAP_IP: "Too many codes requested. Please wait a few minutes and try again.",
+    ERR_STAFF_LOCKED: "Too many incorrect codes from this device. Please wait {mins} and try again.",
+    ERR_NOT_REGISTERED: "This number isn't registered yet.",
+    ERR_NO_OWNER_ACCOUNT: "No owner account for this number.",
+    ERR_PHONE_TAKEN: "This number already has a business registered. Sign in instead.",
+    ERR_EMAIL_TAKEN: "This email is already registered. Sign in instead.",
+    ERR_WRONG_PASSWORD: "Wrong password.",
+    ERR_SMS_FAILED: "Could not send SMS.",
+    ERR_SMS_FAILED_CODE: "Could not send the code. Please try again.",
+    ERR_SIGNIN_UNAVAILABLE: "Sign-in is temporarily unavailable. Please try again later.",
+    ERR_RESET_UNAVAILABLE: "Password reset is temporarily unavailable. Please try again later.",
+    ERR_SIGNIN_START_FAILED: "Could not start sign-in. Please try again.",
+    ERR_RESET_START_FAILED: "Could not start password reset. Please try again.",
+    ERR_PASSWORD_SET_FAILED: "Could not set your new password. Please try again.",
+    ERR_STAFF_CODE_REQUIRED: "Enter the café code.",
+    ERR_STAFF_CODE_WRONG: "Wrong code.",
+    ERR_CAFE_MISSING: "Café not found.",
+    ERR_STAFF_ACCOUNT_MISSING: "Staff account not found.",
+    ERR_STAFF_ONLY: "Staff access only.",
+    ERR_OWNER_ONLY: "Owner access only.",
+    ERR_NO_CAFE: "No café configured for this owner.",
+    ERR_NO_CAFE_LINKED: "No café linked to this account.",
+    ERR_NOT_SIGNED_IN: "You're not signed in.",
+    ERR_TAP_CARD: "Tap your café's card to collect a stamp.",
+    ERR_CARD_UNKNOWN: "This card isn't recognised.",
+    ERR_STAMP_TOO_SOON: "You already collected a stamp recently. Come back soon!",
+    ERR_MISSING_REQUEST: "Missing request.",
+    ERR_REQUEST_NOT_FOUND: "Request not found.",
+    ERR_NOT_YOUR_REQUEST: "This request isn't yours.",
+    ERR_NOT_YOUR_CAFE: "This café isn't yours.",
+    ERR_ALREADY_HANDLED: "This request was already handled.",
+    ERR_REQUEST_EXPIRED: "This request expired.",
+    ERR_NO_CODE: "No code entered.",
+    ERR_NO_IMAGE: "No image was uploaded.",
+    ERR_IMAGE_TOO_LARGE: "That image is too large — 2MB maximum.",
+    ERR_IMAGE_BAD_TYPE: "Use a JPG, PNG or WebP image.",
+    ERR_SAVE_FAILED: "That didn't work — try again.",
+    WAIT_ABOUT_HOUR: "about an hour",
+    WAIT_ONE_MIN: "about 1 minute",
+    WAIT_MINS: "about {n} minutes",
   },
   fa: {
     LANG_EN: "English",
@@ -744,6 +805,67 @@ const STRINGS = {
     DOW_THU: "پ",
     DOW_FRI: "ج",
     DOW_SAT: "ش",
+
+    // ---- server error codes -------------------------------------------
+    // Keyed by the `code` the backend sends beside its English `error`
+    // text; see tErr() below. A code with no entry here falls back to
+    // that English text, so an untranslated new error degrades to the
+    // old behaviour rather than to a blank message.
+    ERR_INVALID_PHONE: "شماره موبایل نامعتبر است.",
+    ERR_PHONE_REQUIRED: "یک شماره موبایل معتبر وارد کنید.",
+    ERR_INVALID_PHONE_OR_CODE: "شماره یا کد نامعتبر است.",
+    ERR_EMAIL_REQUIRED: "یک ایمیل معتبر وارد کنید.",
+    ERR_PASSWORD_TOO_SHORT: "رمز عبور باید دست‌کم ۶ کاراکتر باشد.",
+    ERR_CAFE_NAME_REQUIRED: "نام کافه را وارد کنید.",
+    ERR_CODE_REQUIRED: "کد ۶ رقمی که به تلفنتان فرستاده شد را وارد کنید.",
+    ERR_PASSWORD_REQUIRED: "رمز عبور را وارد کنید.",
+    ERR_CODE_INVALID: "کد نامعتبر یا منقضی‌شده است.",
+    ERR_CODE_INVALID_RETRY: "کد نامعتبر یا منقضی‌شده است — دوباره تلاش کنید.",
+    ERR_CODE_INCORRECT: "کد اشتباه است.",
+    ERR_CODE_BURNED_RESTART: "تعداد کدهای نادرست زیاد شد. لطفاً از ابتدا شروع کنید.",
+    ERR_CODE_BURNED_SIGNIN: "تعداد کدهای نادرست زیاد شد. برای گرفتن کد تازه دوباره وارد شوید.",
+    ERR_CODE_BURNED_REQUEST: "تعداد کدهای نادرست زیاد شد. لطفاً کد تازه‌ای بخواهید.",
+    ERR_SMS_CAP_PHONE: "برای این شماره کدهای زیادی درخواست شده. چند دقیقه صبر کنید و دوباره تلاش کنید.",
+    ERR_SMS_CAP_IP: "کدهای زیادی درخواست شده. چند دقیقه صبر کنید و دوباره تلاش کنید.",
+    ERR_STAFF_LOCKED: "از این دستگاه کد اشتباه زیاد وارد شده. {mins} دیگر دوباره تلاش کنید.",
+    ERR_NOT_REGISTERED: "این شماره هنوز ثبت‌نام نشده است.",
+    ERR_NO_OWNER_ACCOUNT: "حساب مالکیتی برای این شماره وجود ندارد.",
+    ERR_PHONE_TAKEN: "برای این شماره قبلاً کسب‌وکاری ثبت شده است. به‌جای ثبت‌نام، وارد شوید.",
+    ERR_EMAIL_TAKEN: "این ایمیل قبلاً ثبت شده است. به‌جای ثبت‌نام، وارد شوید.",
+    ERR_WRONG_PASSWORD: "رمز عبور اشتباه است.",
+    ERR_SMS_FAILED: "ارسال پیامک ممکن نشد.",
+    ERR_SMS_FAILED_CODE: "ارسال کد ممکن نشد. لطفاً دوباره تلاش کنید.",
+    ERR_SIGNIN_UNAVAILABLE: "ورود موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.",
+    ERR_RESET_UNAVAILABLE: "بازنشانی رمز عبور موقتاً در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.",
+    ERR_SIGNIN_START_FAILED: "شروع ورود ممکن نشد. لطفاً دوباره تلاش کنید.",
+    ERR_RESET_START_FAILED: "شروع بازنشانی رمز عبور ممکن نشد. لطفاً دوباره تلاش کنید.",
+    ERR_PASSWORD_SET_FAILED: "ثبت رمز عبور تازه ممکن نشد. لطفاً دوباره تلاش کنید.",
+    ERR_STAFF_CODE_REQUIRED: "کد کافه را وارد کنید.",
+    ERR_STAFF_CODE_WRONG: "کد اشتباه است.",
+    ERR_CAFE_MISSING: "کافه پیدا نشد.",
+    ERR_STAFF_ACCOUNT_MISSING: "حساب کارکنان پیدا نشد.",
+    ERR_STAFF_ONLY: "فقط کارکنان دسترسی دارند.",
+    ERR_OWNER_ONLY: "فقط مالک دسترسی دارد.",
+    ERR_NO_CAFE: "برای این مالک کافه‌ای تنظیم نشده است.",
+    ERR_NO_CAFE_LINKED: "کافه‌ای به این حساب متصل نیست.",
+    ERR_NOT_SIGNED_IN: "وارد نشده‌اید.",
+    ERR_TAP_CARD: "برای گرفتن مهر، کارت کافه‌تان را لمس کنید.",
+    ERR_CARD_UNKNOWN: "این کارت شناسایی نشد.",
+    ERR_STAMP_TOO_SOON: "به‌تازگی مهر گرفته‌اید. کمی بعد دوباره سر بزنید!",
+    ERR_MISSING_REQUEST: "درخواست ناقص است.",
+    ERR_REQUEST_NOT_FOUND: "درخواست پیدا نشد.",
+    ERR_NOT_YOUR_REQUEST: "این درخواست متعلق به شما نیست.",
+    ERR_NOT_YOUR_CAFE: "این کافه متعلق به شما نیست.",
+    ERR_ALREADY_HANDLED: "این درخواست قبلاً رسیدگی شده است.",
+    ERR_REQUEST_EXPIRED: "این درخواست منقضی شده است.",
+    ERR_NO_CODE: "کدی وارد نشده است.",
+    ERR_NO_IMAGE: "تصویری بارگذاری نشد.",
+    ERR_IMAGE_TOO_LARGE: "حجم تصویر زیاد است — حداکثر ۲ مگابایت.",
+    ERR_IMAGE_BAD_TYPE: "از تصویر JPG، PNG یا WebP استفاده کنید.",
+    ERR_SAVE_FAILED: "انجام نشد — دوباره تلاش کنید.",
+    WAIT_ABOUT_HOUR: "حدود یک ساعت",
+    WAIT_ONE_MIN: "حدود ۱ دقیقه",
+    WAIT_MINS: "حدود {n} دقیقه",
   },
 };
 
@@ -764,6 +886,31 @@ function t(key, vars) {
   if (vars) for (const k in vars) s = s.split("{" + k + "}").join(vars[k]);
   return s;
 }
+// Turn a backend error response into a sentence in the user's language.
+//
+// The backend answers { error: "<English>", code: "<STABLE_CODE>" }. The code
+// is what gets translated; the English text is a fallback for an error minted
+// before this table knew about it, and `fallbackKey` covers a response that
+// carries neither (a network stall, or PocketBase's own error shape).
+//
+// The order matters: translation first, server text second. Before this, every
+// call site read data.error FIRST, so the server's English won over a perfectly
+// good Persian string — which is how a Persian, right-to-left UI ended up
+// showing English sentences on the screens people hit most.
+function tErr(data, fallbackKey, vars) {
+  const code = data && data.code;
+  if (code && STRINGS.en["ERR_" + code]) return t("ERR_" + code, vars);
+  return (data && data.error) || t(fallbackKey);
+}
+
+// "about 15 minutes" / «حدود ۱۵ دقیقه», built from retry_after (seconds) so a
+// lockout's wait is never shipped as pre-baked English prose.
+function tWait(seconds) {
+  const mins = Math.max(1, Math.ceil((Number(seconds) || 0) / 60));
+  if (mins >= 60) return t("WAIT_ABOUT_HOUR");
+  return t(mins === 1 ? "WAIT_ONE_MIN" : "WAIT_MINS", { n: mins });
+}
+
 function applyI18n() {
   const lang = getLang();
   document.documentElement.lang = lang;

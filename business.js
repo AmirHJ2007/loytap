@@ -53,7 +53,7 @@ function flashToast(title, msg, shakeEl) {
 function wrongCodeMsg(data) {
   const n = data.attempts_left;
   if (typeof n === "number" && n > 0) return t("AUTH_ERR_CODE_ATTEMPTS_LEFT", { n, tries: t(n === 1 ? "AUTH_TRY_ONE" : "AUTH_TRY_MANY") });
-  return data.error || t("AUTH_ERR_CODE_INVALID");
+  return tErr(data, "AUTH_ERR_CODE_INVALID");
 }
 
 // ---------------- account type: Staff / Owner ----------------
@@ -185,7 +185,7 @@ async function cafeLogin() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      $("cafeCodeErr").textContent = data.error || t("AUTH_ERR_WRONG_CODE");
+      $("cafeCodeErr").textContent = tErr(data, "AUTH_ERR_WRONG_CODE", { mins: tWait(data.retry_after) });
       $("cafeCodeErr").hidden = false;
       input.classList.remove("shake"); void input.offsetWidth; input.classList.add("shake");
       return;
@@ -245,7 +245,7 @@ async function requestOwnerOtp() {
         res.status === 429 ? t("AUTH_ERR_SEND_TOO_MANY") :
         res.status === 502 ? t("AUTH_ERR_SEND_FAILED") :
         res.status === 503 ? t("AUTH_ERR_SMS_UNAVAILABLE") :
-        (data.error || t("AUTH_ERR_LOGIN_FAILED"));
+        tErr(data, "AUTH_ERR_LOGIN_FAILED");
       errEl.hidden = false;
       if (!resending) { const p = $("ownerPass"); p.classList.remove("shake"); void p.offsetWidth; p.classList.add("shake"); }
       return;
@@ -254,7 +254,6 @@ async function requestOwnerOtp() {
     $("stepOwner").hidden = true;
     $("stepOwnerOtp").hidden = false;
     startOwnerResend();
-    if (data.devCode) fillOwnerOtp(data.devCode); // dev mode: no SMS, prefill the code
     ownerOtpInputs[0].focus();
   } catch (err) {
     errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
@@ -271,7 +270,22 @@ $("ownerOtpBack").addEventListener("click", () => { stopOwnerResend(); $("stepOw
 const ownerOtpInputs = [...$("ownerOtp").querySelectorAll("input")];
 ownerOtpInputs.forEach((inp, i) => {
   inp.addEventListener("input", () => {
-    inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+    // A one-tap SMS autofill (and some Android keyboards) drop all six digits
+    // into whichever box has focus, as a single input event. Spread them across
+    // the row from here; truncating to one character would keep the first digit
+    // and silently bin the other five, which looks like autofill "working" and
+    // then failing at verify.
+    const digits = inp.value.replace(/\D/g, "");
+    if (digits.length > 1) {
+      digits.slice(0, ownerOtpInputs.length - i).split("").forEach((d, k) => {
+        ownerOtpInputs[i + k].value = d;
+        ownerOtpInputs[i + k].classList.add("filled");
+      });
+      ownerOtpInputs[Math.min(i + digits.length, ownerOtpInputs.length - 1)].focus();
+      $("ownerOtpErr").hidden = true;
+      return;
+    }
+    inp.value = digits.slice(0, 1);
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < ownerOtpInputs.length - 1) ownerOtpInputs[i + 1].focus();
     $("ownerOtpErr").hidden = true;
@@ -319,7 +333,6 @@ function burnOwnerOtp(data) {
   if (data.regenerated) {
     fillOwnerOtp("");                        // the old code no longer works — wipe the boxes
     stopOwnerResend(); startOwnerResend();   // a new code just went out, so the cooldown restarts
-    if (data.devCode) fillOwnerOtp(data.devCode);
     $("ownerOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
     $("ownerOtpErr").hidden = false;
     flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("ownerOtp"));
@@ -422,7 +435,7 @@ async function requestForgotCode() {
         res.status === 429 ? t("AUTH_ERR_SEND_TOO_MANY") :
         res.status === 502 ? t("AUTH_ERR_SEND_FAILED") :
         res.status === 503 ? t("AUTH_ERR_SMS_UNAVAILABLE") :
-        (data.error || t("AUTH_ERR_LOGIN_FAILED"));
+        tErr(data, "AUTH_ERR_LOGIN_FAILED");
       errEl.hidden = false;
       return;
     }
@@ -430,7 +443,6 @@ async function requestForgotCode() {
     $("stepForgotPhone").hidden = true;
     $("stepForgotOtp").hidden = false;
     startForgotResend();
-    if (data.devCode) fillForgotOtp(data.devCode); // dev mode: no SMS, prefill the code
     forgotOtpInputs[0].focus();
   } catch (err) {
     errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
@@ -451,7 +463,22 @@ $("forgotOtpBack").addEventListener("click", () => {
 const forgotOtpInputs = [...$("forgotOtp").querySelectorAll("input")];
 forgotOtpInputs.forEach((inp, i) => {
   inp.addEventListener("input", () => {
-    inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+    // A one-tap SMS autofill (and some Android keyboards) drop all six digits
+    // into whichever box has focus, as a single input event. Spread them across
+    // the row from here; truncating to one character would keep the first digit
+    // and silently bin the other five, which looks like autofill "working" and
+    // then failing at verify.
+    const digits = inp.value.replace(/\D/g, "");
+    if (digits.length > 1) {
+      digits.slice(0, forgotOtpInputs.length - i).split("").forEach((d, k) => {
+        forgotOtpInputs[i + k].value = d;
+        forgotOtpInputs[i + k].classList.add("filled");
+      });
+      forgotOtpInputs[Math.min(i + digits.length, forgotOtpInputs.length - 1)].focus();
+      $("forgotOtpErr").hidden = true;
+      return;
+    }
+    inp.value = digits.slice(0, 1);
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < forgotOtpInputs.length - 1) forgotOtpInputs[i + 1].focus();
     $("forgotOtpErr").hidden = true;
@@ -521,7 +548,6 @@ function burnForgotPassword(data) {
   if (data.regenerated) {
     fillForgotOtp("");
     stopForgotResend(); startForgotResend();
-    if (data.devCode) fillForgotOtp(data.devCode);
     $("stepForgotNew").hidden = true;
     $("stepForgotOtp").hidden = false;
     $("forgotOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
@@ -623,12 +649,17 @@ async function requestCreateOtp() {
   const email = $("cEmail").value.trim();
   const password = $("cPass").value;
   const passwordConfirm = $("cPassConfirm").value;
-  const err = (msg) => { $("createErr").textContent = msg; $("createErr").hidden = false; };
-  $("createErr").hidden = true;
+  // same split as requestOwnerOtp/requestForgotCode: on a resend the form step
+  // is hidden, so #createErr would swallow the message silently
+  const resending = !$("stepCreateOtp").hidden;
+  const errBox = resending ? $("createOtpErr") : $("createErr");
+  const err = (msg) => { errBox.textContent = msg; errBox.hidden = false; };
+  errBox.hidden = true;
   // every field is judged, so a form with three problems shows three — and
   // each message sits on its own field instead of all of them sharing one
   // paragraph at the bottom of the form
-  if (!failFirst([
+  // the fields are on the hidden step during a resend and cannot have changed
+  if (!resending && !failFirst([
     { id: "cCafe", fn: checkCCafe },
     { id: "cName", fn: checkCName },
     { id: "cPhone", fn: checkCPhone },
@@ -645,12 +676,12 @@ async function requestCreateOtp() {
       body: JSON.stringify({ phone, mode: "register" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return err(data.error || t("AUTH_ERR_SEND_FAILED"));
+    // no countdown on failure: nothing was sent, so let them retry immediately
+    if (!res.ok) return err(tErr(data, "AUTH_ERR_SEND_FAILED"));
     $("createOtpPhone").textContent = prettyPhone($("cPhone").value);
     $("stepCreate").hidden = true;
     $("stepCreateOtp").hidden = false;
     startCreateResend();
-    if (data.devCode) fillCreateOtp(data.devCode); // dev mode: no SMS, prefill the code
     createOtpInputs[0].focus();
   } catch (e) {
     err(t("AUTH_ERR_SERVER_UNREACHABLE"));
@@ -665,7 +696,22 @@ $("createOtpBack").addEventListener("click", () => { stopCreateResend(); $("step
 const createOtpInputs = [...$("createOtp").querySelectorAll("input")];
 createOtpInputs.forEach((inp, i) => {
   inp.addEventListener("input", () => {
-    inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+    // A one-tap SMS autofill (and some Android keyboards) drop all six digits
+    // into whichever box has focus, as a single input event. Spread them across
+    // the row from here; truncating to one character would keep the first digit
+    // and silently bin the other five, which looks like autofill "working" and
+    // then failing at verify.
+    const digits = inp.value.replace(/\D/g, "");
+    if (digits.length > 1) {
+      digits.slice(0, createOtpInputs.length - i).split("").forEach((d, k) => {
+        createOtpInputs[i + k].value = d;
+        createOtpInputs[i + k].classList.add("filled");
+      });
+      createOtpInputs[Math.min(i + digits.length, createOtpInputs.length - 1)].focus();
+      $("createOtpErr").hidden = true;
+      return;
+    }
+    inp.value = digits.slice(0, 1);
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < createOtpInputs.length - 1) createOtpInputs[i + 1].focus();
     $("createOtpErr").hidden = true;
@@ -712,7 +758,6 @@ function burnCreateOtp(data) {
   if (data.regenerated) {
     fillCreateOtp("");                         // the old code no longer works — wipe the boxes
     stopCreateResend(); startCreateResend();   // a new code just went out, so the cooldown restarts
-    if (data.devCode) fillCreateOtp(data.devCode);
     $("createOtpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
     $("createOtpErr").hidden = false;
     flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("createOtp"));
@@ -753,7 +798,7 @@ async function createCafe() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 429) { burnCreateOtp(data); return; }
-      $("createOtpErr").textContent = res.status === 401 ? wrongCodeMsg(data) : (data.error || t("AUTH_ERR_CREATE_FAILED"));
+      $("createOtpErr").textContent = res.status === 401 ? wrongCodeMsg(data) : tErr(data, "AUTH_ERR_CREATE_FAILED");
       $("createOtpErr").hidden = false;
       return;
     }

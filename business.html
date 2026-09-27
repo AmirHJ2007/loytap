@@ -14,7 +14,7 @@
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="/fonts.css" />
   <link rel="stylesheet" href="/auth.css?v=48" />
-  <script src="/i18n.js?v=31"></script>
+  <script src="/i18n.js?v=32"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span></div>
@@ -99,7 +99,7 @@
         <p class="step__title" data-i18n="AUTH_FORGOT_OTP_TITLE">Enter the code</p>
         <p class="step__sub"><span data-i18n="AUTH_OTP_SENT_TO">We sent a 6-digit code to</span> <b id="forgotOtpPhone">+98 …</b></p>
         <div class="otp" id="forgotOtp">
-          <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+          <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
@@ -136,7 +136,7 @@
         <p class="step__title" data-i18n="AUTH_OTP_SIGNIN_TITLE">Confirm it's you</p>
         <p class="step__sub"><span data-i18n="AUTH_OTP_SIGNIN_SENT_TO">For extra security we sent a 6-digit code to</span> <b id="ownerOtpPhone">+98 …</b></p>
         <div class="otp" id="ownerOtp">
-          <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+          <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
@@ -211,7 +211,7 @@
         <p class="step__title" data-i18n="AUTH_OTP_TITLE">Enter the code</p>
         <p class="step__sub"><span data-i18n="AUTH_OTP_SENT_TO">We sent a 6-digit code to</span> <b id="createOtpPhone">+98 …</b></p>
         <div class="otp" id="createOtp">
-          <input inputmode="numeric" maxlength="1" aria-label="Digit 1" />
+          <input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 2" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 3" />
           <input inputmode="numeric" maxlength="1" aria-label="Digit 4" />
@@ -237,6 +237,6 @@
     </div>
   </main>
 
-  <script src="/business.js?v=15"></script>
+  <script src="/business.js?v=55"></script>
 </body>
 </html>

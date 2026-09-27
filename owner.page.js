@@ -237,7 +237,7 @@
         });
         const d = await r.json();
         if (r.ok) { $("fMinPurchase").value = d.min_purchase ? d.min_purchase : ""; refreshOwnPreviewMin(d.min_purchase); $("minOk").hidden = false; setTimeout(() => { $("minOk").hidden = true; }, 1800); }
-        else { $("minErr").textContent = d.error || t("OWNER_ERR_SAVE_FAILED"); $("minErr").hidden = false; }
+        else { $("minErr").textContent = tErr(d, "OWNER_ERR_SAVE_FAILED"); $("minErr").hidden = false; }
       } catch (e) { $("minErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("minErr").hidden = false; }
       finally { $("minSave").disabled = false; }
     };
@@ -422,7 +422,7 @@
           showIdentitySummary();
           $("identityOk").hidden = false;
           setTimeout(() => { $("identityOk").hidden = true; }, 1800);
-        } else { $("identityErr").textContent = d.error || t("OWNER_ERR_SAVE_FAILED"); $("identityErr").hidden = false; }
+        } else { $("identityErr").textContent = tErr(d, "OWNER_ERR_SAVE_FAILED"); $("identityErr").hidden = false; }
       } catch (e) { $("identityErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("identityErr").hidden = false; }
       finally { $("identitySave").disabled = false; }
     };
@@ -464,7 +464,7 @@
         });
         const d = await r.json();
         if (r.ok) { showLogo(d.collection_id, d.logo); logoSaved(); }
-        else logoErr(d.error || t("OWNER_ERR_SAVE_FAILED"));
+        else logoErr(tErr(d, "OWNER_ERR_SAVE_FAILED"));
       } catch (e) { logoErr(t("AUTH_ERR_SERVER_UNREACHABLE")); }
       finally { box.classList.remove("is-busy"); }
     }
@@ -616,7 +616,7 @@
         });
         const d = await r.json();
         if (r.ok) { showLogo("", ""); logoSaved(); }
-        else logoErr(d.error || t("OWNER_ERR_SAVE_FAILED"));
+        else logoErr(tErr(d, "OWNER_ERR_SAVE_FAILED"));
       } catch (e) { logoErr(t("AUTH_ERR_SERVER_UNREACHABLE")); }
       finally { box.classList.remove("is-busy"); }
     };

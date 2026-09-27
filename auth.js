@@ -1,7 +1,8 @@
 // ===================================================================
 // Reloy — customer sign in / register. Phone + OTP.
 // Talks to the PocketBase backend: POST /otp/request + POST /otp/verify.
-// In dev the backend returns the code (devCode) so it auto-fills — no SMS.
+// The code only ever arrives by SMS. In local dev (OTP_DEV_MODE=1) no SMS is
+// sent and the code is printed in the terminal running dev.sh — read it there.
 // Business (staff/owner) sign in lives on its own page: /business/signin.
 // ===================================================================
 
@@ -160,17 +161,29 @@ syncFields = function () { _syncFields(); checkName(false); };
 $("sendBtn").addEventListener("click", () => requestCode());
 
 async function requestCode() {
-  // check BOTH before returning, so a form with two problems shows two errors
-  // rather than making them fix one, press Send, and discover the next.
-  const nameOk = checkName(true);
-  const phoneOk = checkPhone(true);
-  if (!nameOk || !phoneOk) {
-    const first = !nameOk ? $("name") : $("phone");
-    first.dataset.touched = "1";
-    first.focus();
-    const shakeTarget = first === $("phone") ? $("phone").closest(".phone") : first;
-    if (shakeTarget) { shakeTarget.classList.remove("shake"); void shakeTarget.offsetWidth; shakeTarget.classList.add("shake"); }
-    return;
+  // This runs for the first send AND for Resend, and those happen on different
+  // steps. #phoneErr lives inside #stepPhone, which is hidden once we move to
+  // the code step — so a failed resend reported there is reported to nobody.
+  // Complain where the user is actually looking.
+  const resending = !steps.otp.hidden;
+  const errEl = resending ? $("otpErr") : $("phoneErr");
+
+  // The name/phone inputs are on the phone step and cannot have changed while
+  // it is hidden, so re-judging them on a resend can only shake and focus
+  // fields the user cannot see.
+  if (!resending) {
+    // check BOTH before returning, so a form with two problems shows two errors
+    // rather than making them fix one, press Send, and discover the next.
+    const nameOk = checkName(true);
+    const phoneOk = checkPhone(true);
+    if (!nameOk || !phoneOk) {
+      const first = !nameOk ? $("name") : $("phone");
+      first.dataset.touched = "1";
+      first.focus();
+      const shakeTarget = first === $("phone") ? $("phone").closest(".phone") : first;
+      if (shakeTarget) { shakeTarget.classList.remove("shake"); void shakeTarget.offsetWidth; shakeTarget.classList.add("shake"); }
+      return;
+    }
   }
 
   const phone = normalizePhone($("phone").value);
@@ -183,16 +196,18 @@ async function requestCode() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (data.notRegistered) { showNotRegistered(); return; }
-      $("phoneErr").textContent = data.error || t("AUTH_ERR_SEND_FAILED"); $("phoneErr").hidden = false; return;
+      // NB: the countdown is deliberately NOT started here — nothing was sent,
+      // so the user must be able to try again at once rather than watch 60
+      // seconds tick away for a code that never left.
+      errEl.textContent = tErr(data, "AUTH_ERR_SEND_FAILED"); errEl.hidden = false; return;
     }
     $("otpPhone").textContent = prettyPhone($("phone").value);
     go("otp");
     startResend();
-    if (data.devCode) fillOtp(data.devCode); // dev mode: no SMS, prefill the code
     otpInputs[0].focus();
   } catch (err) {
-    $("phoneErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE_BACKEND");
-    $("phoneErr").hidden = false;
+    errEl.textContent = t("AUTH_ERR_SERVER_UNREACHABLE_BACKEND");
+    errEl.hidden = false;
   } finally {
     $("sendBtn").disabled = false;
   }
@@ -230,7 +245,22 @@ function showNotRegistered() {
 const otpInputs = [...$("otp").querySelectorAll("input")];
 otpInputs.forEach((inp, i) => {
   inp.addEventListener("input", () => {
-    inp.value = inp.value.replace(/\D/g, "").slice(0, 1);
+    // A one-tap SMS autofill (and some Android keyboards) drop all six digits
+    // into whichever box has focus, as a single input event. Spread them across
+    // the row from here; truncating to one character would keep the first digit
+    // and silently bin the other five, which looks like autofill "working" and
+    // then failing at verify.
+    const digits = inp.value.replace(/\D/g, "");
+    if (digits.length > 1) {
+      digits.slice(0, otpInputs.length - i).split("").forEach((d, k) => {
+        otpInputs[i + k].value = d;
+        otpInputs[i + k].classList.add("filled");
+      });
+      otpInputs[Math.min(i + digits.length, otpInputs.length - 1)].focus();
+      $("otpErr").hidden = true;
+      return;
+    }
+    inp.value = digits.slice(0, 1);
     inp.classList.toggle("filled", !!inp.value);
     if (inp.value && i < otpInputs.length - 1) otpInputs[i + 1].focus();
     $("otpErr").hidden = true;
@@ -288,7 +318,7 @@ $("verifyBtn").addEventListener("click", async () => {
 function wrongCodeMsg(data) {
   const n = data.attempts_left;
   if (typeof n === "number" && n > 0) return t("AUTH_ERR_CODE_ATTEMPTS_LEFT", { n, tries: t(n === 1 ? "AUTH_TRY_ONE" : "AUTH_TRY_MANY") });
-  return data.error || t("AUTH_ERR_CODE_INVALID");
+  return tErr(data, "AUTH_ERR_CODE_INVALID");
 }
 
 // 5 wrong codes and the code is dead: either the server just texted a new one
@@ -298,7 +328,6 @@ function burnOtp(data) {
   if (data.regenerated) {
     fillOtp("");                 // the old code no longer works — wipe the boxes
     stopResend(); startResend(); // a new code just went out, so the cooldown restarts
-    if (data.devCode) fillOtp(data.devCode);
     $("otpErr").textContent = t("AUTH_ERR_CODE_REGENERATED");
     $("otpErr").hidden = false;
     flashToast(t("AUTH_TOAST_NEW_CODE_TITLE"), t("AUTH_TOAST_NEW_CODE_MSG"), $("otp"));
