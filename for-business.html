@@ -30,7 +30,7 @@
   <link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business" />
   <link rel="alternate" hreflang="en" href="https://reloy.ir/en/business" />
   <link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business" />
-  <link rel="stylesheet" href="/for-business.css?v=57" />
+  <link rel="stylesheet" href="/for-business.css?v=58" />
   <script src="/for-business.js?v=57" defer></script>
 </head>
 <body>
@@ -70,17 +70,6 @@
         </svg>
         <svg class="logo__word" viewBox="0 0 100 36.842" aria-hidden="true"><use href="#logoWord" /></svg>
       </a>
-      <!-- This page sells to café owners, but customers land here too: it is
-           what reloy.ir shows anyone not signed in, and it is the domain on the
-           NFC tags. They need a way out to their own card that is not the owner
-           CTA. Ghost, so it stays clearly second to "Register your café", and a
-           direct child of .nav__in rather than of .nav__mobile — that wrapper
-           becomes the burger dropdown below 860px, which is the last place a
-           customer would think to look for their own loyalty card. -->
-      <a class="btn btn--ghost nav__app" href="/signin">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="14" rx="3"/><path d="M2.5 10.5h19"/><circle cx="17.5" cy="15" r="1.3" fill="currentColor" stroke="none"/></svg>
-        <span data-i18n="FB_NAV_APP">Use Reloy</span>
-      </a>
       <div class="nav__mobile" id="navMobile">
         <nav class="nav__links" aria-label="Sections">
           <a href="#how" data-i18n="FB_NAV_HOW">How it works</a>
@@ -88,6 +77,16 @@
           <a href="#pricing" data-i18n="FB_NAV_PRICING">Pricing</a>
           <a href="#faq" data-i18n="FB_NAV_FAQ">FAQ</a>
         </nav>
+        <!-- This page sells to café owners, but customers land here too: it is
+             what reloy.ir shows anyone not signed in, and it is the domain on the
+             NFC tags. They need a way out to their own card that is not the owner
+             CTA. Ghost, so it stays clearly second to "Register your café", and
+             inside .nav__mobile so that below 860px it rides into the burger
+             panel with the rest of the toolbar instead of crowding the bar. -->
+        <a class="btn btn--ghost nav__app" href="/signin">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="14" rx="3"/><path d="M2.5 10.5h19"/><circle cx="17.5" cy="15" r="1.3" fill="currentColor" stroke="none"/></svg>
+          <span data-i18n="FB_NAV_APP">Use Reloy</span>
+        </a>
         <a class="btn btn--primary nav__cta" href="/business/signin"><span data-i18n="FB_NAV_CTA">Register your café</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
       <div class="lang-switch" id="langSwitch" role="tablist" aria-label="Language">

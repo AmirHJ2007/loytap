@@ -467,28 +467,18 @@ section { position: relative; background: var(--bg); color: var(--fg); }
   .nav__mobile .nav__links a { padding: 12px 10px; }
   .nav__mobile .nav__cta { margin-inline-start: 0; margin-top: 8px; width: 100%; justify-content: center; }
 
-  /* The burger panel is where the owner-facing links go. This one is for a
-     different audience entirely and belongs where a customer can see it
-     without first guessing that a menu holds their card. */
-  .nav__app {
-    order: 0; margin-inline-start: auto; margin-inline-end: 4px;
-    min-height: 38px; padding: 0 12px; font-size: 13px; gap: 5px;
+  /* In the dropdown it is a full-width row like the owner CTA below it, and
+     order 3 keeps it above that one — the quieter action read first, then the
+     one this page is actually selling. */
+  .nav__mobile .nav__app {
+    margin-inline-start: 0; margin-top: 10px; width: 100%; justify-content: center;
+    min-height: 46px; font-size: 15px;
   }
-  /* The label stays. An unlabelled card icon is a guess, and the whole point
-     of this control is that a customer who landed on the owners' page can SEE
-     the way to their own card. The icon is what goes first when space runs out. */
-  .nav__app svg { width: 16px; height: 16px; opacity: 1; }
+  .nav__mobile .nav__app svg { opacity: 1; }
 
   .nav__burger { display: inline-flex; }
 }
 
-/* Only on the narrowest phones, where the logo, this button, the language
-   switch and the burger genuinely cannot share a row, does the icon go and
-   the words stay. */
-@media (max-width: 420px) {
-  .nav__app { padding: 0 10px; font-size: 12.5px; gap: 0; }
-  .nav__app svg { display: none; }
-}
 
 /* ============================================================================
    HERO
