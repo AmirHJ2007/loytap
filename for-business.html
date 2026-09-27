@@ -30,8 +30,8 @@
   <link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business" />
   <link rel="alternate" hreflang="en" href="https://reloy.ir/en/business" />
   <link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business" />
-  <link rel="stylesheet" href="/for-business.css?v=77" />
-  <script src="/for-business.js?v=56" defer></script>
+  <link rel="stylesheet" href="/for-business.css?v=57" />
+  <script src="/for-business.js?v=57" defer></script>
 </head>
 <body>
 
@@ -70,6 +70,17 @@
         </svg>
         <svg class="logo__word" viewBox="0 0 100 36.842" aria-hidden="true"><use href="#logoWord" /></svg>
       </a>
+      <!-- This page sells to café owners, but customers land here too: it is
+           what reloy.ir shows anyone not signed in, and it is the domain on the
+           NFC tags. They need a way out to their own card that is not the owner
+           CTA. Ghost, so it stays clearly second to "Register your café", and a
+           direct child of .nav__in rather than of .nav__mobile — that wrapper
+           becomes the burger dropdown below 860px, which is the last place a
+           customer would think to look for their own loyalty card. -->
+      <a class="btn btn--ghost nav__app" href="/signin">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="14" rx="3"/><path d="M2.5 10.5h19"/><circle cx="17.5" cy="15" r="1.3" fill="currentColor" stroke="none"/></svg>
+        <span data-i18n="FB_NAV_APP">Use Reloy</span>
+      </a>
       <div class="nav__mobile" id="navMobile">
         <nav class="nav__links" aria-label="Sections">
           <a href="#how" data-i18n="FB_NAV_HOW">How it works</a>
@@ -105,6 +116,11 @@
             <a class="btn btn--primary btn--lg" href="/business/signin" data-magnetic><span data-i18n="FB_NAV_CTA">Get early access</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="btn__arrow"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
             <a class="btn btn--ghost btn--lg" href="#how" data-i18n="FB_HERO_SEE_HOW">See how it works</a>
           </div>
+          <p class="hero__app rv" style="--rv-delay:700ms">
+            <a href="/signin"><span data-i18n="FB_HERO_APP">Already collecting stamps? Open your card</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </p>
           <div class="hero__notes rv" style="--rv-delay:700ms">
             <p class="hero__note">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> <span data-i18n="FB_HERO_NOTE1">Simple setup, fully separate from your accounting system.</span>
@@ -671,6 +687,7 @@
           <h2 class="foot__h" data-i18n="FB_FOOT_COL2_H">Get in touch</h2>
           <ul>
             <li><a href="/business/signin" data-i18n="FB_NAV_CTA">Register your caf&eacute;</a></li>
+            <li><a href="/signin" data-i18n="FB_FOOT_APP_SIGNIN">Customer sign in</a></li>
             <li><a data-email href="#">info@reloy.ir</a></li>
             <li id="footPhone" hidden><a href="#">&mdash;</a></li>
             <li class="foot__addr" data-i18n="FB_ADDR">Karimi 5, Aghdasie 15, Mashhad, Iran</li>
@@ -681,7 +698,7 @@
           <ul>
             <li><a href="/business-terms" data-i18n="FB_FOOT_BIZ_TERMS">Business terms</a></li>
             <li><a href="/terms" data-i18n="FB_FOOT_CUST_TERMS">Customer terms & privacy</a></li>
-            <li><a href="https://app.reloy.ir/" data-i18n="FB_FOOT_APP_LINK">The customer app</a></li>
+            <li><a href="/signin" data-i18n="FB_FOOT_APP_LINK">The customer app</a></li>
           </ul>
         </div>
       </nav>

@@ -367,7 +367,24 @@ section { position: relative; background: var(--bg); color: var(--fg); }
 .nav__links a:hover { color: #fff; }
 .nav__links a:hover::after, .nav__links a[aria-current="true"]::after { transform: scaleX(1); }
 .nav__links a[aria-current="true"] { color: #fff; }
-.nav__cta { margin-inline-start: 6px; min-height: 44px; padding: 0 18px; font-size: 14.5px; order: 3; }
+/* The customer's way out of a page written for café owners. order:2 puts it
+   between the section links and the owner CTA; ghost keeps it clearly the
+   second-choice action, since this page's job is still selling to cafés.
+   The nav sits on near-black, so the inherited .btn--ghost surface is
+   overridden here rather than globally. */
+.nav__app {
+  /* order 3/4 put the two actions side by side after the language switch
+     (which is order 2), so the ghost reads as the quieter sibling of the
+     owner CTA rather than being split off from it */
+  order: 3; margin-inline-start: 6px; min-height: 44px; padding: 0 15px;
+  font-size: 14.5px; gap: 7px; white-space: nowrap;
+  color: #f4f3f0; background: rgba(244,243,240,0.07); border-color: rgba(244,243,240,0.2);
+}
+.nav__app:hover { background: rgba(244,243,240,0.14); border-color: rgba(244,243,240,0.4); color: #fff; }
+.nav__app svg { flex: none; opacity: 0.85; }
+/* below 860px the toolbar collapses into the burger panel; the customer link
+   should not be the thing hiding behind a menu, so it stays out on its own */
+.nav__cta { margin-inline-start: 6px; min-height: 44px; padding: 0 18px; font-size: 14.5px; order: 4; }
 .nav__links + .nav__cta { margin-inline-start: 6px; }
 .nav__links:not(:last-child) { margin-inline-end: 0; }
 
@@ -450,7 +467,27 @@ section { position: relative; background: var(--bg); color: var(--fg); }
   .nav__mobile .nav__links a { padding: 12px 10px; }
   .nav__mobile .nav__cta { margin-inline-start: 0; margin-top: 8px; width: 100%; justify-content: center; }
 
+  /* The burger panel is where the owner-facing links go. This one is for a
+     different audience entirely and belongs where a customer can see it
+     without first guessing that a menu holds their card. */
+  .nav__app {
+    order: 0; margin-inline-start: auto; margin-inline-end: 4px;
+    min-height: 38px; padding: 0 12px; font-size: 13px; gap: 5px;
+  }
+  /* The label stays. An unlabelled card icon is a guess, and the whole point
+     of this control is that a customer who landed on the owners' page can SEE
+     the way to their own card. The icon is what goes first when space runs out. */
+  .nav__app svg { width: 16px; height: 16px; opacity: 1; }
+
   .nav__burger { display: inline-flex; }
+}
+
+/* Only on the narrowest phones, where the logo, this button, the language
+   switch and the burger genuinely cannot share a row, does the icon go and
+   the words stay. */
+@media (max-width: 420px) {
+  .nav__app { padding: 0 10px; font-size: 12.5px; gap: 0; }
+  .nav__app svg { display: none; }
 }
 
 /* ============================================================================
@@ -2574,3 +2611,19 @@ html[dir="rtl"] .btn.is-launch .btn__arrow { animation: btnArrowLaunchRtl 0.42s 
    in for-business.js marks a region while it is out of view. Nothing visible
    changes, because by definition none of it is being looked at. */
 .is-paused, .is-paused * { animation-play-state: paused; }
+
+
+/* A quiet line under the hero buttons for the visitor who is already a Reloy
+   customer: reloy.ir shows this page to anyone not signed in, and it is the
+   domain printed on the NFC tags, so they arrive here by default. Deliberately
+   understated — it must not compete with the two CTAs above it. */
+.hero__app { margin: 14px 0 0; font-size: 14.5px; }
+.hero__app a {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--fg-dim, rgba(244,243,240,0.72)); text-decoration: none;
+  border-bottom: 1px solid transparent; padding-bottom: 1px;
+  transition: color 0.2s ease, border-color 0.2s ease, gap 0.2s ease;
+}
+.hero__app a:hover { color: #fff; border-bottom-color: rgba(244,243,240,0.5); gap: 9px; }
+.hero__app svg { flex: none; }
+@media (max-width: 860px) { .hero__app { font-size: 13.5px; } }
