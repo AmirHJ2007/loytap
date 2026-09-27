@@ -1,17 +1,25 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// LoyTap phone OTP. Set KAVENEGAR_API_KEY (+ KAVENEGAR_TEMPLATE) to send a real
-// SMS. With no key the code comes back in the response ONLY when OTP_DEV_MODE=1
-// is set explicitly; with neither, the request fails closed (503) and the code
-// row is destroyed. A missing API key must never hand an anonymous caller
-// someone else's login code. Same rules as /owner/login in owner.pb.js.
+// LoyTap phone OTP. Configure an SMS provider (FARAZSMS_API_KEY +
+// FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY) to send a real code. With no
+// provider the request fails closed (503) and the code row is destroyed,
+// unless OTP_DEV_MODE=1 is set explicitly — and even then the code is only
+// written to the server log, never returned over HTTP.
+//
+// !! A code NEVER travels in an HTTP response, in any mode. There is no env
+// var that turns that back on. A missing or broken API key must not be able to
+// hand an anonymous caller someone else's login code, and the only way to
+// guarantee that is for the response to have nowhere to put one. Reading the
+// log requires shell access to the server, which is a different and much
+// higher bar than "can make an HTTP request". Same rules as /owner/login in
+// owner.pb.js.
 //
 // Codes are stored hashed, never in plaintext: code_hash holds
 // "salt:sha256(salt:code)" with a fresh per-row salt, so a dump of otp_codes is
 // not a pile of live login codes. (owner_login_challenges has a dedicated salt
 // column; otp_codes has no such field, so the salt rides in the same column.)
 //
-//   POST /otp/request  { phone }              -> { ok:true, devCode? }
+//   POST /otp/request  { phone }              -> { ok:true }
 //   POST /otp/verify   { phone, code, name? }  -> { token, user }
 //
 // This endpoint only ever signs in/creates *customer* accounts. Business
@@ -41,13 +49,12 @@
 // deleted on every mint, on success and on lockout, and a counter kept there
 // would be wiped with it. See 1700000021_sms_budgets.js.
 //
-//   200 { ok:true, devCode? }   sent (or already in flight); devCode only when
-//                               there is no provider AND OTP_DEV_MODE=1
+//   200 { ok:true }   sent, already in flight, or logged-only in dev mode
 //   400 invalid phone
 //   404 { error, notRegistered:true }   mode:"signin" for an unknown number
 //   429 { error, retry_after }   send cap reached (this number, or this IP)
 //   502 SMS provider refused
-//   503 nothing can deliver a code (no KAVENEGAR_API_KEY, no OTP_DEV_MODE)
+//   503 nothing can deliver a code (no SMS provider, no OTP_DEV_MODE)
 routerAdd("POST", "/otp/request", (e) => {
   const TTL_MS = 3 * 60 * 1000;
   const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -80,13 +87,13 @@ routerAdd("POST", "/otp/request", (e) => {
     return d;
   };
   const phone = norm(e.requestInfo().body.phone);
-  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number", code: "INVALID_PHONE" });
 
   // Sign-in requires an existing account; register creates one on verify.
   if (e.requestInfo().body.mode === "signin") {
     let exists = null;
     try { exists = $app.findFirstRecordByFilter("users", "phone = {:phone}", { phone }); } catch (err) { exists = null; }
-    if (!exists) return e.json(404, { error: "This number isn't registered yet", notRegistered: true });
+    if (!exists) return e.json(404, { error: "This number isn't registered yet", code: "NOT_REGISTERED", notRegistered: true });
   }
 
   // opportunistic prune — budgets whose window is an hour past are dead.
@@ -109,8 +116,8 @@ routerAdd("POST", "/otp/request", (e) => {
     let live = null;
     try { live = $app.findRecordsByFilter("otp_codes", "phone = {:phone} && expires > {:now}", "-created", 1, 0, { phone, now: dbTime(now) })[0]; } catch (err) { live = null; }
     if (live) {
-      // no devCode here even in dev mode: the row only holds a hash now, so the
-      // code in flight cannot be re-read — the one already handed out still works
+      // nothing to re-send and nothing to report: the row only holds a hash,
+      // so the code in flight cannot be re-read — the one already sent still works
       $app.logger().info("OTP resend suppressed (cooldown)", "phone", phone);
       return e.json(200, { ok: true });
     }
@@ -123,7 +130,7 @@ routerAdd("POST", "/otp/request", (e) => {
     const left = winStart + SEND_WINDOW_MS - now;
     try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
     return e.json(429, {
-      error: "Too many codes requested for this number. Please wait a few minutes and try again.",
+      error: "Too many codes requested for this number. Please wait a few minutes and try again.", code: "SMS_CAP_PHONE",
       retry_after: Math.ceil(left / 1000),
     });
   }
@@ -155,7 +162,7 @@ routerAdd("POST", "/otp/request", (e) => {
     // deliberately the same wording as the per-number 429: which of the two
     // caps a caller tripped is not something an attacker should get told
     return e.json(429, {
-      error: "Too many codes requested. Please wait a few minutes and try again.",
+      error: "Too many codes requested. Please wait a few minutes and try again.", code: "SMS_CAP_IP",
       retry_after: Math.ceil(left / 1000),
     });
   }
@@ -206,29 +213,33 @@ routerAdd("POST", "/otp/request", (e) => {
 
   // nothing was delivered → tear the code row down, so a failed send can never
   // leave a live code sitting there that only an attacker (or nobody) can use
-  const abort = (status, msg, logMsg) => {
+  const abort = (status, msg, logMsg, code) => {
     try { $app.delete(rec); } catch (err) {}
     $app.logger().error(logMsg);
-    return e.json(status, { error: msg });
+    // code is the stable key the client translates by; msg stays as the
+    // English fallback for a client that has no string for this code yet
+    return e.json(status, { error: msg, code: code });
   };
 
   const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, code);
   if (sent.ok) return e.json(200, { ok: true });
   // a provider that merely failed must NOT fall through to the dev branch below
-  if (sent.configured) return abort(502, "Could not send SMS", sent.error);
+  if (sent.configured) return abort(502, "Could not send SMS", sent.error, "SMS_FAILED");
 
-  // local dev: explicit opt-in only. OTP_DEV_MODE is never set in production, so
-  // a missing API key can never turn this endpoint into "tell me any number's code".
+  // local dev: explicit opt-in only. The code goes to the server log and the
+  // caller gets the ordinary success shape, so signing in locally means reading
+  // the terminal running dev.sh. Nothing is echoed to the client.
   if ($os.getenv("OTP_DEV_MODE") === "1") {
     $app.logger().info("OTP (dev)", "phone", phone, "code", code);
-    return e.json(200, { ok: true, devCode: code });
+    return e.json(200, { ok: true });
   }
 
   // no provider and no dev opt-in: nothing can deliver this code, so it dies here
   return abort(
     503,
     "Sign-in is temporarily unavailable. Please try again later.",
-    "otp blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+    "otp blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)",
+    "SIGNIN_UNAVAILABLE"
   );
 });
 
@@ -238,8 +249,7 @@ routerAdd("POST", "/otp/request", (e) => {
 //   400 malformed phone/code
 //   401 { error }                          no live code for this number
 //   401 { error, attempts_left }           wrong code, guesses remain
-//   429 { error, regenerated:true, ttl, devCode? }   5th wrong code, new one sent
-//                                    (devCode only with no provider AND OTP_DEV_MODE=1)
+//   429 { error, regenerated:true, ttl }   5th wrong code, new one sent
 //   429 { error, regenerated:false, restart:true }   5th wrong code, none could be sent
 //
 // A 6-digit code gets 5 guesses. The 5th wrong one burns it and mints a
@@ -278,7 +288,7 @@ routerAdd("POST", "/otp/verify", (e) => {
   const name = String(body.name || "").trim();
 
   if (!/^9\d{9}$/.test(phone) || !/^\d{6}$/.test(code)) {
-    return e.json(400, { error: "Invalid phone or code" });
+    return e.json(400, { error: "Invalid phone or code", code: "INVALID_PHONE_OR_CODE" });
   }
 
   // fetch by phone, not by phone+code: a wrong guess has to find the row in
@@ -287,7 +297,7 @@ routerAdd("POST", "/otp/verify", (e) => {
   try {
     otp = $app.findRecordsByFilter("otp_codes", "phone = {:phone} && expires > {:now}", "-created", 1, 0, { phone, now: dbTime(now) })[0];
   } catch (err) { otp = null; }
-  if (!otp) return e.json(401, { error: "Invalid or expired code" });
+  if (!otp) return e.json(401, { error: "Invalid or expired code", code: "CODE_INVALID" });
 
   if (!codeMatches(otp.getString("code_hash"), code)) {
     const attempts = otp.getInt("attempts") + 1;
@@ -300,9 +310,9 @@ routerAdd("POST", "/otp/verify", (e) => {
         // an uncounted one alive to be guessed at for free
         $app.logger().error("otp attempt counter failed", "error", String(err));
         try { $app.delete(otp); } catch (err2) {}
-        return e.json(401, { error: "Invalid or expired code" });
+        return e.json(401, { error: "Invalid or expired code", code: "CODE_INVALID" });
       }
-      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+      return e.json(401, { error: "Incorrect code", code: "CODE_INCORRECT", attempts_left: MAX_ATTEMPTS - attempts });
     }
 
     // ---- 5th wrong code: burn it, try to send a fresh one in its place ----
@@ -311,7 +321,7 @@ routerAdd("POST", "/otp/verify", (e) => {
     // client starts over, exactly as it did before auto-regeneration existed
     const restart = () => {
       try { $app.delete(otp); } catch (err) {}
-      return e.json(429, { error: "Too many incorrect codes. Please start again.", regenerated: false, restart: true });
+      return e.json(429, { error: "Too many incorrect codes. Please start again.", code: "CODE_BURNED_RESTART", regenerated: false, restart: true });
     };
 
     let bud = null;
@@ -357,7 +367,7 @@ routerAdd("POST", "/otp/verify", (e) => {
     // nothing can deliver the replacement, so it dies and the client starts over
     if ($os.getenv("OTP_DEV_MODE") === "1") {
       $app.logger().info("OTP regenerated (dev)", "phone", phone, "code", fresh);
-      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+      return e.json(429, { error: msg, regenerated: true, ttl });
     }
     $app.logger().error("otp regenerate blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
     return restart();

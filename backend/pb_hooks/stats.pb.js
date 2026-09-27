@@ -9,7 +9,7 @@
 routerAdd("POST", "/owner/stats", (e) => {
   const u = e.auth;
   if (!u || u.getString("role") !== "admin") {
-    return e.json(403, { error: "Owner access only" });
+    return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
   }
 
   const pad = (n) => (n < 10 ? "0" + n : "" + n);
@@ -29,7 +29,7 @@ routerAdd("POST", "/owner/stats", (e) => {
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
   const req = card.getInt("stamps_required") || 8;
   const cafe = card.getString("cafe_name");
 

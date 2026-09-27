@@ -36,21 +36,21 @@
 
 routerAdd("POST", "/card/stamp/request", (e) => {
   const u = e.auth;
-  if (!u) return e.json(401, { error: "Not signed in" });
+  if (!u) return e.json(401, { error: "Not signed in", code: "NOT_SIGNED_IN" });
 
   const REQUEST_TTL_MS = 30000;
   const tagCode = String((e.requestInfo().body || {}).tag || "").trim();
-  if (!tagCode) return e.json(400, { error: "Tap your café's card to collect a stamp." });
+  if (!tagCode) return e.json(400, { error: "Tap your café's card to collect a stamp.", code: "TAP_CARD" });
   let tag = null;
   try { tag = $app.findFirstRecordByFilter("nfc_tags", "code = {:c}", { c: tagCode }); } catch (err) { tag = null; }
   if (!tag || !tag.getBool("active")) {
-    return e.json(400, { error: "This card isn't recognised." });
+    return e.json(400, { error: "This card isn't recognised.", code: "CARD_UNKNOWN" });
   }
 
   const cafeId = tag.getString("cafe");
   let cafe = null;
   try { cafe = $app.findRecordById("cafe_card", cafeId); } catch (err) { cafe = null; }
-  if (!cafe) return e.json(400, { error: "This card isn't recognised." });
+  if (!cafe) return e.json(400, { error: "This card isn't recognised.", code: "CARD_UNKNOWN" });
 
   const logoName = cafe.getString("logo");
   const cafeEcho = {
@@ -77,7 +77,7 @@ routerAdd("POST", "/card/stamp/request", (e) => {
       const windowMs = cooldownMin * 60000;
       if (!isNaN(lastMs) && elapsed < windowMs) {
         const retryAfter = Math.ceil((windowMs - elapsed) / 60000);
-        return e.json(429, { error: "You already collected a stamp recently. Come back soon!", retry_after: retryAfter });
+        return e.json(429, { error: "You already collected a stamp recently. Come back soon!", code: "STAMP_TOO_SOON", retry_after: retryAfter });
       }
     }
   }
@@ -148,25 +148,25 @@ routerAdd("POST", "/card/stamp/request", (e) => {
 //   POST /card/stamp/cancel  (customer auth) { request_id } -> { status: "cancelled" }
 routerAdd("POST", "/card/stamp/cancel", (e) => {
   const u = e.auth;
-  if (!u) return e.json(401, { error: "Not signed in" });
+  if (!u) return e.json(401, { error: "Not signed in", code: "NOT_SIGNED_IN" });
 
   const reqId = String((e.requestInfo().body || {}).request_id || "").trim();
-  if (!reqId) return e.json(400, { error: "Missing request" });
+  if (!reqId) return e.json(400, { error: "Missing request", code: "MISSING_REQUEST" });
 
   let response = null;
   $app.runInTransaction((txApp) => {
     let req = null;
     try { req = txApp.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
-    if (!req) { response = { code: 404, body: { status: "invalid", error: "Request not found" } }; return; }
+    if (!req) { response = { code: 404, body: { status: "invalid", error: "Request not found", code: "REQUEST_NOT_FOUND" } }; return; }
 
     // only the customer who made it — never another customer's pending request
     if (req.getString("user") !== u.id) {
-      response = { code: 403, body: { status: "invalid", error: "Not your request" } };
+      response = { code: 403, body: { status: "invalid", error: "Not your request", code: "NOT_YOUR_REQUEST" } };
       return;
     }
 
     if (req.getString("status") !== "pending") {
-      response = { code: 409, body: { status: req.getString("status"), error: "Already handled" } };
+      response = { code: 409, body: { status: req.getString("status"), error: "Already handled", code: "ALREADY_HANDLED" } };
       return;
     }
 
@@ -203,30 +203,30 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
   const u = e.auth;
   const role = u ? u.getString("role") : "";
   if (role !== "staff" && role !== "admin") {
-    return e.json(403, { error: "Staff access only" });
+    return e.json(403, { error: "Staff access only", code: "STAFF_ONLY" });
   }
 
   const REQUEST_TTL_MS = 30000;
   const body = e.requestInfo().body || {};
   const reqId = String(body.request_id || "").trim();
   const approve = !!body.approve;
-  if (!reqId) return e.json(400, { error: "Missing request" });
+  if (!reqId) return e.json(400, { error: "Missing request", code: "MISSING_REQUEST" });
 
   let response = null;
   $app.runInTransaction((txApp) => {
     let req = null;
     try { req = txApp.findRecordById("stamp_requests", reqId); } catch (err) { req = null; }
-    if (!req) { response = { code: 404, body: { status: "invalid", error: "Request not found" } }; return; }
+    if (!req) { response = { code: 404, body: { status: "invalid", error: "Request not found", code: "REQUEST_NOT_FOUND" } }; return; }
 
     // this staff/owner's own café only — never someone else's pending request
     let cafe = null;
     try {
       cafe = txApp.findFirstRecordByFilter("cafe_card", "id = {:c} && (staff_user = {:u} || owner_user = {:u})", { c: req.getString("cafe"), u: u.id });
     } catch (err) { cafe = null; }
-    if (!cafe) { response = { code: 403, body: { status: "invalid", error: "Not your café" } }; return; }
+    if (!cafe) { response = { code: 403, body: { status: "invalid", error: "Not your café", code: "NOT_YOUR_CAFE" } }; return; }
 
     if (req.getString("status") !== "pending") {
-      response = { code: 409, body: { status: req.getString("status"), error: "Already handled" } };
+      response = { code: 409, body: { status: req.getString("status"), error: "Already handled", code: "ALREADY_HANDLED" } };
       return;
     }
 
@@ -234,7 +234,7 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
     if (isNaN(createdMs) || Date.now() - createdMs > REQUEST_TTL_MS) {
       req.set("status", "expired");
       txApp.save(req);
-      response = { code: 410, body: { status: "expired", error: "This request expired" } };
+      response = { code: 410, body: { status: "expired", error: "This request expired", code: "REQUEST_EXPIRED" } };
       return;
     }
 

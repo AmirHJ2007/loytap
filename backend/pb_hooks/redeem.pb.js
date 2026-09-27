@@ -15,7 +15,7 @@ routerAdd("POST", "/redeem", (e) => {
   const u = e.auth;
   const role = u ? u.getString("role") : "";
   if (role !== "staff" && role !== "admin") {
-    return e.json(403, { status: "invalid", error: "Staff access only" });
+    return e.json(403, { status: "invalid", error: "Staff access only", code: "STAFF_ONLY" });
   }
 
   // this staff/owner account's own café — a discount can only be redeemed by
@@ -23,12 +23,12 @@ routerAdd("POST", "/redeem", (e) => {
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "staff_user = {:u} || owner_user = {:u}", { u: u.id }); }
   catch (err) { card = null; }
-  if (!card) return e.json(403, { status: "invalid", error: "No café linked to this account" });
+  if (!card) return e.json(403, { status: "invalid", error: "No café linked to this account", code: "NO_CAFE_LINKED" });
 
   // normalise: uppercase, strip any "LOYTAP:" / URL prefix the QR might carry
   let code = String(e.requestInfo().body.code || "").trim().toUpperCase();
   code = code.replace(/^LOYTAP[:/]*/, "");
-  if (!code) return e.json(400, { status: "invalid", error: "No code" });
+  if (!code) return e.json(400, { status: "invalid", error: "No code", code: "NO_CODE" });
 
   let d = null;
   try { d = $app.findFirstRecordByFilter("discounts", "code = {:code}", { code }); }

@@ -46,6 +46,9 @@ routerAdd("POST", "/staff/login", (e) => {
     try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
     return e.json(429, {
       error: "Too many incorrect codes from this device. Please wait " + wait + " and try again.",
+      // the client builds its own sentence from retry_after, so the wait never
+      // has to be translated as pre-baked English prose
+      code: "STAFF_LOCKED",
       retry_after: Math.ceil(left / 1000),
     });
   };
@@ -76,7 +79,7 @@ routerAdd("POST", "/staff/login", (e) => {
 
   // an empty box isn't a guess — never counted
   const code = String(e.requestInfo().body.code || "").trim().toUpperCase();
-  if (!code) return e.json(400, { error: "Enter the café code" });
+  if (!code) return e.json(400, { error: "Enter the café code", code: "STAFF_CODE_REQUIRED" });
 
   // codes are stored uppercase, so query the (uniquely indexed) column
   // directly — the old load-500-rows-and-linear-scan silently stopped
@@ -134,16 +137,16 @@ routerAdd("POST", "/staff/login", (e) => {
     // the failure that trips the limit says so straight away, rather than
     // leaving staff to hit "Wrong code" once more before being told to wait
     if (lockedUntil > now) return lockedOut(lockedUntil);
-    return e.json(401, { error: "Wrong code" });
+    return e.json(401, { error: "Wrong code", code: "STAFF_CODE_WRONG" });
   }
 
   let card = null;
   try { card = $app.findRecordById("cafe_card", codeRec.getString("cafe")); } catch (err) { card = null; }
-  if (!card) return e.json(500, { error: "Café missing" });
+  if (!card) return e.json(500, { error: "Café missing", code: "CAFE_MISSING" });
 
   let staff = null;
   try { staff = $app.findRecordById("users", card.getString("staff_user")); } catch (err) { staff = null; }
-  if (!staff) return e.json(500, { error: "Staff account missing" });
+  if (!staff) return e.json(500, { error: "Staff account missing", code: "STAFF_ACCOUNT_MISSING" });
 
   // good code → this IP starts clean again
   try { if (att) $app.delete(att); } catch (err) {}
@@ -171,6 +174,6 @@ routerAdd("POST", "/staff/login", (e) => {
 //   POST /staff/session/refresh  (staff auth) -> { token }
 routerAdd("POST", "/staff/session/refresh", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "staff") return e.json(403, { error: "Staff access only" });
+  if (!u || u.getString("role") !== "staff") return e.json(403, { error: "Staff access only", code: "STAFF_ONLY" });
   return e.json(200, { token: u.newStaticAuthToken(24 * 60 * 60 * 1e9) });
 }, $apis.requireAuth());

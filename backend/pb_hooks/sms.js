@@ -140,14 +140,35 @@ module.exports = {
         attributes: { code: String(code) },
         recipient: "0" + phone,
         // the codes are generated as Latin digits and the pattern caps the
-        // variable at 6 characters; Persian digits would blow that cap
+        // variable at 6 characters; Persian digits would blow that cap.
+        // The docs enumerate "en"/"fa", but the live API validated a payload
+        // carrying "english" (its 422 named only the missing line_number, and
+        // this validator reports every bad field at once), so it is accepted.
+        // Left as-is deliberately: changing a value the server has demonstrably
+        // accepted, on the word of docs that may lag it, is a risk with no gain.
         number_format: "english",
       };
-      // We own no dedicated line, and pattern sends go out over the provider's
-      // shared lines, so the line number is deliberately optional: set
-      // FARAZSMS_LINE_NUMBER only if we ever buy one (or the API starts
-      // demanding it), and the field simply disappears until then.
-      if (farazLine) payload.line_number = farazLine;
+      // line_number is REQUIRED, including for pattern sends over a shared line
+      // — the docs list it under required parameters and the live API answers
+      // 422 {"line_number":["\u062a\u06a9\u0645\u06cc\u0644 ..."]} without it. It was
+      // once optional here, on the assumption that owning no dedicated line
+      // meant having nothing to name; that was wrong. Refuse before the round
+      // trip so the log names the missing variable instead of leaving a bare
+      // 422 to be decoded.
+      //
+      // configured:true, NOT false: a provider IS set up, just incompletely.
+      // Reporting "not configured" would tell the callers nothing can deliver,
+      // which is the one state that lets OTP_DEV_MODE take over — a typo in an
+      // env var must never be able to do that.
+      if (!farazLine) {
+        return {
+          ok: false,
+          configured: true,
+          error: "FARAZSMS_LINE_NUMBER is not set — Faraz requires a line number on every " +
+                 "pattern send, including shared lines. Find it in the panel under Lines.",
+        };
+      }
+      payload.line_number = farazLine;
 
       let res = null;
       try {
@@ -166,23 +187,70 @@ module.exports = {
         return { ok: false, configured: true, error: "Faraz send failed: " + String(err) };
       }
 
+      // Pull the provider's own words out of the reply, for the verdict below
+      // and for the log either way. Without this a refusal reached the log as a
+      // bare status number, and "422" on its own does not tell you that the
+      // payload was missing line_number.
+      const reply = (() => {
+        let body = null;
+        try { body = res ? res.json : null; } catch (err) { body = null; }
+        let detail = "";
+        if (body) {
+          // the docs spell this "messages"; the live API answered "message"
+          try { detail = JSON.stringify(body.message || body.messages || body); } catch (err) { detail = ""; }
+        }
+        return { body, detail };
+      })();
+
       // a 200-shaped failure is still a failure — never assume it arrived
       if (!res || res.statusCode < 200 || res.statusCode >= 300) {
         return {
           ok: false,
           configured: true,
-          error: "Faraz send rejected, status " + String(res && res.statusCode),
+          error: "Faraz send rejected, status " + String(res && res.statusCode) +
+                 (reply.detail ? ": " + reply.detail : ""),
         };
       }
 
-      // TODO(faraz-body-check): the status check above is NOT proof of
-      // acceptance. This API can answer 200 with a failure payload in the body
-      // — out of credit, unknown pattern code, blocked recipient — and we then
-      // tell the customer their code is on its way, spend a slot in the
-      // ceiling, and leave them waiting for an SMS that was never sent. Worse,
-      // an exhausted balance looks exactly like normal operation. Parse
-      // res.body and check the provider's own status/code field here, once the
-      // response shape is confirmed against the panel's API docs.
+      // The HTTP status is NOT proof of acceptance. This API answers 2xx with an
+      // error envelope when it refuses the send — out of credit, unknown pattern
+      // code, blocked recipient — and taking that for success would tell the
+      // customer their code is on its way, spend a slot in the daily ceiling,
+      // and leave them waiting for an SMS that was never sent. An exhausted
+      // balance is the dangerous one: it would look exactly like normal
+      // operation, for as long as it took someone to notice by hand.
+      //
+      // Shapes, CAPTURED FROM THE LIVE API, not from the docs:
+      //   sent     200  { status: "success", message: "",
+      //                   data: { id, type, status: "in-queue", metadata:{...} } }
+      //   refused  422  { status: "error", message: {field:[...]}, data: null }
+      //
+      // docs.iranpayamak.com disagrees with all of that: it documents 201 (it
+      // is 200), `messages` plural and null (it is `message`, and "" on
+      // success), and `data` as a number (it is an object). Every one of those
+      // would be a wrong thing to test. `status` was the only field the docs
+      // got right, which is exactly why it is the only one this check reads —
+      // keying on statusCode === 201, or on the shape of `data`, would have
+      // treated every real send as a failure and taken sign-in down.
+      //
+      // The detail is read for the log alone, under both spellings, since the
+      // two sources disagree there too.
+      //
+      // Anything that cannot be positively read as "success" counts as a
+      // failure, including a body that will not parse. That asymmetry is
+      // deliberate: guessing wrong in this direction stops sign-in and is
+      // noticed within minutes, while guessing wrong in the other direction
+      // silently sends nobody their code and looks healthy from here — which
+      // is the exact bug this check exists to end.
+      if (!reply.body || String(reply.body.status || "").toLowerCase() !== "success") {
+        return {
+          ok: false,
+          configured: true,
+          error: "Faraz accepted the request but refused the send (HTTP " +
+                 String(res.statusCode) + "): " +
+                 (reply.detail || "unreadable response body"),
+        };
+      }
 
       spendGlobal(budget, now);
       return { ok: true };

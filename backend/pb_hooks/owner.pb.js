@@ -30,7 +30,7 @@
 //     -> { token, name, role, cafe_name, staff_code, nfc }
 //     401 { error }                                    no live code for this number
 //     401 { error, attempts_left }                     wrong code, guesses remain
-//     429 { error, regenerated:true, ttl, devCode? }   5th wrong code, new one sent
+//     429 { error, regenerated:true, ttl }             5th wrong code, new one sent
 //     429 { error, regenerated:false, restart:true }   5th wrong code, none could be sent
 routerAdd("POST", "/owner/register", (e) => {
   const MAX_ATTEMPTS = 5;
@@ -59,11 +59,11 @@ routerAdd("POST", "/owner/register", (e) => {
   let accent = String(b.accent || "#171717").trim();
   if (!/^#[0-9a-fA-F]{6}$/.test(accent)) accent = "#171717";
 
-  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Enter a valid mobile number." });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return e.json(400, { error: "Enter a valid email address." });
-  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters." });
-  if (!cafeName) return e.json(400, { error: "Enter your café's name." });
-  if (!/^\d{6}$/.test(code)) return e.json(400, { error: "Enter the 6-digit code sent to your phone." });
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Enter a valid mobile number.", code: "PHONE_REQUIRED" });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return e.json(400, { error: "Enter a valid email address.", code: "EMAIL_REQUIRED" });
+  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters.", code: "PASSWORD_TOO_SHORT" });
+  if (!cafeName) return e.json(400, { error: "Enter your café's name.", code: "CAFE_NAME_REQUIRED" });
+  if (!/^\d{6}$/.test(code)) return e.json(400, { error: "Enter the 6-digit code sent to your phone.", code: "CODE_REQUIRED" });
 
   // verify the phone BEFORE creating anything — same rows /otp/verify uses.
   // Fetch by phone, not by phone+code: a wrong guess has to find the row in
@@ -72,7 +72,7 @@ routerAdd("POST", "/owner/register", (e) => {
   try {
     otp = $app.findRecordsByFilter("otp_codes", "phone = {:phone} && expires > {:now}", "-created", 1, 0, { phone, now: dbTime(now) })[0];
   } catch (err) { otp = null; }
-  if (!otp) return e.json(401, { error: "Invalid or expired code — try again." });
+  if (!otp) return e.json(401, { error: "Invalid or expired code — try again.", code: "CODE_INVALID_RETRY" });
 
   // otp_codes stores "salt:sha256(salt:code)" — a legacy plaintext row has no
   // colon and matches nothing, so it just expires unused. Duplicated from
@@ -95,15 +95,15 @@ routerAdd("POST", "/owner/register", (e) => {
         // an uncounted one alive to be guessed at for free
         $app.logger().error("register attempt counter failed", "error", String(err));
         try { $app.delete(otp); } catch (err2) {}
-        return e.json(401, { error: "Invalid or expired code — try again." });
+        return e.json(401, { error: "Invalid or expired code — try again.", code: "CODE_INVALID_RETRY" });
       }
-      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+      return e.json(401, { error: "Incorrect code", code: "CODE_INCORRECT", attempts_left: MAX_ATTEMPTS - attempts });
     }
 
     // ---- 5th wrong code: burn it, try to send a fresh one in its place ----
     const restart = () => {
       try { $app.delete(otp); } catch (err) {}
-      return e.json(429, { error: "Too many incorrect codes. Please start again.", regenerated: false, restart: true });
+      return e.json(429, { error: "Too many incorrect codes. Please start again.", code: "CODE_BURNED_RESTART", regenerated: false, restart: true });
     };
 
     let bud = null;
@@ -145,11 +145,12 @@ routerAdd("POST", "/owner/register", (e) => {
       return restart();
     }
 
-    // no provider: only echo the code when dev mode is explicitly opted into.
-    // without it we must NOT hand it back — fail closed like /otp/request
+    // no provider: let the flow continue only when dev mode is explicitly
+    // opted into, with the code logged server-side. Without it, fail closed
+    // like /otp/request.
     if ($os.getenv("OTP_DEV_MODE") === "1") {
       $app.logger().info("register OTP regenerated (dev)", "phone", phone, "code", fresh);
-      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+      return e.json(429, { error: msg, regenerated: true, ttl });
     }
     $app.logger().error("register OTP blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)");
     return restart();
@@ -160,11 +161,11 @@ routerAdd("POST", "/owner/register", (e) => {
   // from a business account, so only block on an existing *business* account.
   let exists = null;
   try { exists = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { exists = null; }
-  if (exists) return e.json(409, { error: "This number already has a business registered. Sign in instead.", exists: true });
+  if (exists) return e.json(409, { error: "This number already has a business registered. Sign in instead.", code: "PHONE_TAKEN", exists: true });
 
   let emailExists = null;
   try { emailExists = $app.findFirstRecordByFilter("users", "email = {:email}", { email }); } catch (err) { emailExists = null; }
-  if (emailExists) return e.json(409, { error: "This email is already registered. Sign in instead.", exists: true });
+  if (emailExists) return e.json(409, { error: "This email is already registered. Sign in instead.", code: "EMAIL_TAKEN", exists: true });
 
   // owner (admin) account
   const owner = new Record($app.findCollectionByNameOrId("users"));
@@ -292,11 +293,11 @@ routerAdd("POST", "/owner/register", (e) => {
 // wrong codes cannot conjure an extra send. It lives in sms_budgets rather than
 // on the challenge for the reason spelled out at the lookup below.
 //
-// NO SMS, NO SIGN-IN. Unlike /otp/request (which echoes the code in the JSON
-// whenever KAVENEGAR_API_KEY is missing, dev flag or not), this path refuses to
-// start a challenge it cannot actually deliver: a production box with no API
-// key returns 503 and nobody can sign in, rather than quietly falling back to
-// password-only. The dev echo is gated on an explicit OTP_DEV_MODE=1 opt-in.
+// NO SMS, NO SIGN-IN. This path refuses to start a challenge it cannot
+// actually deliver: a production box with no provider key returns 503 and
+// nobody can sign in, rather than quietly falling back to password-only.
+// OTP_DEV_MODE=1 lets a local machine past that, but only by writing the code
+// to the server log — no response here has a field to carry one.
 routerAdd("POST", "/owner/login", (e) => {
   const TTL_MS = 3 * 60 * 1000;            // matches the customer OTP window
   const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -316,17 +317,17 @@ routerAdd("POST", "/owner/login", (e) => {
   };
   const phone = norm(e.requestInfo().body.phone);
   const password = String(e.requestInfo().body.password || "");
-  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number", code: "INVALID_PHONE" });
 
   // A phone can also have a separate customer account — fetch the business
   // (admin) one specifically, not whichever row happens to match first.
   let u = null;
   try { u = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { u = null; }
   if (!u) {
-    return e.json(404, { error: "No owner account for this number", notRegistered: true });
+    return e.json(404, { error: "No owner account for this number", code: "NO_OWNER_ACCOUNT", notRegistered: true });
   }
-  if (!password) return e.json(400, { error: "Enter your password" });
-  if (!u.validatePassword(password)) return e.json(401, { error: "Wrong password" });
+  if (!password) return e.json(400, { error: "Enter your password", code: "PASSWORD_REQUIRED" });
+  if (!u.validatePassword(password)) return e.json(401, { error: "Wrong password", code: "WRONG_PASSWORD" });
 
   // ---- password is good; only now does anything get sent anywhere ----
 
@@ -380,7 +381,7 @@ routerAdd("POST", "/owner/login", (e) => {
     const left = winStart + SEND_WINDOW_MS - now;
     try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
     return e.json(429, {
-      error: "Too many codes requested for this number. Please wait a few minutes and try again.",
+      error: "Too many codes requested for this number. Please wait a few minutes and try again.", code: "SMS_CAP_PHONE",
       retry_after: Math.ceil(left / 1000),
     });
   }
@@ -403,7 +404,7 @@ routerAdd("POST", "/owner/login", (e) => {
     $app.save(ch);
   } catch (err) {
     $app.logger().error("owner login challenge save failed", "error", String(err));
-    return e.json(500, { error: "Could not start sign-in. Please try again." });
+    return e.json(500, { error: "Could not start sign-in. Please try again.", code: "SIGNIN_START_FAILED" });
   }
 
   // spend the budget BEFORE sending: a provider that fails (or is made to fail)
@@ -420,22 +421,25 @@ routerAdd("POST", "/owner/login", (e) => {
 
   // nothing was delivered → tear the challenge down, so a failed send can never
   // leave a code sitting there that only an attacker (or nobody) can use
-  const abort = (status, msg, logMsg) => {
+  const abort = (status, msg, logMsg, code) => {
     try { $app.delete(ch); } catch (err) {}
     $app.logger().error(logMsg);
-    return e.json(status, { error: msg });
+    // code is the stable key the client translates by; msg stays as the
+    // English fallback for a client that has no string for this code yet
+    return e.json(status, { error: msg, code: code });
   };
 
   const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, code);
   if (sent.ok) return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000) });
   // a provider that merely failed must NOT fall through to the dev branch below
-  if (sent.configured) return abort(502, "Could not send the code. Please try again.", "owner login SMS: " + sent.error);
+  if (sent.configured) return abort(502, "Could not send the code. Please try again.", "owner login SMS: " + sent.error, "SMS_FAILED_CODE");
 
-  // local dev: explicit opt-in only. OTP_DEV_MODE is never set in production,
-  // so this branch cannot silently turn owner 2FA back into no 2FA.
+  // local dev: explicit opt-in only, and the code goes to the server log
+  // rather than to the caller. OTP_DEV_MODE is never set in production, so
+  // this branch cannot silently turn owner 2FA back into no 2FA.
   if ($os.getenv("OTP_DEV_MODE") === "1") {
     $app.logger().info("owner login OTP (dev)", "phone", phone, "code", code);
-    return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000), devCode: code });
+    return e.json(200, { otp_required: true, ttl: Math.round(TTL_MS / 1000) });
   }
 
   // no provider and no dev opt-in: we cannot deliver a second factor, so we
@@ -443,7 +447,8 @@ routerAdd("POST", "/owner/login", (e) => {
   return abort(
     503,
     "Sign-in is temporarily unavailable. Please try again later.",
-    "owner login blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+    "owner login blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)",
+    "SIGNIN_UNAVAILABLE"
   );
 });
 
@@ -456,7 +461,7 @@ routerAdd("POST", "/owner/login", (e) => {
 //     400 invalid phone
 //     401 { error }                       wrong / expired / already-used code
 //     401 { error, attempts_left }        wrong code, guesses remain
-//     429 { error, regenerated:true, ttl, devCode? }  5th wrong code, new one sent
+//     429 { error, regenerated:true, ttl }            5th wrong code, new one sent
 //     429 { error, regenerated:false, restart:true }  5th wrong code, none could be sent
 //
 // The challenge is single-use (deleted on success) and each code is capped at 5
@@ -492,11 +497,11 @@ routerAdd("POST", "/owner/login/verify", (e) => {
   const b = e.requestInfo().body || {};
   const phone = norm(b.phone);
   const code = String(b.code || "").trim();
-  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number", code: "INVALID_PHONE" });
 
   // every code-shaped rejection answers the same way — no hint about whether a
   // challenge exists, has expired, or how close the guess was
-  const bad = () => e.json(401, { error: "Invalid or expired code" });
+  const bad = () => e.json(401, { error: "Invalid or expired code", code: "CODE_INVALID" });
   if (!/^\d{6}$/.test(code)) return bad();
 
   let ch = null;
@@ -523,7 +528,7 @@ routerAdd("POST", "/owner/login/verify", (e) => {
         try { $app.delete(ch); } catch (err2) {}
         return bad();
       }
-      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+      return e.json(401, { error: "Incorrect code", code: "CODE_INCORRECT", attempts_left: MAX_ATTEMPTS - attempts });
     }
 
     // ---- guess budget spent: burn this code, try to send a fresh one ----
@@ -534,7 +539,7 @@ routerAdd("POST", "/owner/login/verify", (e) => {
     // password again, exactly as this endpoint behaved before regeneration
     const restart = () => {
       try { $app.delete(ch); } catch (err) {}
-      return e.json(429, { error: "Too many incorrect codes. Please sign in again to get a new one.", regenerated: false, restart: true });
+      return e.json(429, { error: "Too many incorrect codes. Please sign in again to get a new one.", code: "CODE_BURNED_SIGNIN", regenerated: false, restart: true });
     };
 
     let bud = null;
@@ -582,7 +587,7 @@ routerAdd("POST", "/owner/login/verify", (e) => {
     // there holding a code nobody will ever receive
     if ($os.getenv("OTP_DEV_MODE") === "1") {
       $app.logger().info("owner login OTP regenerated (dev)", "phone", phone, "code", fresh);
-      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+      return e.json(429, { error: msg, regenerated: true, ttl });
     }
     $app.logger().error("owner login regenerate blocked: no SMS provider");
     return restart();
@@ -620,7 +625,7 @@ routerAdd("POST", "/owner/login/verify", (e) => {
 // own sms_budgets purpose — see 1700000023_owner_password_resets.js for why.
 //
 //   POST /owner/forgot-password { phone }
-//     200 { reset_required:true, ttl, devCode? }
+//     200 { reset_required:true, ttl }
 //     400 invalid phone
 //     404 { error, notRegistered:true }   no owner account on this number
 //     429 { error, retry_after }          too many codes requested
@@ -631,7 +636,7 @@ routerAdd("POST", "/owner/login/verify", (e) => {
 //     400 invalid phone / code shape / password too short
 //     401 { error }                       wrong / expired / already-used code
 //     401 { error, attempts_left }        wrong code, guesses remain
-//     429 { error, regenerated:true, ttl, devCode? }  5th wrong code, new one sent
+//     429 { error, regenerated:true, ttl }            5th wrong code, new one sent
 //     429 { error, regenerated:false, restart:true }  5th wrong code, none could be sent
 //
 // Unlike login, a successful verify does NOT return a token — the owner goes
@@ -655,11 +660,11 @@ routerAdd("POST", "/owner/forgot-password", (e) => {
     return d;
   };
   const phone = norm(e.requestInfo().body.phone);
-  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number", code: "INVALID_PHONE" });
 
   let u = null;
   try { u = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { u = null; }
-  if (!u) return e.json(404, { error: "No owner account for this number", notRegistered: true });
+  if (!u) return e.json(404, { error: "No owner account for this number", code: "NO_OWNER_ACCOUNT", notRegistered: true });
 
   // opportunistic prune, same cadence as /owner/login
   if (Math.random() < 0.05) {
@@ -698,7 +703,7 @@ routerAdd("POST", "/owner/forgot-password", (e) => {
     const left = winStart + SEND_WINDOW_MS - now;
     try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
     return e.json(429, {
-      error: "Too many codes requested for this number. Please wait a few minutes and try again.",
+      error: "Too many codes requested for this number. Please wait a few minutes and try again.", code: "SMS_CAP_PHONE",
       retry_after: Math.ceil(left / 1000),
     });
   }
@@ -720,7 +725,7 @@ routerAdd("POST", "/owner/forgot-password", (e) => {
     $app.save(ch);
   } catch (err) {
     $app.logger().error("owner password reset challenge save failed", "error", String(err));
-    return e.json(500, { error: "Could not start password reset. Please try again." });
+    return e.json(500, { error: "Could not start password reset. Please try again.", code: "RESET_START_FAILED" });
   }
 
   // spend the budget BEFORE sending, same reasoning as /owner/login
@@ -734,26 +739,29 @@ routerAdd("POST", "/owner/forgot-password", (e) => {
   bud.set("last_sent", dbTime(now));
   try { $app.save(bud); } catch (err) { $app.logger().error("owner password reset budget save failed", "error", String(err)); }
 
-  const abort = (status, msg, logMsg) => {
+  const abort = (status, msg, logMsg, code) => {
     try { $app.delete(ch); } catch (err) {}
     $app.logger().error(logMsg);
-    return e.json(status, { error: msg });
+    // code is the stable key the client translates by; msg stays as the
+    // English fallback for a client that has no string for this code yet
+    return e.json(status, { error: msg, code: code });
   };
 
   const sent = require(`${__hooks}/sms.js`).sendOtpCode(phone, code);
   if (sent.ok) return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000) });
   // a provider that merely failed must NOT fall through to the dev branch below
-  if (sent.configured) return abort(502, "Could not send the code. Please try again.", "owner password reset SMS: " + sent.error);
+  if (sent.configured) return abort(502, "Could not send the code. Please try again.", "owner password reset SMS: " + sent.error, "SMS_FAILED_CODE");
 
   if ($os.getenv("OTP_DEV_MODE") === "1") {
     $app.logger().info("owner password reset OTP (dev)", "phone", phone, "code", code);
-    return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000), devCode: code });
+    return e.json(200, { reset_required: true, ttl: Math.round(TTL_MS / 1000) });
   }
 
   return abort(
     503,
     "Password reset is temporarily unavailable. Please try again later.",
-    "owner password reset blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)"
+    "owner password reset blocked: no SMS provider — set FARAZSMS_API_KEY + FARAZSMS_PATTERN_CODE, or KAVENEGAR_API_KEY (or OTP_DEV_MODE=1 for local development)",
+    "RESET_UNAVAILABLE"
   );
 });
 
@@ -777,13 +785,13 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
   const phone = norm(b.phone);
   const code = String(b.code || "").trim();
   const password = String(b.password || "");
-  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number" });
+  if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number", code: "INVALID_PHONE" });
 
-  const bad = () => e.json(401, { error: "Invalid or expired code" });
+  const bad = () => e.json(401, { error: "Invalid or expired code", code: "CODE_INVALID" });
   if (!/^\d{6}$/.test(code)) return bad();
   // checked before touching the challenge: a wrong code should never be able
   // to tell an attacker whether the password they supplied was well-formed
-  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters." });
+  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters.", code: "PASSWORD_TOO_SHORT" });
 
   let ch = null;
   try { ch = $app.findFirstRecordByFilter("owner_password_resets", "phone = {:phone}", { phone }); } catch (err) { ch = null; }
@@ -807,13 +815,13 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
         try { $app.delete(ch); } catch (err2) {}
         return bad();
       }
-      return e.json(401, { error: "Incorrect code", attempts_left: MAX_ATTEMPTS - attempts });
+      return e.json(401, { error: "Incorrect code", code: "CODE_INCORRECT", attempts_left: MAX_ATTEMPTS - attempts });
     }
 
     // ---- guess budget spent: burn this code, try to send a fresh one ----
     const restart = () => {
       try { $app.delete(ch); } catch (err) {}
-      return e.json(429, { error: "Too many incorrect codes. Please request a new one.", regenerated: false, restart: true });
+      return e.json(429, { error: "Too many incorrect codes. Please request a new one.", code: "CODE_BURNED_REQUEST", regenerated: false, restart: true });
     };
 
     let bud = null;
@@ -857,7 +865,7 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
 
     if ($os.getenv("OTP_DEV_MODE") === "1") {
       $app.logger().info("owner password reset OTP regenerated (dev)", "phone", phone, "code", fresh);
-      return e.json(429, { error: msg, regenerated: true, ttl, devCode: fresh });
+      return e.json(429, { error: msg, regenerated: true, ttl });
     }
     $app.logger().error("owner password reset regenerate blocked: no SMS provider");
     return restart();
@@ -879,7 +887,7 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
     $app.save(u);
   } catch (err) {
     $app.logger().error("owner password reset save failed", "error", String(err));
-    return e.json(500, { error: "Could not set your new password. Please try again." });
+    return e.json(500, { error: "Could not set your new password. Please try again.", code: "PASSWORD_SET_FAILED" });
   }
 
   // no token here on purpose — the owner goes back to the sign-in step and
@@ -900,7 +908,7 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
 //   POST /owner/session/refresh  (admin auth) -> { token }
 routerAdd("POST", "/owner/session/refresh", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
   return e.json(200, { token: u.newStaticAuthToken(72 * 60 * 60 * 1e9) });
 }, $apis.requireAuth());
 
@@ -909,11 +917,11 @@ routerAdd("POST", "/owner/session/refresh", (e) => {
 //   GET /owner/cafe  (admin auth) -> { id, cafe_name, staff_code, stamps_required, reward_expiry_days, name, phone, email }
 routerAdd("GET", "/owner/cafe", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   let nfc = "";
   try {
@@ -951,11 +959,11 @@ routerAdd("GET", "/owner/cafe", (e) => {
 //   POST /owner/cafe/profile  (admin auth) { cafe_name?, tagline?, accent? }
 routerAdd("POST", "/owner/cafe/profile", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   const b = e.requestInfo().body || {};
   const cafeName = String(b.cafe_name || "").trim();
@@ -973,11 +981,11 @@ routerAdd("POST", "/owner/cafe/profile", (e) => {
 //   POST /owner/cafe/min-purchase  (admin auth) { min_purchase } -> { ok, min_purchase }
 routerAdd("POST", "/owner/cafe/min-purchase", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   let amt = parseInt((e.requestInfo().body || {}).min_purchase, 10);
   if (isNaN(amt) || amt < 0) amt = 0;
@@ -993,11 +1001,11 @@ routerAdd("POST", "/owner/cafe/min-purchase", (e) => {
 //   POST /owner/cafe/stamps-required  (admin auth) { stamps_required } -> { ok, stamps_required }
 routerAdd("POST", "/owner/cafe/stamps-required", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   let n = parseInt((e.requestInfo().body || {}).stamps_required, 10);
   if (isNaN(n) || n < 1) n = 1;
@@ -1023,18 +1031,18 @@ routerAdd("POST", "/owner/cafe/stamps-required", (e) => {
 //   POST /owner/cafe/logo  (admin auth, multipart) -> { ok, logo }
 routerAdd("POST", "/owner/cafe/logo", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   let files = [];
   try { files = e.findUploadedFiles("logo") || []; } catch (err) { files = []; }
-  if (!files.length || !files[0]) return e.json(400, { error: "No image was uploaded" });
+  if (!files.length || !files[0]) return e.json(400, { error: "No image was uploaded", code: "NO_IMAGE" });
 
   const f = files[0];
-  if ((f.size || 0) > 2097152) return e.json(413, { error: "That image is too large — 2MB maximum" });
+  if ((f.size || 0) > 2097152) return e.json(413, { error: "That image is too large — 2MB maximum", code: "IMAGE_TOO_LARGE" });
 
   // assigning replaces the old file; PocketBase deletes the orphan on save
   card.set("logo", f);
@@ -1044,7 +1052,7 @@ routerAdd("POST", "/owner/cafe/logo", (e) => {
     // the overwhelmingly likely cause is the field's own mimeTypes rejecting a
     // non-raster upload (an SVG, a PDF renamed to .png), so say that plainly
     $app.logger().error("cafe logo upload failed", "cafe", card.id, "error", String(err));
-    return e.json(415, { error: "Use a JPG, PNG or WebP image" });
+    return e.json(415, { error: "Use a JPG, PNG or WebP image", code: "IMAGE_BAD_TYPE" });
   }
 
   return e.json(200, { ok: true, logo: card.getString("logo"), collection_id: card.collection().id });
@@ -1054,16 +1062,16 @@ routerAdd("POST", "/owner/cafe/logo", (e) => {
 //   POST /owner/cafe/logo/remove  (admin auth) -> { ok }
 routerAdd("POST", "/owner/cafe/logo/remove", (e) => {
   const u = e.auth;
-  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only" });
+  if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }
-  if (!card) return e.json(404, { error: "No café configured for this owner" });
+  if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   card.set("logo", null); // PocketBase removes the stored file on save
   try { $app.save(card); } catch (err) {
     $app.logger().error("cafe logo remove failed", "cafe", card.id, "error", String(err));
-    return e.json(400, { error: "That didn't work — try again" });
+    return e.json(400, { error: "That didn't work — try again", code: "SAVE_FAILED" });
   }
   return e.json(200, { ok: true });
 }, $apis.requireAuth());
