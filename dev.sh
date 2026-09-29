@@ -34,7 +34,10 @@ fi
 # --dev prints the hook logs (and SQL) to the console. Without it PocketBase
 # files them in the logs DB only, and the OTP code above would be invisible
 # here — you would have to go digging in Dashboard > Logs for every sign-in.
-OTP_DEV_MODE=1 exec "$ROOT/backend/pocketbase" serve \
+# PB_PUBLIC_DIR tells clean-urls.pb.js where the pages live; --publicDir below
+# points at the repo root, not a pb_public/ directory, so without this every
+# clean URL (/signin, /owner, /staff...) 404s locally.
+PB_PUBLIC_DIR="$ROOT" OTP_DEV_MODE=1 exec "$ROOT/backend/pocketbase" serve \
   --dev \
   --http="127.0.0.1:$PORT" \
   --dir="$ROOT/backend/pb_data" \

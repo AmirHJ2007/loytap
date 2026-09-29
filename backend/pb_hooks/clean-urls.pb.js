@@ -14,16 +14,23 @@
 // re-evaluated in a pooled JSVM runtime that does NOT see this file's outer
 // scope, so a module-level `const` reads back as "not defined" at request
 // time (see headers.pb.js for the same note).
+//
+// The directory is read from PB_PUBLIC_DIR, falling back to "pb_public" — the
+// path the Dockerfile copies the frontend to, so production is unchanged. The
+// env var exists for local development: dev.sh serves the repo root directly
+// (there is no pb_public/ there), so without it every clean URL below 404s
+// locally while working perfectly in production — which is a confusing way to
+// discover that your page "does not exist".
 
 // /business now lives at a language path so each translation has its own
 // indexable, shareable URL; the bare path sends visitors to the default.
 // 302 rather than 301 while the default is still a decision we might revisit
 // — a 301 would sit in browsers' caches long after we changed our minds.
 routerAdd("GET", "/fa/business", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "for-business.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "for-business.html");
 });
 routerAdd("GET", "/en/business", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "for-business.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "for-business.html");
 });
 routerAdd("GET", "/business", (e) => {
   return e.redirect(302, "/fa/business");
@@ -34,7 +41,7 @@ routerAdd("GET", "/for-business.html", (e) => {
 });
 
 routerAdd("GET", "/signin", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "auth.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "auth.html");
 });
 
 routerAdd("GET", "/auth.html", (e) => {
@@ -44,7 +51,7 @@ routerAdd("GET", "/auth.html", (e) => {
 // business.html is the separate staff/owner sign-in + registration flow
 // linked from the customer /signin page's "businessLink".
 routerAdd("GET", "/business/signin", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "business.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "business.html");
 });
 
 routerAdd("GET", "/business.html", (e) => {
@@ -52,7 +59,7 @@ routerAdd("GET", "/business.html", (e) => {
 });
 
 routerAdd("GET", "/owner", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "owner.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "owner.html");
 });
 
 routerAdd("GET", "/owner.html", (e) => {
@@ -60,7 +67,7 @@ routerAdd("GET", "/owner.html", (e) => {
 });
 
 routerAdd("GET", "/staff", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "staff.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "staff.html");
 });
 
 routerAdd("GET", "/staff.html", (e) => {
@@ -83,10 +90,10 @@ routerAdd("GET", "/analytics.html", (e) => {
 // 302 rather than 301 while the default is still a decision we might revisit
 // — a 301 would sit in browsers' caches long after we changed our minds.
 routerAdd("GET", "/fa/terms", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "terms.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "terms.html");
 });
 routerAdd("GET", "/en/terms", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "terms.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "terms.html");
 });
 routerAdd("GET", "/terms", (e) => {
   return e.redirect(302, "/fa/terms");
@@ -101,10 +108,10 @@ routerAdd("GET", "/terms.html", (e) => {
 // 302 rather than 301 while the default is still a decision we might revisit
 // — a 301 would sit in browsers' caches long after we changed our minds.
 routerAdd("GET", "/fa/business-terms", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "business-terms.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "business-terms.html");
 });
 routerAdd("GET", "/en/business-terms", (e) => {
-  return e.fileFS($os.dirFS("pb_public"), "business-terms.html");
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "business-terms.html");
 });
 routerAdd("GET", "/business-terms", (e) => {
   return e.redirect(302, "/fa/business-terms");
