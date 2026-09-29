@@ -103,10 +103,17 @@
               ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
               ${exp}
             </div>
-            <button class="rw__del" data-id="${x.id}" title="${t("OWNER_BTN_DELETE_TITLE")}">✕</button>
+            <button class="rw__del${items.length === 1 ? " rw__del--locked" : ""}" data-id="${x.id}"
+              title="${items.length === 1 ? t("OWNER_RW_LAST_TITLE") : t("OWNER_BTN_DELETE_TITLE")}">✕</button>
           </div>`;
         }).join("");
-        list.querySelectorAll(".rw__del").forEach((b) => b.addEventListener("click", () => askDelete(b)));
+        // The last reward is not deletable — a café with none cannot finish a
+        // customer's card at all. Say why on the spot instead of opening a
+        // confirm that is only going to be refused by the server.
+        list.querySelectorAll(".rw__del").forEach((b) => b.addEventListener("click", () => {
+          if (items.length === 1) { rewardNote(t("OWNER_RW_LAST_MSG")); return; }
+          askDelete(b);
+        }));
       } catch (e) {
         list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_LOAD_ERROR")}</p>`;
       }
@@ -122,11 +129,28 @@
       wrap.querySelector(".rw__no").onclick = () => loadRewards();
     }
 
+    // a short-lived message under the reward list — used for the "last one"
+    // refusal, which has no field of its own to hang an error on
+    let rewardNoteTimer = null;
+    function rewardNote(msg) {
+      const box = $("rewardNote");
+      if (!box) return;
+      box.textContent = msg;
+      box.hidden = false;
+      box.classList.remove("is-in"); void box.offsetWidth; box.classList.add("is-in");
+      clearTimeout(rewardNoteTimer);
+      rewardNoteTimer = setTimeout(() => { box.hidden = true; }, 6000);
+    }
+
     async function delReward(id) {
       try {
         const r = await fetch(API + "/api/collections/reward_options/records/" + id, { method: "DELETE", headers: { Authorization: token } });
-        if (r.ok || r.status === 204) loadRewards();
-      } catch (e) {}
+        if (r.ok || r.status === 204) { loadRewards(); return; }
+        // the server keeps the same rule (lastreward.pb.js) and is the one that
+        // actually enforces it — a refusal here used to vanish silently
+        if (r.status === 400) { loadRewards(); rewardNote(t("OWNER_RW_LAST_MSG")); return; }
+        loadRewards(); rewardNote(t("OWNER_RW_DELETE_FAILED"));
+      } catch (e) { rewardNote(t("AUTH_ERR_SERVER_UNREACHABLE")); }
     }
 
     async function addReward() {
@@ -681,20 +705,51 @@
         </div>`;
       }).join("") : `<p class="empty">${t("AN_RU_NO_REWARDS")}</p>`;
 
+      // The headline strip. These four are the answer to "how is the café
+      // doing" at a glance; everything below is the working-out. Deltas are
+      // only shown where the backend actually supplies a prior period —
+      // inventing a comparison for the others would be worse than none.
+      const d7 = (d.activity && d.activity.d7) || {};
+      const stampDelta = (typeof d7.prevStamps === "number" && d7.prevStamps > 0)
+        ? Math.round((d7.stamps - d7.prevStamps) / d7.prevStamps * 100) : null;
+      const arrow = (n) => n > 0 ? "▲" : n < 0 ? "▼" : "•";
+      const dirOf = (n) => n > 0 ? "up" : n < 0 ? "down" : "flat";
+      const kpiDelta = (n, label) => n === null ? ""
+        : `<i class="an-kpi__d ${dirOf(n)}">${arrow(n)} ${Math.abs(n)}% ${esc(label)}</i>`;
+      const arDelta = d.activeRate && typeof d.activeRate.delta === "number" ? Math.round(d.activeRate.delta) : null;
+
       $("anContent").innerHTML = `
-        <div class="card glass" id="actCard"></div>
+        <div class="an">
+          <div class="an-hero">
+            <div class="an-kpi an-kpi--stamps">
+              <span class="an-kpi__k">${t("AN_KPI_STAMPS")}</span>
+              <b class="an-kpi__v count" data-count-to="${tot.stamps}">0</b>
+              ${kpiDelta(stampDelta, t("AN_KPI_VS_PREV"))}
+            </div>
+            <div class="an-kpi an-kpi--people">
+              <span class="an-kpi__k">${t("AN_KPI_CUSTOMERS")}</span>
+              <b class="an-kpi__v count" data-count-to="${tot.customers}">0</b>
+              ${kpiDelta(arDelta, t("AN_KPI_ACTIVE"))}
+            </div>
+            <div class="an-kpi an-kpi--rate">
+              <span class="an-kpi__k">${t("AN_KPI_COMEBACK")}</span>
+              <b class="an-kpi__v count" data-count-to="${r.comeback}" data-count-suffix="%">0%</b>
+            </div>
+            <div class="an-kpi an-kpi--reward">
+              <span class="an-kpi__k">${t("AN_KPI_REWARDS")}</span>
+              <b class="an-kpi__v count" data-count-to="${tot.redeemed}">0</b>
+              <i class="an-kpi__d flat">${t("AN_KPI_OF_ISSUED", { n: tot.issued })}</i>
+            </div>
+          </div>
 
-        <div class="card glass" id="cbCard"></div>
-
-        <div class="card glass" id="arCard"></div>
-
-        <div class="card glass" id="vrCard"></div>
-
-        <div class="card glass" id="nlCard"></div>
-
-        <div class="card glass" id="hmCard"></div>
-
-        <div class="card glass" id="ruCard">
+          <div class="an-grid">
+            <div class="card an-tile an-tile--wide" id="actCard"></div>
+            <div class="card an-tile an-tile--wide" id="hmCard"></div>
+            <div class="card an-tile" id="cbCard"></div>
+            <div class="card an-tile" id="arCard"></div>
+            <div class="card an-tile" id="vrCard"></div>
+            <div class="card an-tile" id="nlCard"></div>
+            <div class="card an-tile an-tile--wide" id="ruCard">
           <h2 class="card__title">${t("AN_RU_TITLE")} <button class="info-btn" type="button" aria-label="${t("AN_ARIA_INFO")}">i</button></h2>
           <p class="card__sub">${t("AN_RU_SUB")}</p>
           <div class="cb-info" hidden>
@@ -704,7 +759,9 @@
             ${ring(usedRate, t("AN_RU_RING_SUB"))}
             <div class="ru-hero__txt">${t("AN_RU_HERO_HTML", { redeemed: tot.redeemed30, issued: tot.issued30 })}</div>
           </div>
-          <div class="ru-list">${rewardBars}</div>
+              <div class="ru-list">${rewardBars}</div>
+            </div>
+          </div>
         </div>`;
 
       if (d.comeback) setupComeback(d.comeback);
@@ -713,6 +770,11 @@
       if (d.newVsLoyal) setupNewVsLoyal(d.newVsLoyal);
       if (d.crowded) setupCrowded(d.crowded);
       if (d.activity) setupActivity(d.activity);
+
+      // The headline strip is not a .card, so revealCards()'s observer never
+      // reaches it — its figures would sit at 0 forever. Count them up directly.
+      const kpis = document.querySelector("#anContent .an-hero");
+      if (kpis) runCounts(kpis, !matchMedia("(prefers-reduced-motion: reduce)").matches);
 
       const ruBtn = document.querySelector("#ruCard .info-btn");
       if (ruBtn) ruBtn.onclick = () => { const i = document.querySelector("#ruCard .cb-info"); i.hidden = !i.hidden; };

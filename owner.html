@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=33"></script>
+  <script src="i18n.js?v=35"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -155,7 +155,7 @@
     .act-sel__stat--hero { background: #171717; border-color: #171717; }
     .act-sel__stat--hero b { color: #fff; }
     .act-sel__stat--hero span { color: rgba(255,255,255,0.65); }
-    .act-sel__stat--hero i { color: rgba(255,255,255,0.5); }
+    .act-sel__stat--hero i { color: rgba(255,255,255,0.72); }
     .act-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #171717; color: #ffffff; border-radius: 16px; padding: 16px 18px; margin: 18px 0 10px; }
     html[dir="rtl"] .act-stats { direction: ltr; text-align: right; }
     .act-stats b { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 28px; line-height: 1; }
@@ -318,11 +318,41 @@
        specificity rule declared later wins the rest. Structural black stays
        black — the dark stat slabs are surfaces, not measurements. */
     #panelAnalytics {
-      --an-rgb: 47 63 79;          /* #2f3f4f — for-business --data-loyal */
-      --an-hi-rgb: 154 90 10;      /* #9a5a0a — for-business --ember-deep */
+      /* The previous set — slate #2f3f4f, tan #b3803f, ember #9a5a0a — failed
+         three of the validator's checks on this surface: the slate sat outside
+         the lightness band at L 0.361 and under the chroma floor at 0.035 (it
+         measured as grey, not as a colour), and tan↔ember came in at normal-
+         vision ΔE 11.0, below the 15 floor. That last one is not a nicety: the
+         two series in "new vs loyal" were genuinely hard to tell apart even
+         with full colour vision. These three clear every gate, including under
+         --pairs all: worst CVD ΔE 8.6, worst normal-vision ΔE 20.2, all at or
+         above 3:1 on this surface. Warm leads because the brand is warm. */
+      --an-rgb: 200 90 38;         /* #c85a26 — the data */
+      --an-hi-rgb: 35 64 95;       /* #23405f — what you picked, the same navy
+                                      as the slabs below: one dark blue on the
+                                      page rather than two blues that differ
+                                      just enough to look accidental. It marks
+                                      a selection, not a series, and it always
+                                      carries a shape with it — a ring, a dashed
+                                      rule, a cursor line — so it never asks
+                                      hue alone to say "this is the one". */
       --an: rgb(var(--an-rgb));
-      --an-new: #b3803f;           /* for-business --data-new */
+      --an-new: #0f8a63;           /* teal — the second series, vs --an */
       --an-hi: rgb(var(--an-hi-rgb));
+      /* The dark stat slabs are SURFACES, not measurements, so they keep a dark
+         navy rather than taking the data's hue: white on #23405f is 10.7:1, the
+         same as the old slate, where white on the warm #c85a26 would be 4.25:1
+         and fail body text outright. */
+      --an-slab: rgb(var(--an-hi-rgb));
+      /* The shared --faint (#9a9a9a) measured 1.86:1 against these surfaces —
+         under the 4.5 needed at 9-11px, which is most of the axis labels, unit
+         captions and tags on this tab. #6e6e6e clears it (4.7:1 on the lightest
+         panel here) and still reads as the quiet tier next to --dim. */
+      --faint: #6e6e6e;
+      /* the shared --bad (#c0503f) came in at 4.39:1 on this sheet — a hair
+         under 4.5, and this is the one line that tells an owner their numbers
+         fell, so it is the last place to be almost-readable */
+      --bad: #a8422c;
       --an-soft: rgb(var(--an-rgb) / 0.13);
       --an-mid: rgb(var(--an-rgb) / 0.55);
       --an-track: rgb(var(--an-rgb) / 0.10);
@@ -357,7 +387,7 @@
        chart instead of as page chrome. White on #2f3f4f is ~10:1, so the
        figures lose nothing. */
     #panelAnalytics .act-stats,
-    #panelAnalytics .act-sel__stat--hero { background: var(--an); border-color: var(--an); }
+    #panelAnalytics .act-sel__stat--hero { background: var(--an-slab); border-color: var(--an-slab); }
 
     /* --- what you picked, in ember --- */
     #panelAnalytics .cb-dot--last { fill: var(--an-hi); }
@@ -799,6 +829,139 @@
       .own { transition: none; }
       .add-fab__icon { transition: none; }
     }
+
+    /* ======================================================================
+       ANALYTICS — layout
+       This tab used to be seven identical glass cards stacked in a column.
+       Every number got the same frame and the same weight, so the page read as
+       a list of widgets rather than as one report: nothing led, nothing
+       supported. The frames are gone entirely. What organises the page now is
+       a single dark hero band carrying the headline figures, and then sections
+       that sit directly on the page with nothing but space and a hairline
+       between them — the data is the only thing drawing a box.
+       ====================================================================== */
+    /* Removing the seven card surfaces left the charts sitting straight on the
+       page gradient, which runs down to #d2d2d2 — and 9-11px labels measured
+       3.4:1 against it, under the 4.5 they need. The answer is not to keep
+       darkening the type until it stops being a quiet tier; it is to put the
+       whole report on one clean, even sheet. Still no card per chart: one
+       surface for the tab, and the sections sit on it with nothing but space
+       and a hairline between them. */
+    .an {
+      display: flex; flex-direction: column; gap: 0;
+      background: #f7f7f6; border-radius: 24px;
+      padding: 18px 18px 26px; margin: -4px -4px 0;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
+    }
+    @media (max-width: 620px) { .an { padding: 14px 12px 20px; border-radius: 20px; margin: -2px -2px 0; } }
+
+    /* The one piece of furniture on the page, and the only dark surface: four
+       figures that answer "how is the café doing" before you read anything
+       else. White on this navy is 10.7:1. */
+    .an-hero {
+      position: relative; overflow: hidden;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      background: linear-gradient(145deg, #2c5074 0%, #23405f 48%, #1a3149 100%);
+      border-radius: 22px; padding: 4px; margin-bottom: 30px;
+      box-shadow: 0 26px 50px -30px rgba(15,32,50,0.85);
+    }
+    /* a slow warm glow behind the numbers, in the data's own hue — the only
+       decoration on the page, and it earns its place by tying the band to the
+       charts below rather than by being pretty */
+    .an-hero::before {
+      content: ""; position: absolute; inset: -40% -10% auto auto; width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(200,90,38,0.5), transparent 62%);
+      pointer-events: none;
+    }
+    .an-kpi { position: relative; padding: 20px 18px 19px; min-width: 0;
+      border-inline-start: 1px solid rgba(255,255,255,0.11); }
+    .an-kpi:first-child { border-inline-start: none; }
+    .an-kpi__k { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+      text-transform: uppercase; color: rgba(255,255,255,0.62);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .an-kpi__v { display: block; margin-top: 10px; font-family: var(--font-heading); font-weight: 700;
+      font-size: 38px; line-height: 0.95; letter-spacing: -1.4px; color: #fff; font-variant-numeric: tabular-nums; }
+    .an-kpi__u { font-size: 17px; letter-spacing: 0; color: rgba(255,255,255,0.7); margin-inline-start: 2px; }
+    .an-kpi__d { display: block; margin-top: 8px; font-size: 11px; font-weight: 700; font-style: normal;
+      color: rgba(255,255,255,0.6); }
+    /* deltas keep their meaning on a dark ground: the light steps of the same
+       two status hues, not the light-surface ones, which would go muddy here */
+    .an-kpi__d.up { color: #6ee08a; } .an-kpi__d.down { color: #ff9b8f; }
+    .an-kpi__d.flat { color: rgba(255,255,255,0.55); }
+
+    /* ---- the sections: no frame at all ---- */
+    .an-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+    #anContent .card.an-tile {
+      background: none; border: none; box-shadow: none; backdrop-filter: none;
+      -webkit-backdrop-filter: none; border-radius: 0;
+      margin: 0; padding: 30px 2px; border-top: 1px solid rgba(20,20,20,0.10);
+    }
+    #anContent .card.an-tile:first-child { border-top: none; padding-top: 4px; }
+    /* the title does the work the card border used to: bigger, tighter, with a
+       short rule in the data's hue so a section announces itself */
+    #anContent .card.an-tile .card__title {
+      font-size: 19px; letter-spacing: -0.3px; margin-bottom: 3px;
+    }
+    #anContent .card.an-tile .card__title::before {
+      content: ""; display: block; width: 30px; height: 3px; border-radius: 2px;
+      background: var(--an); margin-bottom: 12px;
+    }
+    #anContent .card.an-tile .card__sub { font-size: 12.5px; margin-bottom: 16px; }
+
+    @media (min-width: 760px) {
+      .an-grid { grid-template-columns: 1fr 1fr; column-gap: 40px; }
+      .an-grid .an-tile--wide { grid-column: 1 / -1; }
+      /* with two columns the hairline has to run per-column, and the first row
+         of each column is the one that loses its rule */
+      #anContent .card.an-tile:nth-child(2) { border-top: none; padding-top: 4px; }
+    }
+    @media (max-width: 620px) {
+      .an-hero { grid-template-columns: 1fr 1fr; margin-bottom: 24px; }
+      .an-kpi:nth-child(3), .an-kpi:nth-child(4) { border-top: 1px solid rgba(255,255,255,0.11); }
+      .an-kpi:nth-child(odd) { border-inline-start: none; }
+      .an-kpi__v { font-size: 32px; }
+      #anContent .card.an-tile { padding: 24px 2px; }
+    }
+
+    /* new vs loyal is the one two-series chart here, so it is the one place a
+       legend is mandatory — it already ships one (.nl-legend), which is what
+       lets the pair carry identity without relying on hue alone. */
+
+    /* The inner panels were small cards inside the big ones — white fills,
+       borders and inset highlights. With the section frames gone they were the
+       last thing still drawing boxes, so they lose their edges too and group
+       by a faint tint of the data's own hue instead. */
+    #panelAnalytics .act-sel {
+      background: rgb(var(--an-rgb) / 0.055); border: none; box-shadow: none; border-radius: 14px;
+    }
+    /* :not() matters — the hero stat keeps the dark slab, and its text is
+       white. Without the exclusion this rule painted it near-white and the
+       selected day's headline figure vanished into its own panel. */
+    #panelAnalytics .act-sel__stat:not(.act-sel__stat--hero) {
+      background: rgba(255,255,255,0.62); border: none; border-radius: 11px;
+    }
+    #panelAnalytics .act-sel__stat--hero { border: none; }
+    #panelAnalytics .hm-ex {
+      background: rgb(var(--an-rgb) / 0.055); border: none; border-radius: 12px;
+    }
+    #panelAnalytics .act-toggle { background: rgb(var(--an-rgb) / 0.08); }
+    #panelAnalytics .act-toggle button.is-on { background: #fff; box-shadow: 0 2px 6px -3px rgba(20,20,20,0.3); }
+    #panelAnalytics .cb-info { background: rgb(var(--an-rgb) / 0.06); }
+
+    /* Why a delete was refused. It has no field of its own to sit under, so it
+       is a short-lived note beneath the list — loud enough to be read, not so
+       loud it looks like the page broke. */
+    .rw-note {
+      margin: 10px 2px 0; padding: 11px 13px; border-radius: 12px;
+      font-size: 13px; font-weight: 700; line-height: 1.5;
+      color: #8a3a26; background: rgba(200,90,38,0.10);
+      border: 1px solid rgba(200,90,38,0.22);
+    }
+    .rw-note.is-in { animation: errIn 0.34s var(--ease-spring) both; }
+    /* the last reward keeps its ✕ visible rather than hiding it — a control
+       that disappears leaves the owner wondering where it went, where one that
+       explains itself on click teaches the rule */
+    .rw__del--locked { opacity: 0.4; }
   </style>
 </head>
 <body>
@@ -1004,6 +1167,7 @@
       </div>
 
       <div class="rw-list" id="rewardList"></div>
+      <p class="rw-note" id="rewardNote" hidden></p>
     </div><!-- /panelDiscounts -->
 
     <!-- ============== SETTINGS panel ============== -->
@@ -1101,6 +1265,6 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=33"></script>
+  <script src="owner.page.js?v=37"></script>
 </body>
 </html>
