@@ -233,10 +233,23 @@ routerAdd("POST", "/owner/register", (e) => {
   codeRec.set("code", staffCode);
   $app.save(codeRec);
 
-  // a starter 10% discount so the café has something to offer on day one
+  // A starter discount so the café has something to offer on day one — and
+  // more than a convenience: lastreward.pb.js refuses to delete a café's last
+  // reward, because a café with none cannot complete a customer's card at all,
+  // so registration has to produce at least this one or it produces a café
+  // that does not work.
+  //
+  // Persian, like the rest of what an owner reads. The NUMERAL stays Latin on
+  // purpose: both the owner panel (owner.page.js) and the customer wallet
+  // (app.js shortDiscount) read the percentage back out of this string with
+  // /(\d+)\s*%/, which matches neither Persian digits nor the Arabic percent
+  // sign ٪ — write "۱۰٪ تخفیف" here and the owner's reward list silently falls
+  // back to a 🎁 badge instead of showing 10%, and the wallet stops shortening
+  // it. That is also the app's existing convention: every number in Persian
+  // text is Latin today, there being no digit converter anywhere in the code.
   const reward = new Record($app.findCollectionByNameOrId("reward_options"));
-  reward.set("deal", "10% off");
-  reward.set("description", "Welcome discount — redeem after your first stamp card.");
+  reward.set("deal", "10% تخفیف");
+  reward.set("description", "تخفیف خوش‌آمدگویی");
   reward.set("weight", 1);
   reward.set("active", true);
   reward.set("expiry_amount", 2);
