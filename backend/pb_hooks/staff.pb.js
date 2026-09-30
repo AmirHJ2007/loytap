@@ -90,6 +90,7 @@ routerAdd("POST", "/staff/login", (e) => {
   if (!codeRec) {
     // ---- failure path: this is the only place the counter goes up ----
     let lockedUntil = 0;
+    let left = 0; // guesses remaining after this one, for the client's warning
     try {
       if (!att) {
         att = new Record($app.findCollectionByNameOrId("staff_login_attempts"));
@@ -104,6 +105,7 @@ routerAdd("POST", "/staff/login", (e) => {
       if (!winStart || now - winStart > WINDOW_MS) { fails = 0; att.set("window_start", dbTime(now)); } // window rolled over
       fails += 1;
       att.set("fails", fails);
+      left = Math.max(0, MAX_FAILS - fails);
 
       if (fails >= MAX_FAILS) {
         const lockouts = att.getInt("lockouts") + 1;
@@ -131,12 +133,16 @@ routerAdd("POST", "/staff/login", (e) => {
       $app.save(att);
     } catch (err) {
       lockedUntil = 0; // nothing was recorded — don't claim a lockout we didn't store
+      left = 0;        // and don't promise guesses we failed to count
       $app.logger().error("staff login attempt counter failed", "error", String(err));
     }
 
     // the failure that trips the limit says so straight away, rather than
     // leaving staff to hit "Wrong code" once more before being told to wait
     if (lockedUntil > now) return lockedOut(lockedUntil);
+    // say how many guesses are left rather than letting the till be cut off
+    // mid-service with no warning — same reasoning as /owner/login
+    if (left > 0) return e.json(401, { error: "Wrong code", code: "STAFF_CODE_WRONG", attempts_left: left });
     return e.json(401, { error: "Wrong code", code: "STAFF_CODE_WRONG" });
   }
 

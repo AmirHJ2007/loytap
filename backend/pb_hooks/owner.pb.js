@@ -385,6 +385,7 @@ routerAdd("POST", "/owner/login", (e) => {
   // five guesses at a time.
   const spendFailure = (status, body) => {
     let lockedUntil = 0;
+    let left = 0; // guesses remaining after this one, for the client's warning
     try {
       if (!att) {
         att = new Record($app.findCollectionByNameOrId("owner_login_attempts"));
@@ -399,6 +400,7 @@ routerAdd("POST", "/owner/login", (e) => {
       if (!winStart || now - winStart > FAIL_WINDOW_MS) { fails = 0; att.set("window_start", dbTime(now)); } // window rolled over
       fails += 1;
       att.set("fails", fails);
+      left = Math.max(0, MAX_FAILS - fails);
 
       if (fails >= MAX_FAILS) {
         const lockouts = att.getInt("lockouts") + 1;
@@ -426,12 +428,21 @@ routerAdd("POST", "/owner/login", (e) => {
       $app.save(att);
     } catch (err) {
       lockedUntil = 0; // nothing was recorded — don't claim a lockout we didn't store
+      left = 0;        // and don't promise guesses we failed to count
       $app.logger().error("owner login attempt counter failed", "error", String(err));
     }
 
     // the guess that trips the limit says so straight away, rather than
     // leaving the owner to fail once more before being told to wait
     if (lockedUntil > now) return lockedOut(lockedUntil);
+
+    // Tell the caller how many guesses are left, the same way /otp/verify and
+    // /owner/register already do for a wrong code. Being cut off with no
+    // warning reads as a broken app; a countdown reads as a rule. It tells an
+    // attacker nothing they could not get by counting their own requests, and
+    // it is the difference between an owner slowing down to think and an owner
+    // mashing the same wrong password until they are locked out.
+    if (left > 0) return e.json(status, Object.assign({ attempts_left: left }, body));
     return e.json(status, body);
   };
 

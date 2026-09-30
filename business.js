@@ -56,6 +56,16 @@ function wrongCodeMsg(data) {
   return tErr(data, "AUTH_ERR_CODE_INVALID");
 }
 
+// Same shape for a wrong PASSWORD on /owner/login, which carries the same
+// attempts_left field. Kept separate from wrongCodeMsg because the sentence
+// names what runs out — a device being blocked, not a code being burned — and
+// because only this one has a lockout waiting at zero.
+function wrongPasswordMsg(data) {
+  const n = data.attempts_left;
+  if (typeof n === "number" && n > 0) return t("AUTH_ERR_PASSWORD_ATTEMPTS_LEFT", { n, tries: t(n === 1 ? "AUTH_TRY_ONE" : "AUTH_TRY_MANY") });
+  return tErr(data, "AUTH_ERR_LOGIN_FAILED");
+}
+
 
 // ---- how long a code is still good for, shared by all three code steps -----
 //
@@ -246,7 +256,13 @@ async function cafeLogin() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      $("cafeCodeErr").textContent = tErr(data, "AUTH_ERR_WRONG_CODE", { mins: tWait(data.retry_after) });
+      // a wrong café code says how many guesses remain before this till is
+      // blocked; without it staff get cut off mid-service with no warning
+      const nLeft = data.attempts_left;
+      $("cafeCodeErr").textContent =
+        (typeof nLeft === "number" && nLeft > 0)
+          ? t("AUTH_ERR_CAFE_CODE_ATTEMPTS_LEFT", { n: nLeft, tries: t(nLeft === 1 ? "AUTH_TRY_ONE" : "AUTH_TRY_MANY") })
+          : tErr(data, "AUTH_ERR_WRONG_CODE", { mins: tWait(data.retry_after) });
       $("cafeCodeErr").hidden = false;
       input.classList.remove("shake"); void input.offsetWidth; input.classList.add("shake");
       return;
@@ -310,7 +326,10 @@ async function requestOwnerOtp() {
         res.status === 429 ? tErr(data, "AUTH_ERR_SEND_TOO_MANY", { mins: tWait(data.retry_after) }) :
         res.status === 502 ? t("AUTH_ERR_SEND_FAILED") :
         res.status === 503 ? t("AUTH_ERR_SMS_UNAVAILABLE") :
-        tErr(data, "AUTH_ERR_LOGIN_FAILED");
+        // a wrong password now says how many guesses are left before this
+        // device is blocked, the same way a wrong OTP code does — being cut
+        // off with no warning reads as a broken app rather than a rule
+        wrongPasswordMsg(data);
       errEl.hidden = false;
       if (!resending) { const p = $("ownerPass"); p.classList.remove("shake"); void p.offsetWidth; p.classList.add("shake"); }
       return;
