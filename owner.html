@@ -56,6 +56,32 @@
        gone, and with it the per-tab padding switch. */
     .own { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 24px 20px 104px; display: flex; flex-direction: column; gap: 16px; }
 
+    /* 480px is the right width for three of the four tabs: the card tab is a
+       phone-shaped loyalty card, and discounts and settings are short forms.
+       Stretching those across a laptop would only spread six fields over a
+       metre of glass.
+
+       The analytics tab is not that. It is a report, and it was the one place
+       this cap actively hurt: .an-grid below switches to two columns at a
+       760px VIEWPORT, but its container was still 480px, so a 1440px laptop
+       got two 186px columns — measured, not estimated, and narrower than the
+       single-column phone layout they replaced. That is why the tab looked
+       broken on a big screen and fine on a handset.
+
+       So the shell widens for that tab alone. :has() reads the panel's own
+       hidden attribute (owner.page.js's setTab toggles it), so this follows
+       the active tab with no JS. Where :has() is unsupported the page simply
+       stays 480px — today's behaviour, not a worse one.
+
+       640px rather than a laptop width: between 640 and 900 the old cap left a
+       480px ribbon with a hand's width of empty gradient down either side,
+       which is the same waste in miniature. The shell simply takes the room
+       that is there, up to 1080px — past that, line lengths get tiring and the
+       charts gain nothing. */
+    @media (min-width: 640px) {
+      .own:has(#panelAnalytics:not([hidden])) { max-width: 1080px; }
+    }
+
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ---------------- Shared glass surface ---------------- */
@@ -908,7 +934,23 @@
     }
     #anContent .card.an-tile .card__sub { font-size: 12.5px; margin-bottom: 16px; }
 
-    @media (min-width: 760px) {
+    /* A CONTAINER query, not a media query, and that is the whole fix. This
+       grid's problem was never the screen — it was that it asked the viewport
+       how much room it had while sitting in a 480px shell, and split itself in
+       two on a laptop where each column then had 186px. Asking its own
+       container instead means it can only ever split when there is genuinely
+       width to split, whatever the screen is doing.
+
+       820px is measured from the content, not picked round: it is the width at
+       which two columns still clear ~390px each, and below that the 14-day
+       charts start crowding their day labels. A container between 640 and
+       820px therefore stays ONE wide column rather than splitting into two
+       cramped ones — wider is not automatically two-up.
+
+       Unsupported @container degrades to one column, which is the readable
+       layout, never a broken one. */
+    .an { container-type: inline-size; container-name: anreport; }
+    @container anreport (min-width: 820px) {
       .an-grid { grid-template-columns: 1fr 1fr; column-gap: 40px; }
       .an-grid .an-tile--wide { grid-column: 1 / -1; }
       /* with two columns the hairline has to run per-column, and the first row
