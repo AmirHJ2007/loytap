@@ -61,7 +61,7 @@ routerAdd("POST", "/owner/register", (e) => {
 
   if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Enter a valid mobile number.", code: "PHONE_REQUIRED" });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return e.json(400, { error: "Enter a valid email address.", code: "EMAIL_REQUIRED" });
-  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters.", code: "PASSWORD_TOO_SHORT" });
+  if (password.length < 10) return e.json(400, { error: "Password must be at least 10 characters.", code: "PASSWORD_TOO_SHORT" });
   if (!cafeName) return e.json(400, { error: "Enter your café's name.", code: "CAFE_NAME_REQUIRED" });
   if (!/^\d{6}$/.test(code)) return e.json(400, { error: "Enter the 6-digit code sent to your phone.", code: "CODE_REQUIRED" });
 
@@ -273,8 +273,17 @@ routerAdd("POST", "/owner/register", (e) => {
 //     400 invalid phone / missing password
 //     404 { error, notRegistered:true }
 //     401 wrong password
+//     429 { error, code:"OWNER_LOCKED", retry_after }   too many wrong guesses
 //     429 too many codes requested for this number
 //     502 SMS provider refused   503 no SMS provider configured (see below)
+//
+// Wrong passwords are counted per client IP and locked out after 5 in 15
+// minutes, escalating to an hour — the same budget staff.pb.js keeps for the
+// café code, in its own table. Before that existed this endpoint would check a
+// password as often as anyone cared to ask, which made a 6-character minimum a
+// few hours of guessing; that minimum is now 10. An unknown number spends a
+// guess too, so the 404 below cannot be farmed as a "does this number own a
+// café?" oracle. See 1700000030_owner_login_attempts.js.
 //
 // The SMS is minted ONLY after the password validates. Anything earlier and
 // knowing an owner's phone number would be enough to spam their handset and
@@ -304,6 +313,14 @@ routerAdd("POST", "/owner/login", (e) => {
   const MAX_SENDS = 5;
   const SEND_WINDOW_MS = 15 * 60 * 1000;
   const PRUNE_AFTER_MS = 60 * 60 * 1000;
+  // Guess budget, same shape and numbers as staff.pb.js's café-code lockout.
+  // See 1700000030_owner_login_attempts.js for why this endpoint needed one at
+  // all and why it keeps its own table rather than sharing the staff one.
+  const MAX_FAILS = 5;
+  const FAIL_WINDOW_MS = 15 * 60 * 1000;
+  const LOCK_MS = 15 * 60 * 1000;            // first lockout
+  const LOCK_ESCALATED_MS = 60 * 60 * 1000;  // second and beyond
+  const ATTEMPT_PRUNE_AFTER_MS = 24 * 60 * 60 * 1000;
 
   const now = Date.now();
   // pb stores/compares datetimes as "YYYY-MM-DD HH:MM:SS.sssZ"
@@ -319,17 +336,126 @@ routerAdd("POST", "/owner/login", (e) => {
   const password = String(e.requestInfo().body.password || "");
   if (!/^9\d{9}$/.test(phone)) return e.json(400, { error: "Invalid phone number", code: "INVALID_PHONE" });
 
+  // ---- guess budget, spent before the password is ever looked at ----
+  //
+  // !! e.realIP() only reports the true client address if Settings >
+  // trustedProxy names X-Forwarded-For. Unconfigured, behind Liara's edge, it
+  // falls back to remoteIP() — one value shared by every visitor — and this
+  // lockout would take every owner offline together. trustedproxy.pb.js warns
+  // at boot, and the failure path below re-checks and logs loudly.
+  let ip = "";
+  try { ip = String(e.realIP() || ""); } catch (err) { ip = ""; }
+  if (!ip) { try { ip = String(e.remoteIP() || ""); } catch (err) { ip = ""; } }
+  if (!ip) ip = "unknown";
+
+  const lockedOut = (until) => {
+    const left = until - now;
+    try { e.response.header().set("Retry-After", String(Math.ceil(left / 1000))); } catch (err) {}
+    return e.json(429, {
+      // deliberately says nothing about whether the number has an account or
+      // how close a password came — the client builds its own sentence from
+      // retry_after, so the wait never ships as pre-baked English prose
+      error: "Too many sign-in attempts from this device. Please wait and try again.",
+      code: "OWNER_LOCKED",
+      retry_after: Math.ceil(left / 1000),
+    });
+  };
+
+  // opportunistic prune — a row untouched for a day is past even the longest
+  // (1h) lockout, so dropping it is the clean slate it already represents
+  if (Math.random() < 0.05) {
+    try {
+      const stale = $app.findRecordsByFilter("owner_login_attempts", "updated < {:cut}", "", 200, 0, { cut: dbTime(now - ATTEMPT_PRUNE_AFTER_MS) });
+      for (const r of stale) $app.delete(r);
+    } catch (err) {}
+  }
+
+  let att = null;
+  try { att = $app.findFirstRecordByFilter("owner_login_attempts", "ip = {:ip}", { ip }); } catch (err) { att = null; }
+  if (att) {
+    const until = msOf(att.get("locked_until"));
+    if (until > now) return lockedOut(until);
+  }
+
+  // Counts one wrong guess and returns the response to send. Both failure
+  // modes below spend it: a wrong password AND an unknown number. Charging
+  // the unknown-number case is what stops this endpoint from also being an
+  // unlimited "does this number own a café?" oracle — the 404 is useful to a
+  // real owner who mistyped, and useless to anyone walking the numbering plan
+  // five guesses at a time.
+  const spendFailure = (status, body) => {
+    let lockedUntil = 0;
+    try {
+      if (!att) {
+        att = new Record($app.findCollectionByNameOrId("owner_login_attempts"));
+        att.set("ip", ip);
+        att.set("fails", 0);
+        att.set("lockouts", 0);
+        att.set("window_start", dbTime(now));
+      }
+
+      let fails = att.getInt("fails");
+      const winStart = msOf(att.get("window_start"));
+      if (!winStart || now - winStart > FAIL_WINDOW_MS) { fails = 0; att.set("window_start", dbTime(now)); } // window rolled over
+      fails += 1;
+      att.set("fails", fails);
+
+      if (fails >= MAX_FAILS) {
+        const lockouts = att.getInt("lockouts") + 1;
+        lockedUntil = now + (lockouts >= 2 ? LOCK_ESCALATED_MS : LOCK_MS);
+        att.set("lockouts", lockouts);
+        att.set("locked_until", dbTime(lockedUntil));
+        att.set("fails", 0);                   // fresh count for after the lockout
+        att.set("window_start", dbTime(now));
+        $app.logger().warn("owner login locked out", "ip", ip, "lockouts", lockouts);
+
+        // behind a proxy with no trustedProxy setting every request shares one
+        // IP, so this lockout would hit every owner at once — say so loudly
+        try {
+          const cfg = $app.settings().trustedProxy;
+          const fwd = e.requestInfo().headers.x_forwarded_for;
+          if (fwd && (!cfg || !cfg.headers || cfg.headers.length === 0)) {
+            $app.logger().error(
+              "owner login lockout on a possibly SHARED proxy IP — set Settings > trustedProxy (X-Forwarded-For) or every owner is locked out together",
+              "ip", ip
+            );
+          }
+        } catch (err) {}
+      }
+
+      $app.save(att);
+    } catch (err) {
+      lockedUntil = 0; // nothing was recorded — don't claim a lockout we didn't store
+      $app.logger().error("owner login attempt counter failed", "error", String(err));
+    }
+
+    // the guess that trips the limit says so straight away, rather than
+    // leaving the owner to fail once more before being told to wait
+    if (lockedUntil > now) return lockedOut(lockedUntil);
+    return e.json(status, body);
+  };
+
+  // An empty box is not a guess, and is never counted — but it is answered
+  // before the account lookup so that an empty password cannot be used to ask
+  // whether a number is registered for free.
+  if (!password) return e.json(400, { error: "Enter your password", code: "PASSWORD_REQUIRED" });
+
   // A phone can also have a separate customer account — fetch the business
   // (admin) one specifically, not whichever row happens to match first.
   let u = null;
   try { u = $app.findFirstRecordByFilter("users", "phone = {:phone} && role = 'admin'", { phone }); } catch (err) { u = null; }
   if (!u) {
-    return e.json(404, { error: "No owner account for this number", code: "NO_OWNER_ACCOUNT", notRegistered: true });
+    return spendFailure(404, { error: "No owner account for this number", code: "NO_OWNER_ACCOUNT", notRegistered: true });
   }
-  if (!password) return e.json(400, { error: "Enter your password", code: "PASSWORD_REQUIRED" });
-  if (!u.validatePassword(password)) return e.json(401, { error: "Wrong password", code: "WRONG_PASSWORD" });
+  if (!u.validatePassword(password)) return spendFailure(401, { error: "Wrong password", code: "WRONG_PASSWORD" });
 
   // ---- password is good; only now does anything get sent anywhere ----
+
+  // a correct password clears this device's record, exactly as a correct café
+  // code does in staff.pb.js. Resending is just calling this endpoint again
+  // with the same good password, so a legitimate resend can never accumulate
+  // failures towards a lockout.
+  try { if (att) { $app.delete(att); att = null; } } catch (err) {}
 
   // opportunistic prune — a challenge an hour past its 3-minute expiry is dead
   // several times over, so dropping it just reclaims the row. Budgets are
@@ -791,7 +917,7 @@ routerAdd("POST", "/owner/forgot-password/verify", (e) => {
   if (!/^\d{6}$/.test(code)) return bad();
   // checked before touching the challenge: a wrong code should never be able
   // to tell an attacker whether the password they supplied was well-formed
-  if (password.length < 6) return e.json(400, { error: "Password must be at least 6 characters.", code: "PASSWORD_TOO_SHORT" });
+  if (password.length < 10) return e.json(400, { error: "Password must be at least 10 characters.", code: "PASSWORD_TOO_SHORT" });
 
   let ch = null;
   try { ch = $app.findFirstRecordByFilter("owner_password_resets", "phone = {:phone}", { phone }); } catch (err) { ch = null; }

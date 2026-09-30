@@ -222,7 +222,7 @@ const checkCCafe     = makeCheck("cCafe", "cCafeErr", (v) => v.trim() ? "" : t("
 const checkCName     = makeCheck("cName", "cNameErr", (v) => v.trim() ? "" : t("AUTH_ERR_OWNER_NAME_REQUIRED"));
 const checkCPhone    = makeCheck("cPhone", "cPhoneErr", (v) => validPhone(v) ? "" : t("AUTH_ERR_PHONE_INVALID"));
 const checkCEmail    = makeCheck("cEmail", "cEmailErr", (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? "" : t("AUTH_ERR_EMAIL_INVALID"));
-const checkCPass     = makeCheck("cPass", "cPassErr", (v) => v.length >= 6 ? "" : t("AUTH_ERR_PASSWORD_SHORT"));
+const checkCPass     = makeCheck("cPass", "cPassErr", (v) => v.length >= 10 ? "" : t("AUTH_ERR_PASSWORD_SHORT"));
 const checkCPassConfirm = makeCheck("cPassConfirm", "cPassConfirmErr", (v) => v === $("cPass").value ? "" : t("AUTH_ERR_PASSWORD_MISMATCH"));
 
 [["cafeCode", checkCafeCode], ["ownerPhone", checkOwnerPhone], ["ownerPass", checkOwnerPass],
@@ -303,7 +303,11 @@ async function requestOwnerOtp() {
       // no SMS provider configured) — translate them rather than surfacing
       // the server's raw English on a Persian UI
       errEl.textContent =
-        res.status === 429 ? t("AUTH_ERR_SEND_TOO_MANY") :
+        // 429 now means two different things here: the SMS send cap (no code
+        // field) and the wrong-password lockout (OWNER_LOCKED + retry_after).
+        // Translate by code first so the lockout says how long to wait; the
+        // send-cap wording stays as the fallback for the older shape.
+        res.status === 429 ? tErr(data, "AUTH_ERR_SEND_TOO_MANY", { mins: tWait(data.retry_after) }) :
         res.status === 502 ? t("AUTH_ERR_SEND_FAILED") :
         res.status === 503 ? t("AUTH_ERR_SMS_UNAVAILABLE") :
         tErr(data, "AUTH_ERR_LOGIN_FAILED");
@@ -647,7 +651,7 @@ async function submitNewPassword() {
   const passwordConfirm = $("forgotPassConfirm").value;
   const err = (msg) => { $("forgotNewErr").textContent = msg; $("forgotNewErr").hidden = false; };
   $("forgotNewErr").hidden = true;
-  if (password.length < 6) { $("forgotPass").focus(); return err(t("AUTH_ERR_PASSWORD_SHORT")); }
+  if (password.length < 10) { $("forgotPass").focus(); return err(t("AUTH_ERR_PASSWORD_SHORT")); }
   if (password !== passwordConfirm) { $("forgotPassConfirm").focus(); return err(t("AUTH_ERR_PASSWORD_MISMATCH")); }
 
   $("forgotNewBtn").disabled = true;
