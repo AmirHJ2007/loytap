@@ -126,7 +126,32 @@ body {
    in a card that springs down + glows for attention, counts its
    window down, and collapses on approve / deny / timeout.
    ================================================================ */
-.request-queue { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+/* Floats over BOTH tabs rather than living inside the scan panel.
+   The reason is the flow: a request is created by a customer scanning the code
+   on the QR tab, so keeping the approve button on the scan tab meant staff left
+   the screen the customer was looking at, approved, and came back — once per
+   customer, every customer. Now it arrives wherever they are.
+
+   Top 74px clears the sign-out button (fixed, 44px at top:16) and the café
+   name (.staff-head, top:26), so neither is ever covered by a request.
+
+   z-index 220 puts it above the tab bar's 210: an approval waiting is the most
+   important thing on the screen, and it enters from the top where the tab bar
+   is not. pointer-events none on the container with auto on the cards means the
+   empty column between cards never swallows a tap meant for the page. */
+.request-queue {
+  position: fixed;
+  top: calc(74px + env(safe-area-inset-top, 0px));
+  left: 50%; transform: translateX(-50%);
+  width: min(480px, calc(100vw - 36px));
+  z-index: 220;
+  display: flex; flex-direction: column; gap: 12px;
+  /* a rush can queue several; scroll rather than run off the screen */
+  max-height: calc(100dvh - 190px);
+  overflow-y: auto; overscroll-behavior: contain;
+  pointer-events: none;
+}
+.request-queue > * { pointer-events: auto; }
 .request-queue:empty { display: none; }
 
 .incoming {
@@ -410,24 +435,6 @@ html[dir="rtl"] .tabbar__ind {
   letter-spacing: 0.2px; white-space: nowrap;
 }
 
-/* Count of stamp requests waiting. The queue is realtime and lives on the
-   scan panel, so without this a request arriving while staff are on the other
-   tab is invisible until they happen to switch back — the one way a tab bar
-   can actively make this page worse than it was. Hidden at zero rather than
-   shown as "0". */
-.tab__badge {
-  position: absolute; top: -5px; inset-inline-end: -9px;
-  min-width: 17px; height: 17px; padding: 0 4px;
-  border-radius: 9px; background: var(--terra-deep); color: #fff;
-  font-family: var(--font-heading); font-size: 10px; font-weight: 700;
-  display: grid; place-items: center; line-height: 1;
-  box-shadow: 0 0 0 2px var(--glass-fill-strong);
-  animation: badgePop 0.42s var(--ease-spring);
-}
-.tab.is-active .tab__badge { background: #fff; color: var(--ink); }
-.tab__badge[hidden] { display: none; }
-@keyframes badgePop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
 /* panels swap on [hidden]; the attribute alone is enough since nothing here
    overrides display on .panel */
 .panel { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 18px; }
@@ -437,7 +444,6 @@ html[dir="rtl"] .tabbar__ind {
   .tabbar { animation: none; }
   .tabbar__ind { transition: none; }
   .tab.is-active .tab__ico { animation: none; }
-  .tab__badge { animation: none; }
 }
 
 /* ---------------- QR code tab ----------------

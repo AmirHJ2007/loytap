@@ -45,24 +45,10 @@
   var initial = location.hash.slice(1);
   setStaffTab(INDEX.hasOwnProperty(initial) ? initial : "scan");
 
-  // ---- pending-request badge -------------------------------------------
-  // staff.js owns #requestQueue and pushes/removes cards in it over a
-  // realtime subscription. Rather than reach into that file's internals,
-  // watch the element: any change to its children re-counts. That keeps the
-  // badge correct for every path that can alter the queue — a new request, an
-  // approval, a cancel, the startup backfill — without staff.js needing to
-  // know a tab bar exists.
-  var queue = document.getElementById("requestQueue");
-  var badge = document.getElementById("scanBadge");
-  if (!queue || !badge || typeof MutationObserver === "undefined") return;
-
-  function sync() {
-    var n = queue.children.length;
-    badge.textContent = n > 9 ? "9+" : String(n);
-    badge.hidden = n === 0;
-  }
-  new MutationObserver(sync).observe(queue, { childList: true });
-  sync();
+  // No tab badge any more. It existed to tell staff that a request had
+  // arrived while they were on the other tab — and the queue now floats over
+  // both tabs, so there is no "other tab" to miss it from. The right fix took
+  // something away.
 })();
 
 // ===================================================================

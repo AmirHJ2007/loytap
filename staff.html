@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=19" />
+  <link rel="stylesheet" href="staff.css?v=20" />
   <script src="i18n.js?v=40"></script>
 </head>
 <body>
@@ -27,6 +27,15 @@
     </svg>
   </button>
 
+  <!-- Incoming stamp-tap requests — realtime, no refresh. Deliberately OUTSIDE
+       both panels and floating over them: a request is created by a customer
+       scanning the code on the QR tab, so penning the approve button inside the
+       scan tab meant staff left the screen the customer is looking at, approved,
+       and came back — once per customer, all shift. It now appears wherever
+       they are. Sits below the sign-out button and the café name so neither is
+       covered. -->
+  <div class="request-queue" id="requestQueue" aria-live="polite"></div>
+
   <main class="staff">
     <header class="staff-head">
       <h1 class="staff-title" id="cafeName">Oram Cafe &amp; Restaurant</h1>
@@ -34,12 +43,6 @@
 
     <!-- ===== Tab 2: Scan (the landing tab) ===== -->
     <section class="panel" id="panelScan">
-
-    <!-- Incoming stamp-tap requests — real-time, no refresh. Stays on THIS
-         panel rather than getting its own tab: it is realtime and time-
-         sensitive, and the scan tab is where staff already are. The tab
-         badge covers the case where they are on the other tab. -->
-    <div class="request-queue" id="requestQueue" aria-live="polite"></div>
 
     <div class="staff-card">
       <!-- Scanner -->
@@ -147,7 +150,6 @@
         <!-- the same viewfinder mark the idle scanner and the start button
              already use, so the tab reads as the thing it opens -->
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M4 12h16"/></svg>
-        <span class="tab__badge" id="scanBadge" hidden>0</span>
       </span>
       <span class="tab__label" data-i18n="STAFF_TAB_SCAN">Scan</span>
     </button>
@@ -157,7 +159,7 @@
        different libraries, both needed. qrcode.js must come before
        staff.page.js, which calls it on load to draw the code. -->
   <script src="qrcode.js"></script>
-  <script src="staff.page.js?v=10"></script>
+  <script src="staff.page.js?v=11"></script>
   <script src="jsQR.js"></script>
   <script src="staff.js?v=13"></script>
 </body>
