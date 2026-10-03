@@ -183,8 +183,11 @@ const STRINGS = {
 
     // ---- staff.html / staff.js ----
     STAFF_TAB_SCAN: "Scan",
-    STAFF_TAB_TWO: "Soon",
-    STAFF_TAB_TWO_SUB: "This tab is ready and waiting for its content.",
+    STAFF_TAB_QR: "QR code",
+    STAFF_QR_SUB: "Have the customer scan this",
+    STAFF_QR_FOOT: "Point a phone camera at the code",
+    STAFF_QR_ARIA: "QR code for customers to scan",
+    STAFF_QR_ERROR: "Could not build the code.",
     STAFF_IDLE_TITLE: "Ready to scan",
     STAFF_IDLE_SUB: "Point the camera at a customer's QR",
     STAFF_BTN_START: "Start scanning",
@@ -630,8 +633,11 @@ const STRINGS = {
 
     // ---- staff.html / staff.js ----
     STAFF_TAB_SCAN: "اسکن",
-    STAFF_TAB_TWO: "به‌زودی",
-    STAFF_TAB_TWO_SUB: "این تب آماده است و منتظر محتوای خودش می‌ماند.",
+    STAFF_TAB_QR: "کد QR",
+    STAFF_QR_SUB: "از مشتری بخواهید این را اسکن کند",
+    STAFF_QR_FOOT: "دوربین گوشی را روی کد بگیرید",
+    STAFF_QR_ARIA: "کد QR برای اسکن مشتری",
+    STAFF_QR_ERROR: "ساخت کد ممکن نشد.",
     STAFF_IDLE_TITLE: "آماده اسکن",
     STAFF_IDLE_SUB: "دوربین را روی QR مشتری بگیرید",
     STAFF_BTN_START: "شروع اسکن",

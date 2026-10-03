@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=15" />
-  <script src="i18n.js?v=38"></script>
+  <link rel="stylesheet" href="staff.css?v=16" />
+  <script src="i18n.js?v=40"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span><span class="grain"></span></div>
@@ -32,7 +32,7 @@
       <h1 class="staff-title" id="cafeName">Oram Cafe &amp; Restaurant</h1>
     </header>
 
-    <!-- ===== Tab 1: Scan ===== -->
+    <!-- ===== Tab 2: Scan (the landing tab) ===== -->
     <section class="panel" id="panelScan">
 
     <!-- Incoming stamp-tap requests — real-time, no refresh. Stays on THIS
@@ -83,15 +83,33 @@
 
     </section><!-- /panelScan -->
 
-    <!-- ===== Tab 2: placeholder =====
-         Structure only, waiting on what this tab should actually hold. To
-         fill it: drop the content inside, then change the label string and
-         the <svg> in #tabTwo below. Nothing else needs touching — the bar,
-         the indicator and the switching already work. -->
-    <section class="panel" id="panelTwo" hidden>
-      <div class="staff-card panel-soon">
-        <p class="panel-soon__title" data-i18n="STAFF_TAB_TWO">Coming soon</p>
-        <p class="panel-soon__sub" data-i18n="STAFF_TAB_TWO_SUB">This tab is ready and waiting for its content.</p>
+    <!-- ===== Tab 1: QR code =====
+         Sits FIRST in the bar but is not the landing tab — staff open this
+         page to scan, and index 0 is a position, not a default (the owner
+         panel lands on Card at index 1 for the same reason). Drop the content
+         in here; the bar, indicator and switching already work. -->
+    <section class="panel" id="panelQr" hidden>
+      <div class="staff-card qr-card">
+        <header class="qr-head">
+          <p class="qr-head__shop" id="qrShop">&nbsp;</p>
+          <p class="qr-head__sub" data-i18n="STAFF_QR_SUB">Have the customer scan this</p>
+        </header>
+
+        <!-- The plate is deliberately opaque white, not the glass the rest of
+             this page uses: a QR is read by a camera, and contrast is the
+             whole job. Glass behind the modules would cost scans in a dim
+             café for the sake of looking consistent. The brackets echo the
+             scanner's own corner marks on the other tab — one frames what it
+             is looking at, this frames what it is showing. -->
+        <div class="qr-plate">
+          <span class="qr-corner tl" aria-hidden="true"></span>
+          <span class="qr-corner tr" aria-hidden="true"></span>
+          <span class="qr-corner bl" aria-hidden="true"></span>
+          <span class="qr-corner br" aria-hidden="true"></span>
+          <div class="qr-plate__code" id="qrCode" role="img" aria-label="QR code" data-i18n-aria="STAFF_QR_ARIA"></div>
+        </div>
+
+        <p class="qr-foot" id="qrFoot" data-i18n="STAFF_QR_FOOT">Point a phone camera at the code</p>
       </div>
     </section>
   </main>
@@ -107,8 +125,23 @@
     </div>
   </div>
 
-  <nav class="tabbar" id="tabbar" style="--ti:0" aria-label="Primary">
+  <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
     <span class="tabbar__ind" aria-hidden="true"></span>
+    <button class="tab" id="tabQr" type="button" aria-label="QR code" data-i18n-aria="STAFF_TAB_QR">
+      <span class="tab__ico">
+        <!-- a QR mark: the three finder squares a real code has, plus a few
+             data cells in the fourth corner. Drawn rather than borrowed so it
+             carries the same 1.9 stroke and rounded joins as the scan mark
+             beside it; at 22px the finders are what make it read as a QR. -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3.2" y="3.2" width="7" height="7" rx="1.6"/>
+          <rect x="13.8" y="3.2" width="7" height="7" rx="1.6"/>
+          <rect x="3.2" y="13.8" width="7" height="7" rx="1.6"/>
+          <path d="M13.8 13.8h2.6M20.8 13.8h0M13.8 17.3h0M17.3 17.3h3.5M13.8 20.8h2.6M20.3 20.3h.5"/>
+        </svg>
+      </span>
+      <span class="tab__label" data-i18n="STAFF_TAB_QR">QR code</span>
+    </button>
     <button class="tab is-active" id="tabScan" type="button" aria-label="Scan" data-i18n-aria="STAFF_TAB_SCAN">
       <span class="tab__ico">
         <!-- the same viewfinder mark the idle scanner and the start button
@@ -118,16 +151,13 @@
       </span>
       <span class="tab__label" data-i18n="STAFF_TAB_SCAN">Scan</span>
     </button>
-    <button class="tab" id="tabTwo" type="button" aria-label="Coming soon" data-i18n-aria="STAFF_TAB_TWO">
-      <span class="tab__ico">
-        <!-- placeholder mark — swap with the real one -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l2.5 2.5"/></svg>
-      </span>
-      <span class="tab__label" data-i18n="STAFF_TAB_TWO">Soon</span>
-    </button>
   </nav>
 
-  <script src="staff.page.js?v=4"></script>
+  <!-- qrcode.js WRITES a QR (the code tab), jsQR.js READS one (the scanner);
+       different libraries, both needed. qrcode.js must come before
+       staff.page.js, which calls it on load to draw the code. -->
+  <script src="qrcode.js"></script>
+  <script src="staff.page.js?v=7"></script>
   <script src="jsQR.js"></script>
   <script src="staff.js?v=13"></script>
 </body>

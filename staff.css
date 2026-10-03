@@ -440,11 +440,77 @@ html[dir="rtl"] .tabbar__ind {
   .tab__badge { animation: none; }
 }
 
-/* placeholder body for the second tab — delete with its markup once that
-   tab has real content */
-.panel-soon { text-align: center; padding: 44px 26px; }
-.panel-soon__title {
-  font-family: var(--font-heading); font-weight: 700; font-size: 17px;
-  color: var(--ink); margin: 0 0 6px;
+/* ---------------- QR code tab ----------------
+   A code a customer points a phone at, shown on a till that may be sitting
+   under café lighting at an angle. Every choice below follows from that:
+   scannability first, and the decoration kept off the modules themselves. */
+.qr-card { gap: 20px; }
+
+.qr-head { text-align: center; }
+.qr-head__shop {
+  font-family: var(--font-heading); font-weight: 700; font-size: 20px;
+  letter-spacing: -0.3px; color: var(--ink); margin: 0 0 4px;
+  /* a long café name must not push the plate off-centre or wrap to three
+     lines on a narrow till */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.panel-soon__sub { font-size: 13px; color: var(--ink-dim); margin: 0; line-height: 1.6; }
+html[dir="rtl"] .qr-head__shop { letter-spacing: 0; }
+.qr-head__sub { font-size: 13px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+
+/* THE PLATE IS OPAQUE WHITE ON PURPOSE. Everything else on this page is
+   glass, and a QR on glass is the kind of consistency that costs you scans:
+   the blur and the stains behind it lower the contrast a camera works from,
+   worst exactly where it already struggles — dim rooms, steep angles, cheap
+   phones. White plate, near-black modules, and a quiet zone the renderer
+   already builds in. The lift shadow is what keeps it looking deliberate
+   rather than like a hole punched in the card. */
+.qr-plate {
+  position: relative;
+  width: 100%; max-width: 300px; margin: 0 auto;
+  aspect-ratio: 1;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 22px 46px -20px rgba(20, 20, 20, 0.55), inset 0 0 0 1px rgba(20, 20, 20, 0.06);
+  display: grid; place-items: center;
+  animation: qrPlateIn 0.75s var(--ease-spring) 0.1s both;
+}
+@keyframes qrPlateIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+.qr-plate__code { width: 100%; height: 100%; display: grid; place-items: center; }
+.qr-plate__code svg { width: 100%; height: 100%; display: block; }
+
+/* The same corner marks the scanner draws on the other tab (.scanner__corner),
+   mirrored here so the pair reads as one idea: that tab frames what it is
+   looking at, this one frames what it is showing. Sat OUTSIDE the padding so
+   they never touch the modules or the quiet zone. */
+.qr-corner {
+  position: absolute; width: 20px; height: 20px;
+  border: 2.5px solid var(--ink); border-radius: 3px;
+  opacity: 0.82;
+}
+.qr-corner.tl { top: 10px; left: 10px;  border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+.qr-corner.tr { top: 10px; right: 10px; border-left: 0;  border-bottom: 0; border-top-right-radius: 8px; }
+.qr-corner.bl { bottom: 10px; left: 10px;  border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
+.qr-corner.br { bottom: 10px; right: 10px; border-left: 0;  border-top: 0; border-bottom-right-radius: 8px; }
+
+.qr-foot {
+  text-align: center; font-size: 12.5px; color: var(--ink-faint);
+  margin: 0; line-height: 1.5;
+}
+
+/* a code that could not be built says so, rather than leaving a white square
+   the customer keeps pointing a phone at */
+.qr-plate__code.is-error {
+  font-family: var(--font-heading); font-weight: 700; font-size: 13px;
+  color: var(--ink-dim); text-align: center; line-height: 1.6; padding: 10px;
+}
+
+@media (max-width: 380px) {
+  .qr-plate { padding: 16px; border-radius: 18px; }
+  .qr-head__shop { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .qr-plate { animation: none; } }
