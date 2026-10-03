@@ -441,66 +441,84 @@ html[dir="rtl"] .tabbar__ind {
 }
 
 /* ---------------- QR code tab ----------------
-   A code a customer points a phone at, shown on a till that may be sitting
-   under café lighting at an angle. Every choice below follows from that:
-   scannability first, and the decoration kept off the modules themselves. */
-.qr-card { gap: 20px; }
+   A code a customer points a phone at, on a till that may be under café
+   lighting at an angle. Scannability first; the decoration stays off the
+   modules.
 
-.qr-head { text-align: center; }
-.qr-head__shop {
-  font-family: var(--font-heading); font-weight: 700; font-size: 20px;
-  letter-spacing: -0.3px; color: var(--ink); margin: 0 0 4px;
-  /* a long café name must not push the plate off-centre or wrap to three
-     lines on a narrow till */
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-html[dir="rtl"] .qr-head__shop { letter-spacing: 0; }
-.qr-head__sub { font-size: 13px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+   THE STAGE IS THE IDEA. The scan tab's hero is a dark viewport showing what
+   the camera sees. This tab's hero is the same dark field showing what the
+   customer should look at — the two tabs become one thought rather than two
+   screens that happen to share a tab bar. It also does the plain work: a
+   white plate on near-black has presence that the same plate on a pale page
+   does not, and it drives the eye to the one thing on screen that matters. */
+/* The panel centres in the height it has rather than hanging from the top
+   over a drop of empty page. */
+#panelQr { flex: 1; justify-content: center; }
+.qr-card { width: 100%; display: flex; flex-direction: column; }
 
-/* THE PLATE IS OPAQUE WHITE ON PURPOSE. Everything else on this page is
-   glass, and a QR on glass is the kind of consistency that costs you scans:
-   the blur and the stains behind it lower the contrast a camera works from,
-   worst exactly where it already struggles — dim rooms, steep angles, cheap
-   phones. White plate, near-black modules, and a quiet zone the renderer
-   already builds in. The lift shadow is what keeps it looking deliberate
-   rather than like a hole punched in the card. */
-.qr-plate {
-  position: relative;
-  width: 100%; max-width: 300px; margin: 0 auto;
-  aspect-ratio: 1;
-  background: #ffffff;
-  border-radius: 22px;
-  padding: 22px;
-  box-shadow: 0 22px 46px -20px rgba(20, 20, 20, 0.55), inset 0 0 0 1px rgba(20, 20, 20, 0.06);
-  display: grid; place-items: center;
-  animation: qrPlateIn 0.75s var(--ease-spring) 0.1s both;
+/* THE STAGE IS THE OBJECT — it is not wrapped in the glass .staff-card the
+   rest of this page uses. A pale card holding a dark card is a box in a box,
+   and on a screen whose whole job is "look here" the frame was competing with
+   the thing it framed. One object, one edge.
+
+   Sized to its content, not stretched to fill: an earlier pass let it take
+   the whole column and the code ended up adrift in a field of black, which
+   reads as a layout bug rather than as composition. The padding below is the
+   breathing room, and it is deliberately generous — at a 22px frame the dark
+   read as a border instead of a ground. */
+.qr-stage {
+  width: 100%;
+  border-radius: 28px;
+  padding: 42px 30px 34px;
+  /* the same radial the scanner's viewport uses, so the rhyme is exact */
+  background: radial-gradient(120% 120% at 50% 30%, #262626, #111111);
+  box-shadow: 0 30px 60px -24px rgba(20,20,20,0.7), inset 0 0 0 1px rgba(255,255,255,0.07);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 26px;
+  animation: qrStageIn 0.75s var(--ease-spring) 0.08s both;
 }
-@keyframes qrPlateIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+@keyframes qrStageIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
   to   { opacity: 1; transform: none; }
 }
 
+/* the line that tells staff what to do with it, inside the stage so it reads
+   as part of the object rather than page furniture */
+.qr-stage__line {
+  margin: 0; text-align: center;
+  font-family: var(--font-heading); font-weight: 700; font-size: 14px;
+  color: rgba(255,255,255,0.88); letter-spacing: 0.1px;
+}
+
+/* OPAQUE WHITE ON PURPOSE. Everything else here is glass, and a QR on glass
+   is the kind of consistency that costs scans: the blur and the stains behind
+   it lower the contrast a camera works from, worst exactly where it already
+   struggles. White plate, near-black modules, and the quiet zone the renderer
+   builds in. */
+.qr-plate {
+  position: relative;
+  width: 100%; max-width: 290px;
+  aspect-ratio: 1;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+  display: grid; place-items: center;
+}
 .qr-plate__code { width: 100%; height: 100%; display: grid; place-items: center; }
 .qr-plate__code svg { width: 100%; height: 100%; display: block; }
 
-/* The same corner marks the scanner draws on the other tab (.scanner__corner),
-   mirrored here so the pair reads as one idea: that tab frames what it is
-   looking at, this one frames what it is showing. Sat OUTSIDE the padding so
-   they never touch the modules or the quiet zone. */
+/* The scanner's corner marks (.scanner__corner), mirrored. That tab frames
+   what it is looking at; this frames what it is showing. Outside the padding
+   so they never touch the modules or the quiet zone. */
 .qr-corner {
-  position: absolute; width: 20px; height: 20px;
-  border: 2.5px solid var(--ink); border-radius: 3px;
-  opacity: 0.82;
+  position: absolute; width: 18px; height: 18px;
+  border: 2.5px solid var(--ink); border-radius: 3px; opacity: 0.8;
 }
-.qr-corner.tl { top: 10px; left: 10px;  border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
-.qr-corner.tr { top: 10px; right: 10px; border-left: 0;  border-bottom: 0; border-top-right-radius: 8px; }
-.qr-corner.bl { bottom: 10px; left: 10px;  border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
-.qr-corner.br { bottom: 10px; right: 10px; border-left: 0;  border-top: 0; border-bottom-right-radius: 8px; }
-
-.qr-foot {
-  text-align: center; font-size: 12.5px; color: var(--ink-faint);
-  margin: 0; line-height: 1.5;
-}
+.qr-corner.tl { top: 9px; left: 9px;  border-right: 0; border-bottom: 0; border-top-left-radius: 7px; }
+.qr-corner.tr { top: 9px; right: 9px; border-left: 0;  border-bottom: 0; border-top-right-radius: 7px; }
+.qr-corner.bl { bottom: 9px; left: 9px;  border-right: 0; border-top: 0; border-bottom-left-radius: 7px; }
+.qr-corner.br { bottom: 9px; right: 9px; border-left: 0;  border-top: 0; border-bottom-right-radius: 7px; }
 
 /* a code that could not be built says so, rather than leaving a white square
    the customer keeps pointing a phone at */
@@ -509,8 +527,9 @@ html[dir="rtl"] .qr-head__shop { letter-spacing: 0; }
   color: var(--ink-dim); text-align: center; line-height: 1.6; padding: 10px;
 }
 
-@media (max-width: 380px) {
-  .qr-plate { padding: 16px; border-radius: 18px; }
-  .qr-head__shop { font-size: 18px; }
+@media (max-height: 700px) {
+  /* a short till screen: give the code the room instead of the chrome */
+  .qr-plate { max-width: 230px; }
+  .qr-stage { padding: 24px 20px 20px; gap: 18px; border-radius: 22px; }
 }
-@media (prefers-reduced-motion: reduce) { .qr-plate { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .qr-stage { animation: none; } }

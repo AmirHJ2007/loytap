@@ -154,19 +154,13 @@
       .then(function (d) {
         if (!d || !d.tap_url) { fail(); return; }
         draw(d.tap_url);
-        // the café name the route returns is authoritative; the localStorage
-        // copy below is only the instant-paint fallback
-        if (d.cafe_name) document.getElementById("qrShop").textContent = d.cafe_name;
       })
       .catch(fail);
   }
 
-  // the café name the staff session already carries, so the customer can see
-  // they are scanning the right shop's code
-  try {
-    var shop = localStorage.getItem("loytap_cafe");
-    if (shop) document.getElementById("qrShop").textContent = shop;
-  } catch (e) {}
+  // No café name is printed on this panel: the page header above it already
+  // shows it, and having it twice on one short screen was the first thing
+  // that read as unfinished.
 
   // no language listener needed: i18n.js's setLang() reloads the page, so a
   // switch redraws this from scratch

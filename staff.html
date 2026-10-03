@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=16" />
+  <link rel="stylesheet" href="staff.css?v=19" />
   <script src="i18n.js?v=40"></script>
 </head>
 <body>
@@ -89,27 +89,27 @@
          panel lands on Card at index 1 for the same reason). Drop the content
          in here; the bar, indicator and switching already work. -->
     <section class="panel" id="panelQr" hidden>
-      <div class="staff-card qr-card">
-        <header class="qr-head">
-          <p class="qr-head__shop" id="qrShop">&nbsp;</p>
-          <p class="qr-head__sub" data-i18n="STAFF_QR_SUB">Have the customer scan this</p>
-        </header>
-
-        <!-- The plate is deliberately opaque white, not the glass the rest of
-             this page uses: a QR is read by a camera, and contrast is the
-             whole job. Glass behind the modules would cost scans in a dim
-             café for the sake of looking consistent. The brackets echo the
-             scanner's own corner marks on the other tab — one frames what it
-             is looking at, this frames what it is showing. -->
-        <div class="qr-plate">
-          <span class="qr-corner tl" aria-hidden="true"></span>
-          <span class="qr-corner tr" aria-hidden="true"></span>
-          <span class="qr-corner bl" aria-hidden="true"></span>
-          <span class="qr-corner br" aria-hidden="true"></span>
-          <div class="qr-plate__code" id="qrCode" role="img" aria-label="QR code" data-i18n-aria="STAFF_QR_ARIA"></div>
+      <div class="qr-card">
+        <!-- The dark stage is the whole idea. The scan tab's hero is a dark
+             viewport showing what the camera sees; this tab's hero is the same
+             dark field showing what the customer should look at. It also does
+             the practical job: a white plate on near-black has far more
+             presence than a white plate on a pale page, and the café name is
+             not repeated here because the page header above already carries
+             it. -->
+        <div class="qr-stage">
+          <!-- opaque white, not the glass the rest of the page uses: a QR is
+               read by a camera and contrast is the whole job. The brackets
+               echo the scanner's own corner marks on the other tab. -->
+          <div class="qr-plate">
+            <span class="qr-corner tl" aria-hidden="true"></span>
+            <span class="qr-corner tr" aria-hidden="true"></span>
+            <span class="qr-corner bl" aria-hidden="true"></span>
+            <span class="qr-corner br" aria-hidden="true"></span>
+            <div class="qr-plate__code" id="qrCode" role="img" aria-label="QR code" data-i18n-aria="STAFF_QR_ARIA"></div>
+          </div>
+          <p class="qr-stage__line" data-i18n="STAFF_QR_SUB">Have the customer scan this</p>
         </div>
-
-        <p class="qr-foot" id="qrFoot" data-i18n="STAFF_QR_FOOT">Point a phone camera at the code</p>
       </div>
     </section>
   </main>
@@ -157,7 +157,7 @@
        different libraries, both needed. qrcode.js must come before
        staff.page.js, which calls it on load to draw the code. -->
   <script src="qrcode.js"></script>
-  <script src="staff.page.js?v=9"></script>
+  <script src="staff.page.js?v=10"></script>
   <script src="jsQR.js"></script>
   <script src="staff.js?v=13"></script>
 </body>
