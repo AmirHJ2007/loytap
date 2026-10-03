@@ -182,6 +182,9 @@ const STRINGS = {
     WALLET_CONFIRM_ERROR_SUB: "Something went wrong — tap again",
 
     // ---- staff.html / staff.js ----
+    STAFF_TAB_SCAN: "Scan",
+    STAFF_TAB_TWO: "Soon",
+    STAFF_TAB_TWO_SUB: "This tab is ready and waiting for its content.",
     STAFF_IDLE_TITLE: "Ready to scan",
     STAFF_IDLE_SUB: "Point the camera at a customer's QR",
     STAFF_BTN_START: "Start scanning",
@@ -626,6 +629,9 @@ const STRINGS = {
     WALLET_CONFIRM_ERROR_SUB: "مشکلی پیش آمد — دوباره ضربه بزنید",
 
     // ---- staff.html / staff.js ----
+    STAFF_TAB_SCAN: "اسکن",
+    STAFF_TAB_TWO: "به‌زودی",
+    STAFF_TAB_TWO_SUB: "این تب آماده است و منتظر محتوای خودش می‌ماند.",
     STAFF_IDLE_TITLE: "آماده اسکن",
     STAFF_IDLE_SUB: "دوربین را روی QR مشتری بگیرید",
     STAFF_BTN_START: "شروع اسکن",

@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=14" />
-  <script src="i18n.js?v=37"></script>
+  <link rel="stylesheet" href="staff.css?v=15" />
+  <script src="i18n.js?v=38"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span><span class="grain"></span></div>
@@ -32,7 +32,13 @@
       <h1 class="staff-title" id="cafeName">Oram Cafe &amp; Restaurant</h1>
     </header>
 
-    <!-- Incoming stamp-tap requests — real-time, no refresh -->
+    <!-- ===== Tab 1: Scan ===== -->
+    <section class="panel" id="panelScan">
+
+    <!-- Incoming stamp-tap requests — real-time, no refresh. Stays on THIS
+         panel rather than getting its own tab: it is realtime and time-
+         sensitive, and the scan tab is where staff already are. The tab
+         badge covers the case where they are on the other tab. -->
     <div class="request-queue" id="requestQueue" aria-live="polite"></div>
 
     <div class="staff-card">
@@ -74,6 +80,20 @@
         </form>
       </div>
     </div>
+
+    </section><!-- /panelScan -->
+
+    <!-- ===== Tab 2: placeholder =====
+         Structure only, waiting on what this tab should actually hold. To
+         fill it: drop the content inside, then change the label string and
+         the <svg> in #tabTwo below. Nothing else needs touching — the bar,
+         the indicator and the switching already work. -->
+    <section class="panel" id="panelTwo" hidden>
+      <div class="staff-card panel-soon">
+        <p class="panel-soon__title" data-i18n="STAFF_TAB_TWO">Coming soon</p>
+        <p class="panel-soon__sub" data-i18n="STAFF_TAB_TWO_SUB">This tab is ready and waiting for its content.</p>
+      </div>
+    </section>
   </main>
 
   <!-- Result modal -->
@@ -87,7 +107,27 @@
     </div>
   </div>
 
-  <script src="staff.page.js?v=3"></script>
+  <nav class="tabbar" id="tabbar" style="--ti:0" aria-label="Primary">
+    <span class="tabbar__ind" aria-hidden="true"></span>
+    <button class="tab is-active" id="tabScan" type="button" aria-label="Scan" data-i18n-aria="STAFF_TAB_SCAN">
+      <span class="tab__ico">
+        <!-- the same viewfinder mark the idle scanner and the start button
+             already use, so the tab reads as the thing it opens -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M4 12h16"/></svg>
+        <span class="tab__badge" id="scanBadge" hidden>0</span>
+      </span>
+      <span class="tab__label" data-i18n="STAFF_TAB_SCAN">Scan</span>
+    </button>
+    <button class="tab" id="tabTwo" type="button" aria-label="Coming soon" data-i18n-aria="STAFF_TAB_TWO">
+      <span class="tab__ico">
+        <!-- placeholder mark — swap with the real one -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l2.5 2.5"/></svg>
+      </span>
+      <span class="tab__label" data-i18n="STAFF_TAB_TWO">Soon</span>
+    </button>
+  </nav>
+
+  <script src="staff.page.js?v=4"></script>
   <script src="jsQR.js"></script>
   <script src="staff.js?v=13"></script>
 </body>
