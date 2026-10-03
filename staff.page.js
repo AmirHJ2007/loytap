@@ -72,16 +72,20 @@
   var holder = document.getElementById("qrCode");
   if (!holder) return;
 
-  // >>> THE PAYLOAD <<<
-  // What the code encodes. Still a placeholder — replace this one string
-  // with the real value and nothing else here changes.
+  // The code carries the café's TAP LINK — the same URL written to its
+  // physical NFC tag. A customer whose phone will not tap scans this instead
+  // and lands in exactly the same place: a pending stamp request for this
+  // café, which staff approve from the other tab.
   //
-  // If it ends up being the café's tap link (the same thing the NFC tag
-  // carries, "https://reloy.ir/?t=<tag code>"), note that staff cannot read
-  // nfc_tags — that collection is locked to superusers — so the tag code has
-  // to arrive from a server route, the way /owner/cafe feeds the owner panel.
-  // Anything self-contained — a URL, a code, plain text — needs no backend.
-  var QR_PAYLOAD = "https://reloy.ir";
+  // It comes from GET /staff/cafe rather than being built here, because the
+  // tag code is not something this page is allowed to know on its own —
+  // nfc_tags is superuser-only and stays that way; that route reads it
+  // server-side and hands back the finished URL. Same origin rule as the rest
+  // of the page (staff.js line 10) so an :8000 dev front end still reaches the
+  // :8090 API.
+  var API = location.port === "8000"
+    ? location.protocol + "//" + location.hostname + ":8090"
+    : location.origin;
 
   // Lifted from app.js's qrSvgDotted so the code matches the one the customer
   // wallet already shows: round dots for data, rounded squares for the three
@@ -128,18 +132,38 @@
          + dots + eye(0, 0) + eye(0, n - 7) + eye(n - 7, 0) + '</svg>';
   }
 
-  function draw() {
+  function fail() {
+    // never leave a blank white plate that a customer keeps aiming a phone at
+    holder.classList.add("is-error");
+    holder.textContent = (typeof t === "function" ? t("STAFF_QR_ERROR") : "Could not build the code.");
+  }
+
+  function draw(payload) {
     try {
       if (typeof qrcode !== "function") throw new Error("qrcode.js did not load");
+      if (!payload) throw new Error("no payload");
       // #171717, not pure black: it is the app's ink everywhere else, and the
       // contrast against white is still ~17:1 — far past anything a camera needs
-      holder.innerHTML = qrSvgDotted(QR_PAYLOAD, "#171717");
+      holder.innerHTML = qrSvgDotted(payload, "#171717");
       holder.classList.remove("is-error");
     } catch (err) {
-      // never leave a blank white square that a customer keeps aiming at
-      holder.classList.add("is-error");
-      holder.textContent = (typeof t === "function" ? t("STAFF_QR_ERROR") : "Could not build the code.");
+      fail();
     }
+  }
+
+  function load() {
+    var token = "";
+    try { token = localStorage.getItem("loytap_token") || ""; } catch (e) {}
+    fetch(API + "/staff/cafe", { headers: { Authorization: token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.tap_url) { fail(); return; }
+        draw(d.tap_url);
+        // the café name the route returns is authoritative; the localStorage
+        // copy below is only the instant-paint fallback
+        if (d.cafe_name) document.getElementById("qrShop").textContent = d.cafe_name;
+      })
+      .catch(fail);
   }
 
   // the café name the staff session already carries, so the customer can see
@@ -151,5 +175,5 @@
 
   // no language listener needed: i18n.js's setLang() reloads the page, so a
   // switch redraws this from scratch
-  draw();
+  load();
 })();

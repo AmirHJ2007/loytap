@@ -183,3 +183,54 @@ routerAdd("POST", "/staff/session/refresh", (e) => {
   if (!u || u.getString("role") !== "staff") return e.json(403, { error: "Staff access only", code: "STAFF_ONLY" });
   return e.json(200, { token: u.newStaticAuthToken(24 * 60 * 60 * 1e9) });
 }, $apis.requireAuth());
+
+// The café's own tap link, for the QR the staff page shows customers.
+//   GET /staff/cafe  (staff or owner auth) -> { cafe_name, tap_url }
+//
+// READ ONLY, and deliberately a route rather than opened-up collection rules.
+// nfc_tags stays listRule/viewRule null — superusers only — exactly as it was;
+// this handler reads it through $app, which bypasses API rules by design. So
+// staff gain the ability to SEE their own café's tap link and nothing else:
+// not another café's, not the tag record, and no way to write one.
+//
+// Scoped "staff_user OR owner_user" like /redeem in redeem.pb.js, so an owner
+// who opens the staff page on a till also gets a working code.
+//
+// WHAT THIS LINK IS. The same URL the café's physical NFC tag carries. A
+// customer whose phone will not tap — an older iPhone, an Android without NFC,
+// a tag that has worn out — scans the screen and lands in exactly the same
+// place. It only ever creates a PENDING stamp request; a human still has to
+// approve it from this same page, which is what keeps a photographed screen
+// from being free stamps.
+//
+//   403 not staff/owner   404 no café, or the café has no active tag
+routerAdd("GET", "/staff/cafe", (e) => {
+  const u = e.auth;
+  const role = u ? u.getString("role") : "";
+  if (role !== "staff" && role !== "admin") {
+    return e.json(403, { error: "Staff access only", code: "STAFF_ONLY" });
+  }
+
+  let card = null;
+  try {
+    card = $app.findFirstRecordByFilter("cafe_card", "staff_user = {:u} || owner_user = {:u}", { u: u.id });
+  } catch (err) { card = null; }
+  if (!card) return e.json(404, { error: "No café linked to this account", code: "NO_CAFE_LINKED" });
+
+  // oldest active tag first: a café is created with one, and if more are ever
+  // added the original is the one already printed on whatever is on the counter
+  let tag = null;
+  try {
+    tag = $app.findRecordsByFilter("nfc_tags", "cafe = {:c} && active = true", "created", 1, 0, { c: card.id })[0];
+  } catch (err) { tag = null; }
+  if (!tag) return e.json(404, { error: "This café has no active tag yet", code: "NO_TAG" });
+
+  // Built here, not on the client, so the origin lives in one place — the same
+  // reloy.ir form notify.pb.js writes into the tag-programming email. app. is
+  // deliberately not used: index.guard.js lets ?t= override the marketing
+  // redirect, so this reaches the wallet even for a signed-out customer.
+  return e.json(200, {
+    cafe_name: card.getString("cafe_name"),
+    tap_url: "https://reloy.ir/?t=" + tag.getString("code"),
+  });
+}, $apis.requireAuth());

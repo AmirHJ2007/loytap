@@ -92,7 +92,7 @@ onRecordAfterCreateSuccess((e) => {
       "</table>",
       "<h3>Write this to their NFC tag</h3>",
       "<p><a href='", esc(tapUrl), "'>", esc(tapUrl), "</a></p>",
-      "<p style='color:#666'>Treat that link as a secret — anyone holding the code can trigger a stamp for this café without the tag.</p>",
+      "<p style='color:#666'>This link is not a secret, and cannot be: every customer who taps sees it in their address bar, and the staff page shows it as a QR for customers to scan when their phone will not tap. Anyone holding it can REQUEST a stamp for this café from anywhere — but a request is all it is, and staff still have to approve it before anything is stamped.</p>",
       "<p>That makes <b>", total, "</b> café", total === 1 ? "" : "s", " on Reloy.</p>",
     ].join(""));
     row.set("sent", false);
