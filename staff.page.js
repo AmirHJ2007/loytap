@@ -110,16 +110,11 @@
     for (var r = 0; r < n; r++) {
       for (var c = 0; c < n; c++) {
         if (qr.isDark(r, c) && !inFinder(r, c)) {
-          // r=0.5, NOT the 0.42 app.js uses. At 0.42 each dot stops short of
-          // its module edge, leaving a pale gap on all four sides, and a
-          // decoder reading this off a screen fails on it: measured here with
-          // jsQR — the same reader the scan tab uses — the identical payload
-          // decoded as solid squares and at r=0.5, and failed at r=0.42 unless
-          // ~4px of blur was added to bridge the gaps. A camera's own softness
-          // is what rescues it in practice, which is a thin thing to rely on
-          // for a code a customer is holding a phone up to. At 0.5 the dots
-          // meet exactly: same rounded look, nothing left to bridge.
-          dots += '<circle cx="' + (c + q + 0.5).toFixed(2) + '" cy="' + (r + q + 0.5).toFixed(2) + '" r="0.5"/>';
+          // r=0.55, matching app.js — see the measurements in its qrSvgDotted.
+          // Short version: 0.42 leaves a gap on every side and does not decode
+          // without blur; 0.50 only touches in the maths and antialiasing eats
+          // the join at smaller render sizes; 0.55 overlaps enough to hold.
+          dots += '<circle cx="' + (c + q + 0.5).toFixed(2) + '" cy="' + (r + q + 0.5).toFixed(2) + '" r="0.55"/>';
         }
       }
     }

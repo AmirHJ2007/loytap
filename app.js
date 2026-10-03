@@ -56,7 +56,23 @@ function qrSvgDotted(text, color) {
   for (let r = 0; r < n; r++)
     for (let c = 0; c < n; c++)
       if (qr.isDark(r, c) && !inFinder(r, c))
-        dots += `<circle cx="${(c + q + 0.5).toFixed(2)}" cy="${(r + q + 0.5).toFixed(2)}" r="0.42"/>`;
+        // r=0.55, not the 0.42 this used to be. THIS is the code staff scan
+        // to redeem a reward, so it is measured, not styled by eye. Fed to
+        // jsQR — the very reader staff.js uses — against three real coupon
+        // codes at render sizes from 260 to 420px:
+        //
+        //   r=0.42  failed everywhere (needed ~4px of blur to decode at all)
+        //   r=0.50  failed 1 of 3 at 420px
+        //   r=0.52+ passed every code at every size
+        //
+        // 0.42 left a pale gap on all four sides of every dot. 0.50 makes them
+        // touch in the maths but not on screen: antialiasing softens the single
+        // point of contact until a decoder loses the join. 0.55 overlaps enough
+        // to survive that, and keeps margin for what a real camera adds on top
+        // — glare, angle, a moving hand — none of which this clean test had.
+        // It has worked in the field until now only because camera optics blur
+        // the gaps closed, which is a thin thing for the redeem flow to rest on.
+        dots += `<circle cx="${(c + q + 0.5).toFixed(2)}" cy="${(r + q + 0.5).toFixed(2)}" r="0.55"/>`;
   const eye = (r, c) => {
     const x = c + q, y = r + q;
     return `<rect x="${(x + 0.5).toFixed(2)}" y="${(y + 0.5).toFixed(2)}" width="6" height="6" rx="2" fill="none" stroke="${color}" stroke-width="1"/>`
