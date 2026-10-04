@@ -1,0 +1,50 @@
+# reloy.ir — crawl rules.
+#
+# ONE "User-agent: *" group on purpose. robots.txt groups are not additive: a
+# crawler obeys the single most specific group that names it and ignores every
+# other, so adding e.g. "User-agent: GPTBot / Allow: /" would exempt GPTBot from
+# the Disallow lines below and hand it /api/ and /_/. AI crawlers are wanted
+# here — ClaudeBot, GPTBot, PerplexityBot and the rest are allowed precisely
+# because they are not named, and so fall under the rules below like anyone else.
+#
+# Nothing here is a security control. /_/ and /owner are protected by auth;
+# they are listed only so crawl budget is not spent on pages that can never
+# return content to a stranger.
+
+User-agent: *
+
+# PocketBase superuser dashboard and the JSON API. No readable content, and
+# /api/ in particular is an unbounded URL space.
+Disallow: /_/
+Disallow: /_
+Disallow: /api/
+
+# Signed-in app shells. Served to anyone, but they render nothing without a
+# session, so to a crawler they are empty pages that would dilute the site.
+Disallow: /owner
+Disallow: /staff
+Disallow: /signin
+Disallow: /business/signin
+
+# The literal .html paths all 301 to their clean URL (clean-urls.pb.js). Letting
+# them be crawled just spends budget to be told to go somewhere else.
+Disallow: /for-business.html
+Disallow: /auth.html
+Disallow: /business.html
+Disallow: /owner.html
+Disallow: /staff.html
+Disallow: /terms.html
+Disallow: /business-terms.html
+Disallow: /index.html
+Disallow: /analytics
+Disallow: /analytics.html
+
+# Tap codes come off NFC tags (reloy.ir/?t=<code>). Each one is a unique URL
+# serving identical markup — an infinite set of duplicates if crawled.
+Disallow: /*?t=
+Disallow: /*?app=
+
+# NB: no Disallow on CSS, JS, fonts or images. Google must fetch those to render
+# the page; blocking them makes the marketing site look broken to the crawler.
+
+Sitemap: https://reloy.ir/sitemap.xml

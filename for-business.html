@@ -4,11 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache" />
-  <!-- TEMPORARY (Enamad verification): Enamad reads the page title at the
-       reloy.ir root and expects the phrase 72433515. Uncomment the real
-       title below and delete these three lines once Enamad has verified. -->
-  <!-- <title>Reloy for Cafés · Turn taps into regulars</title> -->
-  <title>72433515</title>
+  <title>Reloy for Cafés · Turn taps into regulars</title>
   <!-- Enamad (اعتماد) ownership marker — Enamad reads this from the head of
        the reloy.ir root page. Permanent: it stays after verification. -->
   <meta name="enamad" content="72433515" />
@@ -17,10 +13,29 @@
   <link rel="icon" href="/reloy-icon-192.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
+  <!-- Social preview. og:image was a relative path, which every scraper
+       (WhatsApp, Telegram, X, LinkedIn) refuses — it must be absolute, so
+       previews shared by café owners have been blank. og-card.png is a real
+       1200x630 card; the 512px icon it replaced was square and cropped badly.
+       og:url is the Persian path on purpose: both languages are served the same
+       file, so one of them has to be named, and fa is the default market and the
+       declared x-default below. -->
+  <meta property="og:site_name" content="Reloy" />
   <meta property="og:title" content="Reloy for Cafés · Turn taps into regulars" />
   <meta property="og:description" content="A digital loyalty card your cashier presses onto the customer's phone. No app store, no download, no password." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="reloy-icon-512.png" />
+  <meta property="og:url" content="https://reloy.ir/fa/business" />
+  <meta property="og:image" content="https://reloy.ir/og-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Reloy" />
+  <meta property="og:locale" content="fa_IR" />
+  <meta property="og:locale:alternate" content="en_US" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Reloy for Cafés · Turn taps into regulars" />
+  <meta name="twitter:description" content="A digital loyalty card your cashier presses onto the customer's phone. No app store, no download, no password." />
+  <meta name="twitter:image" content="https://reloy.ir/og-card.png" />
 
   <link rel="preload" href="/fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/fonts/fraunces-var.woff2" as="font" type="font/woff2" crossorigin />
@@ -32,6 +47,217 @@
   <link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business" />
   <link rel="stylesheet" href="/for-business.css?v=58" />
   <script src="/for-business.js?v=57" defer></script>
+  <!-- Structured data. Lets Google and the AI answer engines state what Reloy is,
+       what it costs and what it answers, without rendering the page or running its
+       JavaScript. Three facts to keep true when editing:
+
+         - The FAQ entries are generated from FB_STRINGS.en in for-business.js, so
+           they match the copy the page actually shows. Regenerate rather than
+           hand-edit, or the schema drifts from the visible text, which Google
+           treats as spam.
+         - The prices mirror SITE (for-business.js:21). Change them in BOTH places.
+         - priceCurrency is "IRT" (Toman), not the ISO "IRR" (Rial). The page quotes
+           Toman and 1 Toman = 10 Rial, so "IRR" would understate the price tenfold.
+
+       This is a data block, not code: type="application/ld+json" is never prepared
+       for execution, so the CSP script-src 'self' in headers.pb.js does not apply
+       to it and no hash or nonce is needed. -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://reloy.ir/#organization",
+          "name": "Reloy",
+          "url": "https://reloy.ir/",
+          "logo": "https://reloy.ir/reloy-icon-512.png",
+          "image": "https://reloy.ir/og-card.png",
+          "description": "Reloy is a digital loyalty card for cafes and restaurants. Your cashier presses one NFC stamp to the customer's phone and their card is stamped, with no app store, no download and no password.",
+          "email": "info@reloy.ir",
+          "telephone": "+989306289746",
+          "sameAs": [
+            "https://www.instagram.com/reloy_ir"
+          ],
+          "areaServed": {
+            "@type": "Country",
+            "name": "Iran"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "sales",
+            "email": "info@reloy.ir",
+            "telephone": "+989306289746",
+            "availableLanguage": [
+              "fa",
+              "en"
+            ]
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://reloy.ir/#software",
+          "name": "Reloy",
+          "url": "https://reloy.ir/fa/business",
+          "applicationCategory": "BusinessApplication",
+          "applicationSubCategory": "Customer loyalty program",
+          "operatingSystem": "Web browser",
+          "description": "Reloy is a digital loyalty card for cafes and restaurants. Your cashier presses one NFC stamp to the customer's phone and their card is stamped, with no app store, no download and no password.",
+          "inLanguage": [
+            "fa",
+            "en"
+          ],
+          "publisher": {
+            "@id": "https://reloy.ir/#organization"
+          },
+          "featureList": [
+            "NFC stamp, with no customer app download",
+            "Loyalty card opens as a web page, with no password",
+            "Owner dashboard for branding, stamp count and rewards",
+            "Repeat-visit and peak-hour analytics",
+            "One subscription covers every branch of a brand"
+          ],
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Monthly",
+              "price": "3000000",
+              "priceCurrency": "IRT",
+              "availability": "https://schema.org/InStock",
+              "description": "Flat monthly fee for the whole brand. No per-tap charge and no commission."
+            },
+            {
+              "@type": "Offer",
+              "name": "Yearly",
+              "price": "30000000",
+              "priceCurrency": "IRT",
+              "availability": "https://schema.org/InStock",
+              "description": "Flat yearly fee for the whole brand, two months free versus paying monthly."
+            }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://reloy.ir/fa/business#faq",
+          "inLanguage": "en",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Does my customer have to download an app?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No, and this is the part that makes the difference at the counter. Reloy is a web page. One press of the stamp opens it instantly, with nothing from the App Store or Play Store, nothing to install, and no storage used. They can add it to their home screen so it opens like an app, but it is a shortcut, not a download."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What if my payment terminal does not support NFC?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "It does not matter. The Reloy stamp is a completely separate object that lives behind your counter. It has nothing to do with your card machine, your till, or your payment provider, and it needs no power, no wiring and no internet of its own."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I require a minimum purchase before a stamp counts?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "You can set one, and it shows right on the customer's card so they know the threshold going in. We are not connected to your till or accounting system, so we cannot check the bill ourselves. It is your cashier's call to only press the stamp once the purchase clears it. Leave it at zero, the default, and there is nothing to enforce at all."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I change the reward later?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, whenever you like, from your dashboard. You control both the discount and how many stamps it takes to earn it. Existing cards pick up the change automatically, so nobody has to be issued a new one."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What happens if a customer changes their phone?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Nothing is lost. Their card lives on our server against their mobile number, not on the handset. Your cashier stamps the new phone, they confirm their number, and every stamp they have collected is already there."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Will this actually increase my sales?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Cafés running loyalty programmes overseas do see more repeat visits, so the pattern is real. But nobody can promise you an exact number sight unseen, because every café, menu and neighbourhood is different, and no honest answer skips that. That is exactly what the free trial is for: run it at your own counter, watch your own dashboard, and decide for yourself whether it is actually bringing your customers back before you pay anything."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How long is the free trial?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "30 days, counted from the first stamp you give a customer, not from the day you sign up."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What does it cost after the trial?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "A flat 3,000,000 Toman a month for your whole brand, or 30,000,000 Toman a year (2 months free). No per-tap charges, and no commission on anything you sell."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What if I have more than one location?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "One subscription covers your whole brand, however many branches you run. We do not charge per branch. The brand dashboard is still in development: the plan is one view for the brand with a sub-dashboard for each branch, all under the same account. Ask us where it stands if it matters for your decision to start now."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do unclaimed rewards expire?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Every reward carries an expiry date, 30 days from when it is earned by default. Change that number for your whole café from your dashboard, or set a different one on an individual reward. It is also why the 71% claimed rate on this page means something: it only counts rewards that got redeemed before the clock ran out."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What information does the customer give up?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "A name and a mobile number. That is everything. No email, no password, no address, no payment details, no location, and no access to their contacts or photos."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is my customers' data secure?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Everything travels over HTTPS and is stored on our own server. We do not sell, share or rent your customer list to anyone, and no other café using Reloy can see it. Your customers' data belongs to your café, and you can ask us to delete it at any time."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I get my customers' phone numbers?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No, and that is on purpose. If tapping the tag meant a café could call or text customers directly, people would think twice before tapping it, and the tap is the whole product. We keep phone numbers on our own server for exactly that reason, so customers trust the tap and keep using it. Reaching people who have drifted is a feature we are building, and it will work by sending a message inside the card already on their home screen, not by handing their number to anyone."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Can I target specific customers with messages or discounts?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Not yet, but it is in development for an upcoming version. The plan is to let you reach customers who have drifted past their usual rhythm with a message inside the card already on their home screen, and send an offer to the people it would actually bring back instead of discounting everyone who was already on their way in. Ask us where it stands if it matters for your decision to start now."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  </script>
 </head>
 <body>
 

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  reloy.ir sitemap.
+
+  Only pages that serve real content to a signed-out stranger are listed. The
+  app shells (/signin, /owner, /staff) and the API are deliberately absent and
+  are also disallowed in robots.txt.
+
+  "/" is NOT listed. The server answers it with the customer wallet shell
+  (index.html); the hop to the onboarding site happens in JavaScript
+  (index.guard.js), which non-rendering crawlers never run. Listing it would
+  invite indexing of an empty wallet. It belongs here once the root serves the
+  onboarding page itself.
+
+  Each <url> carries the full set of xhtml:link alternates, itself included —
+  that is what the spec requires, and it states the language pairing in a way
+  every crawler reads without executing JavaScript.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://reloy.ir/fa/business</loc>
+    <lastmod>2026-10-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://reloy.ir/en/business"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business"/>
+  </url>
+
+  <url>
+    <loc>https://reloy.ir/en/business</loc>
+    <lastmod>2026-10-04</lastmod>
+    <xhtml:link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://reloy.ir/en/business"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business"/>
+  </url>
+
+  <url>
+    <loc>https://reloy.ir/fa/terms</loc>
+    <lastmod>2026-09-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://reloy.ir/en/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/terms"/>
+  </url>
+
+  <url>
+    <loc>https://reloy.ir/en/terms</loc>
+    <lastmod>2026-09-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://reloy.ir/en/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/terms"/>
+  </url>
+
+  <url>
+    <loc>https://reloy.ir/fa/business-terms</loc>
+    <lastmod>2026-09-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business-terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://reloy.ir/en/business-terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business-terms"/>
+  </url>
+
+  <url>
+    <loc>https://reloy.ir/en/business-terms</loc>
+    <lastmod>2026-09-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business-terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://reloy.ir/en/business-terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business-terms"/>
+  </url>
+
+</urlset>

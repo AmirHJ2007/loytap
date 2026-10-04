@@ -21,8 +21,12 @@ COPY backend/pb_migrations/ /pb/pb_migrations/
 
 # Frontend assets — copied as real files (pb_public/ symlinks don't survive into an image).
 # *.txt carries the Enamad ownership file (72433515.txt) — an empty file Enamad
-# fetches at the domain root to prove we control the site. It must stay reachable.
-COPY *.html *.js *.css *.png *.jpg *.txt manifest*.json /pb/pb_public/
+# fetches at the domain root to prove we control the site. It must stay reachable —
+# as does robots.txt, which rides the same glob.
+# *.xml is sitemap.xml. Without it PocketBase has no such file to serve and falls
+# back to index.html, so /sitemap.xml answers 200 with HTML and every crawler
+# that asks for the URL list gets a web page instead.
+COPY *.html *.js *.css *.png *.jpg *.txt *.xml manifest*.json /pb/pb_public/
 # Self-hosted fonts (woff2) so typography works where Google Fonts is blocked.
 COPY fonts/ /pb/pb_public/fonts/
 

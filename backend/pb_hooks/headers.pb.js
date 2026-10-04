@@ -10,10 +10,23 @@
 // script can read a live session and post it off-origin. `script-src 'self'` with
 // no 'unsafe-inline' and no hashes is the wall; every page script is a real file.
 //
-// Audited 2026-09: no CDN, no Google Fonts (self-hosted under fonts/), no service
+// Audited 2026-10: no CDN, no Google Fonts (self-hosted under fonts/), no service
 // worker, no Worker, no eval/new Function, no inline on*= handlers, no javascript:
-// URLs, no iframes, no inline <script> blocks. The only absolute URLs anywhere are
-// licence links in the vendored qrcode.js / jsQR.js comments plus the SVG namespace.
+// URLs, no iframes.
+//
+// ONE inline <script> now exists: the application/ld+json structured-data block in
+// for-business.html. It is deliberately NOT whitelisted and needs no hash. A script
+// element whose type is not a JavaScript MIME type is never "prepared for
+// execution", and CSP's script-src check happens only at that step — so the block
+// is inert data the parser hands to crawlers, and script-src 'self' still means no
+// executable inline script anywhere. Verified in Chrome against this exact CSP: a
+// tracked reload of /fa/business reports zero violations. If you ever add a REAL
+// inline <script>, it will be blocked, and that is correct — move it to a file.
+//
+// Absolute URLs: licence links in the vendored qrcode.js / jsQR.js comments, the SVG
+// namespace, and the https://reloy.ir/... values in for-business.html's og:/twitter:
+// meta and JSON-LD. Those last are strings read by crawlers, never fetched by the
+// browser, so no directive governs them.
 //
 // NB: everything lives INSIDE the handler on purpose. pb_hooks handlers are
 // re-evaluated in a pooled JSVM runtime that does NOT see this file's outer scope,
