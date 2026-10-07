@@ -982,23 +982,110 @@ const tabbarEl = document.getElementById("tabbar");
 const tabBtns = {
   discounts: document.getElementById("tabDiscounts"),
   wallet: document.getElementById("tabWallet"),
+  messages: document.getElementById("tabMessages"),
   settings: document.getElementById("tabSettings"),
 };
-const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
+// Positions in the bar, which is also the source order of the buttons in
+// index.html — the indicator is placed off this number alone, so a tab
+// moved there and not here slides the pill onto the wrong button.
+const TAB_INDEX = { discounts: 0, wallet: 1, messages: 2, settings: 3 };
 
 // Wallet and Discounts are real, mutually-exclusive full panels (#stage /
 // #drawer) now — swapped directly, the same way owner.page.js's
 // setOwnerTab toggles its .panel elements, rather than the old bottom-sheet
 // drawer that overlaid the wallet. Settings stays a separate floating sheet
 // on top of whichever of the two is showing underneath, same as before.
+const msgsPanel = document.getElementById("msgs");
+
+// ---- messages ----
+// Shape one of these arrives in:
+//   { id, cafeId, cafeName, accent, body, created, read,
+//     discount: null | { deal, desc, due, days } }
+// `discount` is the reward the café attached when it sent the message; it is
+// the same object the Discounts tab shows, so it renders with the same
+// component and opens the same overlay when tapped.
+let messages = [];
+
+// "2 days ago", or a date once that stops meaning anything. Gregorian in
+// both languages — nothing else in this app speaks Jalali.
+let msgFmt = null, msgFmtLang = null;
+function msgWhen(raw) {
+  const at = Date.parse(String(raw || "").replace(" ", "T"));
+  if (!at) return "";
+  const IRAN_OFF = 3.5 * 3600000, DAY = 86400000;
+  const dayIndex = (ms) => Math.floor((ms + IRAN_OFF) / DAY);
+  const d = dayIndex(Date.now()) - dayIndex(at);
+  if (d <= 0) return t("WALLET_MSG_TODAY");
+  if (d === 1) return t("WALLET_MSG_YESTERDAY");
+  if (d < 7) return t("WALLET_MSG_DAYS", { n: d });
+  const lang = getLang();
+  if (!msgFmt || msgFmtLang !== lang) {
+    msgFmtLang = lang;
+    try {
+      msgFmt = new Intl.DateTimeFormat(lang === "fa" ? "fa-IR-u-nu-latn" : "en-GB",
+        { calendar: "gregory", day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Tehran" });
+    } catch (e) { msgFmt = null; }
+  }
+  try { return msgFmt ? msgFmt.format(new Date(at)) : ""; } catch (e) { return ""; }
+}
+
+function renderMessages() {
+  const list = document.getElementById("msgsList");
+  const empty = document.getElementById("msgsEmpty");
+  if (!list || !empty) return;
+  list.querySelectorAll(".msg-list").forEach((n) => n.remove());
+
+  if (!messages.length) { empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  const wrap = document.createElement("div");
+  wrap.className = "msg-list";
+  messages.forEach((m, i) => {
+    const cafe = m.cafeName || t("WALLET_TAB_MESSAGES");
+    // Array.from, not [0]: a café name starting with an emoji would
+    // otherwise give half a surrogate pair
+    const initial = (Array.from(cafe.trim())[0] || "?").toUpperCase();
+    const card = document.createElement("article");
+    card.className = "msg" + (m.read ? "" : " is-unread");
+    card.style.setProperty("--i", Math.min(i, 10));
+    card.innerHTML =
+      '<div class="msg__head">' +
+        '<span class="msg__ava" aria-hidden="true" style="background:' + escapeHtml(m.accent || "#171717") + '">' + escapeHtml(initial) + "</span>" +
+        '<span class="msg__who">' +
+          '<span class="msg__cafe">' + escapeHtml(cafe) + "</span>" +
+          '<span class="msg__when">' + escapeHtml(msgWhen(m.created)) + "</span>" +
+        "</span>" +
+      "</div>" +
+      '<p class="msg__body">' + escapeHtml(m.body || "") + "</p>";
+
+    if (m.discount) {
+      const box = document.createElement("div");
+      box.className = "msg__reward";
+      const lbl = document.createElement("span");
+      lbl.className = "msg__rewardlbl";
+      lbl.textContent = t("WALLET_MSG_WITH_REWARD");
+      box.appendChild(lbl);
+      box.appendChild(activeCoupon(m.discount));   // the real component
+      card.appendChild(box);
+    }
+    wrap.appendChild(card);
+  });
+  list.appendChild(wrap);
+}
+
 function showPanel(name) {
   stage.hidden = name !== "wallet";
   drawer.hidden = name !== "discounts";
+  if (msgsPanel) msgsPanel.hidden = name !== "messages";
   if (name === "discounts") {
     drawerCafeId = null; // always start at the café list
     renderDrawer();
     loadDiscounts();
   }
+  // TODO: no endpoint yet — `messages` stays empty until there is somewhere
+  // for a café's send to land. Rendering is already wired, so the fetch is
+  // the only missing piece.
+  if (name === "messages") renderMessages();
 }
 function setTab(name) {
   if (tabbarEl) tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
@@ -1068,6 +1155,7 @@ if (settingsSheet) settingsSheet.addEventListener("click", (e) => { if (e.target
 
 if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => goToTab("discounts"));
 if (tabBtns.wallet) tabBtns.wallet.addEventListener("click", () => goToTab("wallet"));
+if (tabBtns.messages) tabBtns.messages.addEventListener("click", () => goToTab("messages"));
 if (tabBtns.settings) tabBtns.settings.addEventListener("click", () => { settingsSheet.classList.contains("open") ? closeSettings() : openSettings(); });
 
 const setSignout = document.getElementById("setSignout");

@@ -950,6 +950,11 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 .stampbar.dev-on { bottom: 88px; }
 
 .tabbar {
+  /* --tw is the slot every tab occupies, and so the step the indicator
+     travels. A variable rather than a hard-coded 84px because the bar went
+     from three tabs to four: 4 x 84 plus 14px of padding is 350px, which
+     fits a 393px handset but not the narrowest ones still in use. */
+  --tw: 84px;
   position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%); z-index: 210;
   display: flex; padding: 7px; border-radius: 22px;
@@ -967,17 +972,18 @@ html[dir="rtl"] .cafe-row { text-align: right; }
    settings sheet sits higher up and leaves the toolbar visible and tappable */
 .tabbar.is-hidden { opacity: 0; transform: translate(-50%, 100%); pointer-events: none; }
 
+@media (max-width: 374px) { .tabbar { --tw: 72px; } }
 .tabbar__ind {
   position: absolute; top: 7px; left: 7px;
-  width: 84px; height: calc(100% - 14px);
+  width: var(--tw); height: calc(100% - 14px);
   border-radius: 16px; background: #171717;
-  transform: translateX(calc(var(--ti, 1) * 84px));
+  transform: translateX(calc(var(--ti, 1) * var(--tw)));
   transition: transform 0.44s var(--ease-spring);
   z-index: 0;
 }
 .tab {
   position: relative; z-index: 1;
-  width: 84px; padding: 9px 0 8px;
+  width: var(--tw); padding: 9px 0 8px;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: none; border: 0; cursor: pointer; color: #565656;
   transition: color 0.35s ease, transform 0.14s ease;
@@ -996,6 +1002,51 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 }
 .tab.is-active .tab__badge { background: #fff; color: #171717; }
 .tab__badge[hidden] { display: none; }
+
+/* ================= Messages =================
+   One card per message. The café identifies itself the way it does in the
+   café list — initial disc in its own accent — and an attached reward is
+   rendered with the SAME .coupon-card the Discounts tab uses, because it is
+   the same object: tapping it opens the same overlay. A message with a
+   reward in it should feel like being handed the reward, not like being
+   told about one. */
+.msg-list { display: flex; flex-direction: column; gap: 12px; }
+.msg {
+  position: relative;
+  padding: 14px 15px;
+  border-radius: 18px;
+  background: linear-gradient(150deg, rgba(255,255,255,0.78), rgba(255,255,255,0.52));
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 12px 26px -20px rgba(20,20,20,0.45), inset 0 1px 0 rgba(255,255,255,0.85);
+  animation: couponIn 0.55s var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+/* Unread is carried by the ink rail, not by a bolder background: the cards
+   sit in a column, and tinting whole cards turns the list into stripes. */
+.msg.is-unread::before {
+  content: ""; position: absolute; inset-inline-start: 0; top: 16px; bottom: 16px;
+  width: 3px; border-radius: 3px; background: #171717;
+}
+.msg__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.msg__ava {
+  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; line-height: 1;
+  font-family: var(--font-heading); font-weight: 800; font-size: 14px; color: #fff;
+  box-shadow: 0 8px 16px -8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.msg__who { min-width: 0; flex: 1; }
+.msg__cafe { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg__when { display: block; margin-top: 1px; font-size: 11px; color: #9a9a9a; }
+.msg__body { margin: 0; font-size: 14px; line-height: 1.65; color: #313131; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the reward sits below the words, inset so it reads as an attachment to
+   the message rather than a second card in the list */
+.msg__reward { margin-top: 13px; }
+.msg__reward .coupon-card { min-height: 0; animation: none; }
+.msg__rewardlbl { display: block; margin-bottom: 7px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #9a9a9a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .msg { animation: none; }
+}
 
 /* ================= Settings bottom sheet ================= */
 .sheet {
@@ -1054,7 +1105,7 @@ html[dir="rtl"] .wallet-close { left: auto; right: 16px; }
 /* the tab order visually reverses under RTL (flex row follows dir), so the
    sliding active-tab indicator needs to anchor from the other edge and
    translate the opposite way to still land under the right tab */
-html[dir="rtl"] .tabbar__ind { left: auto; right: 7px; transform: translateX(calc(var(--ti, 1) * -84px)); }
+html[dir="rtl"] .tabbar__ind { left: auto; right: 7px; transform: translateX(calc(var(--ti, 1) * -1 * var(--tw))); }
 /* the café-detail header inside the Discounts tab, by request: back button
    pinned to the left (rather than the reading-start/right edge .wallet-close
    uses above) and the café name centred between it and the empty space that

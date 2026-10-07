@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=100" />
-  <script src="i18n.js?v=40"></script>
+  <link rel="stylesheet" href="styles.css?v=102" />
+  <script src="i18n.js?v=64"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -171,6 +171,18 @@
     <button class="sheet__signout" id="setSignout" type="button" data-i18n="WALLET_SIGNOUT">Sign out</button>
   </aside>
 
+  <!-- Messages from the cafés whose cards this customer holds. Same
+       .drawer shell as the discounts panel, since both are a titled
+       full-height list swapped in by showPanel(). -->
+  <div class="drawer" id="msgs" hidden aria-label="Messages">
+    <header class="drawer__head">
+      <h2 class="drawer__title" data-i18n="WALLET_TAB_MESSAGES">Messages</h2>
+    </header>
+    <div class="drawer__list" id="msgsList">
+      <p class="drawer__empty" id="msgsEmpty" data-i18n-html="WALLET_MSG_EMPTY">No messages yet.<br/>Your cafés can send you news and offers here.</p>
+    </div>
+  </div>
+
   <!-- Glassy bottom navigation -->
   <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
     <span class="tabbar__ind" aria-hidden="true"></span>
@@ -187,6 +199,13 @@
       </span>
       <span class="tab__label" data-i18n="WALLET_TAB_WALLET">Wallet</span>
     </button>
+    <button class="tab" id="tabMessages" type="button" aria-label="Messages" data-i18n-aria="WALLET_TAB_MESSAGES">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.2 7.5-2.2 7.5h16.4S18 14.5 18 8.5z"/><path d="M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>
+        <span class="tab__badge" id="msgBadge" hidden>0</span>
+      </span>
+      <span class="tab__label" data-i18n="WALLET_TAB_MESSAGES">Messages</span>
+    </button>
     <button class="tab" id="tabSettings" type="button" aria-label="Settings" data-i18n-aria="WALLET_SETTINGS_TITLE">
       <span class="tab__ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.1" fill="none"/><circle cx="15" cy="12" r="2.1" fill="none"/><circle cx="8" cy="17" r="2.1" fill="none"/></svg>
@@ -198,6 +217,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=80"></script>
+  <script src="app.js?v=82"></script>
 </body>
 </html>

@@ -1313,24 +1313,775 @@
       }
     }
 
+    // ---------------- customers ----------------
+    // Lazy, like analytics: most sessions are an owner checking their card or
+    // adding a reward, and this is a second round-trip they never asked for.
+    let customersLoaded = false;
+    async function loadCustomers() {
+      try {
+        const res = await fetch(API + "/owner/customers", { method: "POST", headers: { Authorization: token } });
+        if (!res.ok) return customersError(t("OWNER_CUSTOMERS_ERR"));
+        renderCustomers(await res.json());
+      } catch (e) {
+        customersError(t("AUTH_ERR_SERVER_UNREACHABLE"));
+      }
+    }
+    function customersError(msg) {
+      $("cuList").innerHTML = "";
+      $("cuSub").textContent = "";
+      $("cuMore").hidden = true;
+      cuRows = []; cuShown = 0; cuTotal = 0;
+      const note = $("cuNote");
+      note.textContent = msg;
+      note.hidden = false;
+      // a failed load must not look like a café with no customers
+      customersLoaded = false;
+    }
+    // The calendar an owner reads, for visits too old for "N days ago".
+    //
+    // Gregorian in BOTH languages. fa-IR would otherwise give Jalali, which
+    // is Intl's default calendar for that locale — but nothing else in this
+    // app speaks Jalali, and a single Jalali date among Gregorian ones is
+    // worse than a Gregorian date everywhere. calendar:"gregory" pins it, so
+    // the Persian page reads "6 سپتامبر 2026": Gregorian months, named in
+    // Persian. -u-nu-latn keeps Latin digits, matching every other number on
+    // this page. Asia/Tehran so the date can never disagree with the day
+    // count the server worked out in that same zone.
+    //
+    // Built once rather than per row: constructing an Intl.DateTimeFormat is
+    // the expensive part, and this runs 50 times a page. Keyed on the
+    // language anyway — setLang() reloads the page today, so the key cannot
+    // actually go stale, but a cached formatter that silently outlives a
+    // language change is not a thing to leave lying around.
+    let seenFmt = null, seenFmtLang = null;
+    function seenOnDate(raw) {
+      // "2026-10-05 19:17:00.000Z" — the space is not valid ISO 8601 and
+      // Safari returns NaN for it, so normalise exactly as the hook does
+      const at = Date.parse(String(raw || "").replace(" ", "T"));
+      if (!at) return "";
+      const lang = getLang();
+      if (!seenFmt || seenFmtLang !== lang) {
+        seenFmtLang = lang;
+        try {
+          seenFmt = new Intl.DateTimeFormat(lang === "fa" ? "fa-IR-u-nu-latn" : "en-GB",
+            { calendar: "gregory", day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Tehran" });
+        } catch (e) { seenFmt = null; }
+      }
+      if (!seenFmt) return "";
+      try { return seenFmt.format(new Date(at)); } catch (e) { return ""; }
+    }
+
+    // "Last visit: 3 days ago", or an actual date once that stops being
+    // useful. The server hands over a whole-day delta in the café's own
+    // timezone (see customers.pb.js), so the buckets below never touch Date;
+    // only the dated branch does.
+    function lastSeenLabel(c) {
+      const d = c.daysAgo;
+      if (d === null || d === undefined || d < 0) return "";
+      if (d === 0) return t("OWNER_SEEN_TODAY");
+      if (d === 1) return t("OWNER_SEEN_YESTERDAY");
+      if (d < 7) return t("OWNER_SEEN_DAYS", { n: d });
+      if (d < CU_AWAY_DAYS) { const w = Math.floor(d / 7); return w === 1 ? t("OWNER_SEEN_WEEK") : t("OWNER_SEEN_WEEKS", { n: w }); }
+      // Past a month, "4 months ago" is not something an owner can act on —
+      // the day itself is. Falls back to the old wording if the row carries
+      // no parseable timestamp, or if Intl refuses the locale.
+      const on = seenOnDate(c.lastSeen);
+      if (on) return t("OWNER_SEEN_ON", { date: on });
+      const mo = Math.floor(d / 30);
+      return mo <= 1 ? t("OWNER_SEEN_MONTH") : t("OWNER_SEEN_MONTHS", { n: mo });
+    }
+
+    // The list is rendered a page at a time, not all at once. A busy café's
+    // 500 rows is 500 glass cards with a backdrop-filter each, and an owner
+    // looking someone up reads the top of the list — the rest is scrolled
+    // past, if it is reached at all.
+    const CU_PAGE = 50;
+    // The one place the "away" line is defined: it is where lastSeenLabel
+    // stops counting weeks and starts printing a date, and where a row is
+    // marked. Two numbers here would drift apart.
+    const CU_AWAY_DAYS = 30;
+    let cuRows = [];    // everything the request returned
+    let cuView = [];    // cuRows after the filter sheet, and in its sort order
+    let cuShown = 0;    // how many of cuView are in the DOM
+    let cuTotal = 0;    // how many exist at the café, which can exceed cuRows
+
+    // Committed filter state, and the draft the open sheet is editing. Two
+    // objects, not one: tapping chips must be undoable by shutting the sheet,
+    // so nothing reaches the list until Apply.
+    const CU_FILTER_OFF = { visit: "all", card: "all", sort: "recent" };
+    let cuFilter = Object.assign({}, CU_FILTER_OFF);
+    let cuDraft = Object.assign({}, CU_FILTER_OFF);
+
+    function customerRowHtml(c, i) {
+      const name = c.name || t("OWNER_CUSTOMERS_NONAME");
+      // Array.from, not [0]: a name starting with an astral-plane character
+      // (an emoji, say) would otherwise give half a surrogate pair and the
+      // badge would render the replacement glyph.
+      const initial = Array.from(name)[0] || "?";
+      // the server only ever sends four digits — the dots stand for the
+      // rest of a number this page never receives
+      const phone = c.phone4 ? "\u00b7\u00b7\u00b7" + c.phone4 : "";
+      const seen = lastSeenLabel(c);
+      // `null >= 30` is false, so a row with no usable timestamp is never
+      // marked — an unknown last visit is not evidence of a long absence.
+      const away = c.daysAgo >= CU_AWAY_DAYS ? " cu--away" : "";
+      // `i` is the row's index WITHIN ITS PAGE, so each batch staggers in from
+      // the top rather than inheriting the delay of the batch before it.
+      // Capped at 12: past that the delay outlasts the scroll to reach it.
+      return (
+        '<button type="button" class="cu' + away + '" data-id="' + esc(c.id || "") + '" style="--i:' + Math.min(i, 12) + '">' +
+          '<span class="cu__badge" aria-hidden="true">' + esc(initial) + "</span>" +
+          '<span class="cu__main">' +
+            '<span class="cu__name">' + esc(name) + "</span>" +
+            (phone ? '<span class="cu__phone">' + esc(phone) + "</span>" : "") +
+            (seen ? '<span class="cu__seen">' + esc(seen) + "</span>" : "") +
+          "</span>" +
+          '<span class="cu__prog">' + c.stamps + "/" + c.required + "</span>" +
+        "</button>"
+      );
+    }
+
+    // One row against one filter. daysAgo is null when the timestamp was
+    // unusable, and `null < 7` is true in JS — hence the explicit number
+    // check, or every unknown row would answer to "this week".
+    function customerMatches(c, f) {
+      const d = typeof c.daysAgo === "number" ? c.daysAgo : null;
+      if (f.visit === "week" && !(d !== null && d < 7)) return false;
+      if (f.visit === "month" && !(d !== null && d < CU_AWAY_DAYS)) return false;
+      if (f.visit === "away" && !(d !== null && d >= CU_AWAY_DAYS)) return false;
+
+      const st = c.stamps | 0, req = c.required | 0;
+      if (f.card === "empty" && st !== 0) return false;
+      if (f.card === "started" && st <= 0) return false;
+      // Read literally, as the chip says it: an untouched card IS less than
+      // half full, so "no stamps" is a subset of this rather than its
+      // opposite. These are alternatives to pick between, not a partition.
+      if (f.card === "half" && !(req > 0 && st < req / 2)) return false;
+      // strictly more than half, so an exactly-half card (4 of 8) belongs to
+      // neither this nor "less than half" — the words on both chips would be
+      // wrong about it
+      if (f.card === "over" && !(req > 0 && st > req / 2)) return false;
+      // the last slot before a reward — worth a nudge today. Guarded on req
+      // so a malformed row can't make every empty card match.
+      if (f.card === "nearly" && !(req > 1 && st >= req - 1 && st < req)) return false;
+      return true;
+    }
+
+    function countMatches(f) {
+      let n = 0;
+      for (const c of cuRows) if (customerMatches(c, f)) n++;
+      return n;
+    }
+
+    function sortCustomers(rows, how) {
+      // "recent" is the order the server already sorted by (-updated), so it
+      // is the no-op case — re-sorting would only risk disagreeing with it.
+      if (how === "recent") return rows;
+      const far = (c) => (typeof c.daysAgo === "number" ? c.daysAgo : -1);
+      if (how === "away") return rows.slice().sort((a, b) => far(b) - far(a));
+      if (how === "stamps") return rows.slice().sort((a, b) => (b.stamps | 0) - (a.stamps | 0));
+      if (how === "name") {
+        const loc = getLang() === "fa" ? "fa" : "en";
+        return rows.slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), loc));
+      }
+      return rows;
+    }
+
+    // Rebuilds the list from cuRows under the committed filter. Every path
+    // that changes what should be on screen ends here, so paging, the count
+    // line and the empty state can never describe a different set than the
+    // rows do.
+    function applyCustomerView() {
+      cuView = sortCustomers(cuRows.filter((c) => customerMatches(c, cuFilter)), cuFilter.sort);
+      cuShown = 0;
+      $("cuList").innerHTML = "";
+      $("cuMore").hidden = true;
+
+      const filtered = cuFilter.visit !== "all" || cuFilter.card !== "all";
+      // a non-default sort counts as "on" too: the list is not in the order
+      // it opens in, and nothing else on screen would say so
+      $("cuFilterBtn").classList.toggle("is-on", filtered || cuFilter.sort !== "recent");
+      $("cuSub").textContent = filtered
+        ? t("OWNER_CUSTOMERS_FILTERED", { n: cuView.length, total: cuTotal })
+        : t("OWNER_CUSTOMERS_COUNT", { n: cuTotal });
+
+      const note = $("cuNote");
+      if (!cuView.length) {
+        note.textContent = t(cuRows.length ? "OWNER_CUSTOMERS_NO_MATCH" : "OWNER_CUSTOMERS_EMPTY");
+        note.hidden = false;
+        return;
+      }
+      // the server's 500-row cap is only worth mentioning while the whole
+      // fetched set is on show — under a filter it is not what is limiting
+      if (!filtered && cuRows.length < cuTotal) {
+        note.textContent = t("OWNER_CUSTOMERS_TRUNCATED", { n: cuRows.length });
+        note.hidden = false;
+      } else {
+        note.hidden = true;
+      }
+      appendCustomerPage();
+    }
+
+    function appendCustomerPage() {
+      const slice = cuView.slice(cuShown, cuShown + CU_PAGE);
+      $("cuList").insertAdjacentHTML("beforeend", slice.map(customerRowHtml).join(""));
+      cuShown += slice.length;
+
+      const more = $("cuMore");
+      const left = cuView.length - cuShown;
+      if (left > 0) {
+        $("cuMoreBtn").textContent = t("OWNER_CUSTOMERS_MORE", { n: Math.min(CU_PAGE, left) });
+        // counted against whatever set is on screen: the café's real total
+        // normally, the matching rows once a filter narrows it
+        const of = (cuFilter.visit === "all" && cuFilter.card === "all") ? cuTotal : cuView.length;
+        $("cuMoreCount").textContent = t("OWNER_CUSTOMERS_OF", { shown: cuShown, total: of });
+        more.hidden = false;
+      } else {
+        more.hidden = true;
+      }
+    }
+
+    function renderCustomers(data) {
+      cuRows = data.customers || [];
+      cuTotal = data.total || cuRows.length;
+      // a fresh payload is a fresh list: an "away" filter left over from the
+      // last render could otherwise hide every row of it
+      cuFilter = Object.assign({}, CU_FILTER_OFF);
+      cuDraft = Object.assign({}, CU_FILTER_OFF);
+      syncSheetChips();
+      applyCustomerView();
+    }
+
+    $("cuMoreBtn").onclick = appendCustomerPage;
+
+    // ---------------- one customer's page ----------------
+    const cdet = $("cDetail");
+    const CD_MS = 470;              // must stay >= the .cdet transition
+    let cdTimer = null, cdReturnTo = null;
+    // bumped on every open, so a slow request for the customer you just
+    // backed out of cannot paint itself over the one you opened next
+    let cdSeq = 0;
+
+    // Counts a number up to its final value. The final value is written
+    // FIRST and the animation only replays the way there, so a browser that
+    // never runs the frames — a background tab, where rAF is throttled to a
+    // standstill — still shows the right number instead of a stuck zero.
+    function countUp(el, to, decimals) {
+      const end = Number(to) || 0;
+      const fixed = (v) => (decimals ? v.toFixed(decimals) : String(Math.round(v)));
+      el.textContent = fixed(end);
+      if (typeof requestAnimationFrame !== "function") return;
+      const t0 = performance.now(), dur = 850;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur);
+        // ease-out cubic: fast first, so the figure is readable almost at once
+        el.textContent = fixed(end * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+
+    const CD_DOW = ["OWNER_DOW_SAT", "OWNER_DOW_SUN", "OWNER_DOW_MON", "OWNER_DOW_TUE", "OWNER_DOW_WED", "OWNER_DOW_THU", "OWNER_DOW_FRI"];
+
+    function cdDateLabel(raw) {
+      const at = Date.parse(String(raw || "").replace(" ", "T"));
+      if (!at) return "";
+      return seenOnDate(raw);   // same Gregorian formatter the list uses
+    }
+
+    // Emptied while the page is still parked off-screen, never mid-slide:
+    // tearing down a 365-column graph is as expensive as building one.
+    function resetCustomerPage() {
+      $("cdName").textContent = "…";
+      $("cdPhone").textContent = "";
+      $("cdAvatar").textContent = "";
+      $("cdBadge").textContent = "";
+      $("cdRingTxt").textContent = "";
+      $("cdRingNote").textContent = "";
+      $("cdStats").innerHTML = "";
+      $("cdGraphTrack").innerHTML = "";
+      $("cdRewards").innerHTML = "";
+      $("cdRwSub").textContent = "";
+      $("cdGraphSub").textContent = "";
+      $("cdLegendFrom").textContent = "";
+      $("cdLegendTo").textContent = "";
+    }
+
+    function openCustomer(id, returnTo) {
+      cdReturnTo = returnTo || null;
+      const mine = ++cdSeq;
+      clearTimeout(cdTimer);
+      resetCustomerPage();                     // while it is still off-screen
+      cdet.hidden = false;
+      cdet.setAttribute("aria-hidden", "false");
+      void getComputedStyle(cdet).transform;   // resolve the parked position first
+      cdet.classList.add("is-open");
+      document.body.style.overflow = "hidden";
+      $("cdScroll").scrollTop = 0;
+      $("cdBack").focus();
+
+      // The request goes out now — the network overlaps the slide for free —
+      // but the DOM is only built once the page has LANDED. Rendering it
+      // mid-flight means a thousand graph elements and a 1700px-wide flex
+      // track laid out inside the transition, which eats the animation and
+      // makes the page look like it simply appeared.
+      Promise.all([fetchCustomer(id), new Promise((r) => setTimeout(r, CD_MS))])
+        .then((both) => { if (mine === cdSeq && both[0]) renderCustomer(both[0]); });
+    }
+
+    function closeCustomer() {
+      if (cdet.hidden) return;
+      cdSeq++;                                 // abandon any request still in flight
+      cdet.classList.remove("is-open");
+      clearTimeout(cdTimer);
+      cdTimer = setTimeout(() => {
+        cdet.hidden = true;
+        cdet.setAttribute("aria-hidden", "true");
+        // Unlocked only now. Releasing it as the slide starts re-lays out
+        // the whole list underneath on the transition's first frame, which
+        // is the other half of what was swallowing the animation.
+        releaseScrollLock();
+        resetCustomerPage();
+      }, CD_MS);
+      if (cdReturnTo && document.contains(cdReturnTo)) cdReturnTo.focus({ preventScroll: true });
+    }
+
+    // Resolves to the payload, or null having already put the reason on screen.
+    async function fetchCustomer(id) {
+      try {
+        const res = await fetch(API + "/owner/customer", {
+          method: "POST",
+          headers: { Authorization: token, "Content-Type": "application/json" },
+          body: JSON.stringify({ id: id }),
+        });
+        if (!res.ok) { $("cdName").textContent = t("OWNER_CUSTOMERS_ERR"); return null; }
+        return await res.json();
+      } catch (e) {
+        $("cdName").textContent = t("AUTH_ERR_SERVER_UNREACHABLE");
+        return null;
+      }
+    }
+
+    function renderCustomer(d) {
+      const p = d.profile, tt = d.totals, rh = d.rhythm;
+      const name = p.name || t("OWNER_CUSTOMERS_NONAME");
+      $("cdName").textContent = name;
+      $("cdAvatar").textContent = Array.from(name)[0] || "?";
+      $("cdPhone").textContent = p.phone4 ? "\u00b7\u00b7\u00b7" + p.phone4 : "";
+
+      const badge = $("cdBadge");
+      badge.textContent = p.active ? t("OWNER_CD_ACTIVE") : t("OWNER_CD_AWAY");
+      badge.classList.toggle("is-away", !p.active);
+
+      // current card as a ring
+      const req = tt.required || 8, st = Math.min(tt.stamps | 0, req);
+      const circ = 2 * Math.PI * 31;
+      const ring = $("cdRingVal");
+      ring.style.strokeDasharray = circ.toFixed(1);
+      ring.style.strokeDashoffset = circ.toFixed(1);          // start empty…
+      $("cdRingTxt").textContent = st + "/" + req;
+      // …then let the transition draw it. Deferred a beat so the dasharray
+      // above is the resolved start value rather than being coalesced away.
+      setTimeout(() => { ring.style.strokeDashoffset = (circ * (1 - st / req)).toFixed(1); }, 60);
+      // cards finished has its own tile below — the ring note said it twice
+      $("cdRingNote").innerHTML = t("OWNER_CD_RING_NOTE", { left: "<b>" + Math.max(0, req - st) + "</b>" });
+
+      // stat tiles
+      const stats = [
+        { v: rh.perMonth, dec: 1, k: t("OWNER_CD_PER_MONTH") },
+        { v: tt.visits, dec: 0, k: t("OWNER_CD_TOTAL_VISITS") },
+        { v: tt.cycles, dec: 0, k: t("OWNER_CD_CARDS_DONE") },
+        { v: d.rewards.redeemed, dec: 0, k: t("OWNER_CD_REDEEMED") },
+        { v: rh.avgGapDays, dec: 1, k: t("OWNER_CD_AVG_GAP"), dash: rh.avgGapDays === null },
+        { v: tt.memberDays, dec: 0, k: t("OWNER_CD_MEMBER_DAYS") },
+      ];
+      $("cdStats").innerHTML = stats.map((x, i) =>
+        '<div class="cdstat" style="--i:' + i + '"><span class="cdstat__v" data-v="' + (x.dash ? "" : x.v) +
+        '" data-dec="' + x.dec + '">' + (x.dash ? "—" : "0") + '</span>' +
+        '<span class="cdstat__k">' + esc(x.k) + "</span></div>").join("");
+      $("cdStats").querySelectorAll(".cdstat__v").forEach((el) => {
+        if (el.dataset.v === "") return;                 // the em-dash tiles stay as they are
+        countUp(el, el.dataset.v, Number(el.dataset.dec));
+      });
+
+      if (rh.busiestDow !== null && rh.busiestDow !== undefined) {
+        $("cdGraphSub").textContent = t("OWNER_CD_BUSIEST", { day: t(CD_DOW[rh.busiestDow]) });
+      } else {
+        $("cdGraphSub").textContent = "";
+      }
+      renderVisitGraph(d);
+
+      const rw = d.rewards;
+      $("cdRwSub").textContent = rw.issued
+        ? t("OWNER_CD_RW_SUM", { issued: rw.issued, redeemed: rw.redeemed, active: rw.active, expired: rw.expired })
+        : t("OWNER_CD_RW_NONE");
+      $("cdRewards").innerHTML = rw.list.map((r) => {
+        const st2 = r.status === "redeemed" ? "redeemed" : (r.status === "expired" ? "expired" : "active");
+        const when = st2 === "redeemed"
+          ? t("OWNER_CD_RW_REDEEMED_ON", { date: cdDateLabel(r.redeemedAt) || cdDateLabel(r.created) })
+          : t("OWNER_CD_RW_WON_ON", { date: cdDateLabel(r.created) });
+        return '<div class="cdrw"><div class="cdrw__main">' +
+          '<p class="cdrw__deal">' + esc(r.deal || t("OWNER_CD_RW_UNNAMED")) + "</p>" +
+          '<p class="cdrw__when">' + esc(when) + "</p></div>" +
+          '<span class="cdrw__st cdrw__st--' + st2 + '">' + esc(t("OWNER_CD_RW_" + st2.toUpperCase())) + "</span></div>";
+      }).join("");
+    }
+
+    // One column per DAY from the day they joined to today — the empty
+    // columns are the point, since a fortnight's gap is invisible in a chart
+    // that only plots the days somebody turned up.
+    function renderVisitGraph(d) {
+      const track = $("cdGraphTrack");
+      const byDay = {};
+      let peak = 1;
+      for (const x of d.days) { byDay[x.d] = x.n; if (x.n > peak) peak = x.n; }
+
+      const DAY = 86400000, IRAN_OFF = 3.5 * 3600000;
+      const pad = (n) => (n < 10 ? "0" + n : "" + n);
+      const key = (t2) => { const z = new Date(t2 + IRAN_OFF); return z.getUTCFullYear() + "-" + pad(z.getUTCMonth() + 1) + "-" + pad(z.getUTCDate()); };
+      const joined = Date.parse(String(d.profile.joined || "").replace(" ", "T")) || Date.now();
+      // a year is already 365 columns; past that the chart is a smear and
+      // the early history is better told by the "member for N days" tile
+      const span = Math.min(365, Math.max(1, Math.round((Date.now() - joined) / DAY) + 1));
+      const start = Date.now() - (span - 1) * DAY;
+
+      const cols = [];
+      let lastMonth = "";
+      const monthFmt = new Intl.DateTimeFormat(getLang() === "fa" ? "fa-IR-u-nu-latn" : "en-GB",
+        { calendar: "gregory", month: "short", timeZone: "Asia/Tehran" });
+      for (let i = 0; i < span; i++) {
+        const at = start + i * DAY;
+        const k = key(at);
+        const n = byDay[k] || 0;
+        const local = new Date(at + IRAN_OFF);
+        const mk = k.slice(0, 7);
+        const newMonth = mk !== lastMonth;
+        lastMonth = mk;
+        // Scaled from a floor, not from zero: with `n / peak` a customer whose
+        // busiest day was a single stamp gets one bar at full height, which
+        // reads as a spike when it is just "they came". One visit is always
+        // 55%, the peak is always 100%, and days in between interpolate.
+        const h = n ? (peak > 1 ? 55 + Math.round((45 * (n - 1)) / (peak - 1)) : 55) : 0;
+        cols.push(
+          '<span class="vgcol' + (n ? "" : " vgcol--none") + (newMonth && i ? " vgcol--m1" : "") + '" style="--i:' + Math.min(i, 60) + '"' +
+          ' title="' + esc(k + " · " + n) + '">' +
+          (newMonth ? '<span class="vgcol__m">' + esc(monthFmt.format(at)) + "</span>" : "") +
+          '<span class="vgcol__bar" style="--h:' + h + '%"></span>' +
+          '<span class="vgcol__d">' + local.getUTCDate() + "</span></span>"
+        );
+      }
+      track.innerHTML = cols.join("");
+      $("cdLegendFrom").textContent = t("OWNER_CD_GRAPH_SPAN", { n: span });
+      $("cdLegendTo").textContent = t("OWNER_CD_GRAPH_TODAY");
+      // open on today: the recent end is the one anybody reads first
+      const vg = $("cdGraph");
+      vg.scrollLeft = vg.scrollWidth;
+    }
+
+    // delegated, so the 50-rows-at-a-time paging needs no re-binding
+    $("cuList").addEventListener("click", (e) => {
+      const row = e.target.closest(".cu");
+      if (!row || !row.dataset.id) return;
+      openCustomer(row.dataset.id, row);
+    });
+    $("cdBack").onclick = closeCustomer;
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !cdet.hidden) closeCustomer(); });
+
+    // ---------------- filter sheet ----------------
+    const sheet = $("cuSheet");
+    const sheetPanel = $("cuSheetPanel");
+    const CU_GROUPS = { fVisit: "visit", fCard: "card", fSort: "sort" };
+
+    // Paints the chips from cuDraft. Also the reset path — one function, so
+    // the buttons can never disagree with the state they are showing.
+    function syncSheetChips() {
+      for (const id in CU_GROUPS) {
+        const key = CU_GROUPS[id];
+        $(id).querySelectorAll(".chip").forEach((b) => {
+          const on = b.dataset.v === cuDraft[key];
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+      }
+      // the count is live: tapping a chip re-counts without committing, so
+      // an owner can see a filter is empty before applying it
+      $("cuApply").textContent = t("OWNER_FILTER_SHOW", { n: countMatches(cuDraft) });
+    }
+
+    for (const id in CU_GROUPS) {
+      const key = CU_GROUPS[id];
+      $(id).addEventListener("click", (e) => {
+        const btn = e.target.closest(".chip");
+        if (!btn) return;
+        cuDraft[key] = btn.dataset.v;   // one value per group, radio-style
+        syncSheetChips();
+      });
+    }
+
+    // Three overlays can lock the page: the two sheets and the customer
+    // page. Each used to clear the lock on its own way out, which releases
+    // it while another is still open — closing the filter sheet back into
+    // the send sheet, for one. Asking whether anything is still up makes
+    // the lock behave like a count without keeping one.
+    function releaseScrollLock() {
+      const open = !$("cuSheet").hidden || !$("cuSend").hidden || !$("cDetail").hidden;
+      if (!open) document.body.style.overflow = "";
+    }
+
+    const SHEET_MS = 440;   // must stay >= the .sheet__panel transition
+
+    // Shared by every bottom sheet on this page. Written once because the
+    // two fiddly parts — resolving the parked transform before the class
+    // lands, and releasing the scroll lock only after the slide finishes —
+    // are exactly the parts that were silently dropping the animation when
+    // the filter sheet had its own copy.
+    function makeSheet(el, panel, opener, onOpen, onClosed) {
+      let timer = null;
+      function open() {
+        if (onOpen) onOpen();
+        clearTimeout(timer);
+        el.hidden = false;
+        el.setAttribute("aria-hidden", "false");
+        if (opener) opener.setAttribute("aria-expanded", "true");
+        // The panel is parked at translateY(100%) and only travels if the
+        // browser has resolved that start value before the class lands.
+        // Reading the panel's OWN computed transform forces exactly that.
+        // rAF would too, except it is throttled to a standstill in a
+        // background tab, which opens the sheet with no animation at all.
+        void getComputedStyle(panel).transform;
+        el.classList.add("is-open");
+        document.body.style.overflow = "hidden";
+        const first = el.querySelector(".sheet__close");
+        if (first) first.focus();
+      }
+      // `after` runs once the panel is actually gone. Apply uses it to hold
+      // the list rebuild back: redrawing fifty backdrop-filtered rows on the
+      // transition's first frame ate the closing animation.
+      function close(after) {
+        if (el.hidden) return;
+        el.classList.remove("is-open");
+        if (opener) opener.setAttribute("aria-expanded", "false");
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          el.hidden = true;
+          el.setAttribute("aria-hidden", "true");
+          // released here, not as the slide begins: restoring the scrollbar
+          // re-lays out the list underneath on the first frame
+          releaseScrollLock();
+          if (typeof after === "function") after();
+          // runs however the sheet was dismissed — button, backdrop, Escape
+          // or an action — which is what makes "return to where I came
+          // from" work without every exit having to remember to do it
+          if (onClosed) onClosed();
+        }, SHEET_MS);
+        if (opener) opener.focus();
+      }
+      // backdrop only — a tap inside the panel must not shut it
+      el.addEventListener("pointerdown", (e) => { if (e.target === el) close(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !el.hidden) close(); });
+      const closeBtn = el.querySelector(".sheet__close");
+      if (closeBtn) closeBtn.onclick = () => close();
+      return { open: open, close: close };
+    }
+
+    // Set when the filter sheet was opened from inside the send sheet, so
+    // dismissing it drops the owner back where they were instead of on the
+    // bare list. One sheet on screen at a time: stacking two bottom sheets
+    // over each other reads as a mistake, not a hierarchy.
+    let filterReturnsToSend = false;
+
+    const filterSheet = makeSheet(sheet, sheetPanel, $("cuFilterBtn"), () => {
+      cuDraft = Object.assign({}, cuFilter);   // start from what is applied
+      syncSheetChips();
+    }, () => {
+      if (!filterReturnsToSend) return;
+      filterReturnsToSend = false;
+      sendSheet.open();
+    });
+    const openSheet = filterSheet.open;
+    const closeSheet = filterSheet.close;
+
+    $("cuFilterBtn").onclick = openSheet;
+
+    // The header lifts while it is stuck. An IntersectionObserver on a
+    // 1px sentinel fires twice per scroll session instead of on every
+    // frame, which a scroll listener over a 500-row list would not.
+    if (typeof IntersectionObserver === "function") {
+      new IntersectionObserver(
+        (entries) => { $("cuHead").classList.toggle("is-stuck", !entries[0].isIntersecting); },
+        { threshold: 0, rootMargin: "-11px 0px 0px 0px" }   // 1px past the sticky top
+      ).observe($("cuSentinel"));
+    }
+
+    // ---------------- send sheet ----------------
+    // Addressed to whoever the list is currently showing, which is why the
+    // recipient line is filled on open rather than once at startup: the
+    // filter can have narrowed 286 people to 77 since last time.
+    function syncSendRecipients() {
+      const filtered = cuFilter.visit !== "all" || cuFilter.card !== "all";
+      $("cuSendCount").textContent = t("OWNER_SEND_TO_N", { n: cuView.length });
+      $("cuSendWho").textContent = t(filtered ? "OWNER_SEND_TO_FILTERED" : "OWNER_SEND_TO_ALL");
+      // the filter pill wears the same ink-when-on state as the one in the
+      // header, so the two cannot tell different stories about the same
+      // filter
+      $("cuSendFilter").classList.toggle("is-on", filtered || cuFilter.sort !== "recent");
+    }
+
+    const sendSheet = makeSheet($("cuSend"), $("cuSendPanel"), $("cuSendBtn"), () => {
+      syncSendRecipients();
+      refreshSendReady();   // filtering to nobody must disable Send
+    });
+    $("cuSendBtn").onclick = sendSheet.open;
+
+    // Filter from inside Send: swap one sheet for the other, and come back
+    // here when it closes. The recipient count is re-read on the way in, so
+    // it always matches whatever the filter just did.
+    $("cuSendFilter").onclick = () => {
+      filterReturnsToSend = true;
+      sendSheet.close(() => filterSheet.open());
+    };
+
+    const sendMsg = $("cuSendMsg");
+
+    // Mirrors updatePreview() in the discounts tab against this sheet's own
+    // fields, so the dark ticket here is the same ticket composed there.
+    function updateSendPreview() {
+      const deal = $("cuFDeal").value.trim() || t("OWNER_PV_DEAL_DEFAULT");
+      const desc = $("cuFDesc").value.trim();
+      const amt = Math.max(1, parseInt($("cuFExpAmt").value, 10) || 1);
+      $("cuPvDeal").textContent = deal;
+      $("cuPvDesc").textContent = desc;
+      $("cuPvExp").textContent = t("OWNER_PV_EXPIRES", { amt: amt, unit: unitWord($("cuFExpUnit").value, amt) });
+    }
+    ["cuFDeal", "cuFDesc", "cuFExpAmt", "cuFExpUnit"].forEach((id) => {
+      $(id).addEventListener("input", () => { updateSendPreview(); refreshSendReady(); });
+      $(id).addEventListener("change", () => { updateSendPreview(); refreshSendReady(); });
+    });
+
+    // Three states, one at a time: the press-row (nothing attached), the
+    // form (composing), or the ticket (confirmed). A confirmed discount is
+    // a decision, so it stops being an open form and becomes the object it
+    // describes — which is also what makes Send unambiguous.
+    let discAttached = null;
+
+    function setDiscState(state) {
+      const form = $("cuDiscForm"), toggle = $("cuDiscToggle"), att = $("cuDiscAttached");
+      const composing = state === "form";
+      form.classList.toggle("is-open", composing);
+      toggle.classList.toggle("is-open", composing);
+      toggle.setAttribute("aria-expanded", composing ? "true" : "false");
+      // the press-row is only an invitation; once a ticket is attached it
+      // would be a second way to do the same thing
+      toggle.hidden = state === "attached";
+      att.hidden = state !== "attached";
+      refreshSendReady();
+    }
+
+    $("cuDiscToggle").onclick = () => {
+      const composing = $("cuDiscForm").classList.contains("is-open");
+      setDiscState(composing ? "none" : "form");
+      if (!composing) { updateSendPreview(); $("cuFDeal").focus(); }
+    };
+
+    $("cuDiscCancel").onclick = () => {
+      // cancelling out of an edit keeps whatever was already attached
+      setDiscState(discAttached ? "attached" : "none");
+    };
+
+    $("cuDiscConfirm").onclick = () => {
+      const deal = $("cuFDeal").value.trim();
+      if (!deal) { $("cuFDeal").focus(); return; }   // the one required field
+      discAttached = {
+        deal: deal,
+        desc: $("cuFDesc").value.trim(),
+        amt: Math.max(1, parseInt($("cuFExpAmt").value, 10) || 1),
+        unit: $("cuFExpUnit").value,
+      };
+      $("cuAttDeal").textContent = discAttached.deal;
+      $("cuAttDesc").textContent = discAttached.desc;
+      $("cuAttExp").textContent = t("OWNER_PV_EXPIRES", { amt: discAttached.amt, unit: unitWord(discAttached.unit, discAttached.amt) });
+      setDiscState("attached");
+    };
+
+    $("cuDiscEdit").onclick = () => { setDiscState("form"); updateSendPreview(); $("cuFDeal").focus(); };
+
+    $("cuDiscRemove").onclick = () => {
+      discAttached = null;
+      $("cuFDeal").value = ""; $("cuFDesc").value = "";
+      $("cuFExpAmt").value = "2"; $("cuFExpUnit").value = "week";
+      setDiscState("none");
+    };
+
+    // Ready means: somebody to send to, and something to send. A discount
+    // left half-composed counts as unfinished — attaching a reward with no
+    // deal on it would reach the customer as a blank ticket. A CONFIRMED
+    // one never blocks, because confirming is what validated it.
+    let sendWasReady = false;
+    function refreshSendReady() {
+      const hasText = sendMsg.value.trim().length > 0;
+      const composing = $("cuDiscForm").classList.contains("is-open");
+      const discOk = !composing || $("cuFDeal").value.trim().length > 0;
+      const ready = hasText && discOk && cuView.length > 0;
+      $("cuSendGo").disabled = !ready;
+      // the sheen plays on the EDGE into ready, not for as long as it stays
+      // ready — an animation that repeats on every keystroke is noise
+      if (ready && !sendWasReady) {
+        $("cuSendGo").classList.remove("is-ready");
+        void $("cuSendGo").offsetWidth;        // restart the one-shot
+        $("cuSendGo").classList.add("is-ready");
+      }
+      if (!ready) $("cuSendGo").classList.remove("is-ready");
+      sendWasReady = ready;
+    }
+
+    sendMsg.addEventListener("input", () => {
+      $("cuSendChars").textContent = sendMsg.value.length;
+      refreshSendReady();
+    });
+
+    // TODO: nothing is wired to an endpoint yet — there is no broadcast API,
+    // and inventing one quietly would mean deciding channel, cost and
+    // consent on the owner's behalf. The button validates and nothing more.
+    $("cuSendGo").onclick = () => {};
+    $("cuReset").onclick = () => { cuDraft = Object.assign({}, CU_FILTER_OFF); syncSheetChips(); };
+    $("cuApply").onclick = () => {
+      cuFilter = Object.assign({}, cuDraft);
+      closeSheet(() => {
+        applyCustomerView();
+        // a narrowed list starts at the top; leaving the scroll where it was
+        // can land an owner past the end of the new, shorter list
+        $("panelCustomers").scrollIntoView({ block: "start" });
+      });
+    };
+
     // ---------------- bottom tab bar ----------------
     // Same sliding-indicator pattern as the customer wallet's tabbar
     // (index.html / app.js setTab): each tab maps to one .panel.
     const tabbarEl = $("tabbar");
-    const panelBtns = { analytics: $("tabAnalytics"), discounts: $("tabDiscounts"), card: $("tabCard"), settings: $("tabSettings") };
-    const panels = { analytics: $("panelAnalytics"), discounts: $("panelDiscounts"), card: $("panelCard"), settings: $("panelSettings") };
-    const TAB_INDEX = { analytics: 0, card: 1, discounts: 2, settings: 3 };
+    const panelBtns = { analytics: $("tabAnalytics"), customers: $("tabCustomers"), discounts: $("tabDiscounts"), card: $("tabCard"), settings: $("tabSettings") };
+    const panels = { analytics: $("panelAnalytics"), customers: $("panelCustomers"), discounts: $("panelDiscounts"), card: $("panelCard"), settings: $("panelSettings") };
+    // Positions in the bar, not the order of this file: card is the middle of
+    // the five, which is why it is 2 and not 1. Must match the source order of
+    // the buttons in owner.html — the indicator is placed off this number
+    // alone, so a tab moved there and not here slides the pill to the wrong
+    // button.
+    const TAB_INDEX = { analytics: 0, customers: 1, card: 2, discounts: 3, settings: 4 };
 
     function setOwnerTab(name) {
       tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
+      // card is the circular tab and carries its own fill, so the sliding
+      // indicator hides rather than landing a square pill behind a circle
+      tabbarEl.classList.toggle("is-card", name === "card");
       for (const k in panelBtns) panelBtns[k].classList.toggle("is-active", k === name);
       for (const k in panels) panels[k].hidden = k !== name;
       // fetch /owner/stats only the first time the owner actually opens this
       // tab, not on every dashboard load — analytics is a heavier call than
       // café/rewards and most sessions never visit it
       if (name === "analytics" && !analyticsLoaded) { analyticsLoaded = true; loadAnalytics(); }
+      if (name === "customers" && !customersLoaded) { customersLoaded = true; loadCustomers(); }
     }
     $("tabAnalytics").onclick = () => setOwnerTab("analytics");
+    $("tabCustomers").onclick = () => setOwnerTab("customers");
     $("tabDiscounts").onclick = () => setOwnerTab("discounts");
     $("tabCard").onclick = () => setOwnerTab("card");
     $("tabSettings").onclick = () => setOwnerTab("settings");
@@ -1338,7 +2089,7 @@
     // land on the tab the owner actually asked for — e.g. a bookmarked
     // "/owner#analytics" — instead of always resetting to Card, the static
     // HTML's default tab
-    const initialTab = ["analytics", "discounts", "card", "settings"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "card";
+    const initialTab = ["analytics", "customers", "discounts", "card", "settings"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "card";
     setOwnerTab(initialTab);
 
     loadCafe().then(loadRewards);

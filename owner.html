@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=40"></script>
+  <script src="i18n.js?v=64"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -53,8 +53,12 @@
     /* bottom padding cleared for the floating tabbar, not the old 48px.
        Every tab now starts at the same 24px — the café name / "Owner Dashboard"
        badge / "Hello, ___" banner that the 90px top padding used to clear is
-       gone, and with it the per-tab padding switch. */
-    .own { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 24px 20px 104px; display: flex; flex-direction: column; gap: 16px; }
+       gone, and with it the per-tab padding switch.
+
+       116px, not the 104px the flat bar needed: the card tab's circle rises
+       about 16px above the bar's top edge, and 104px left the last line of a
+       scrolled panel passing under it. */
+    .own { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 24px 20px 116px; display: flex; flex-direction: column; gap: 16px; }
 
     /* 480px is the right width for three of the four tabs: the card tab is a
        phone-shaped loyalty card, and discounts and settings are short forms.
@@ -425,10 +429,500 @@
     #panelAnalytics .act-cursor::before,
     #panelAnalytics .act-sel__dot { background: var(--an-hi); }
 
+    /* ---------------- Customers list ----------------
+       Modelled on .rw in the discounts panel — same glass row, same badge
+       treatment — so the two list tabs read as one component. */
+    /* The header is a card of its own and sticks to the top of the screen,
+       because the list under it runs to 500 rows: Filter, Send and the
+       count are the controls for whatever is on screen, and scrolling past
+       them means scrolling away from the only way to change it.
+       The glass is doing real work here for once — rows pass underneath it,
+       so the blur is what keeps the text legible instead of a solid bar
+       that would hide them. */
+    .cu-head {
+      position: sticky; top: 10px; z-index: 5;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      padding: 12px 14px; border-radius: 22px;
+      background: linear-gradient(158deg, rgba(255,255,255,0.82), rgba(255,255,255,0.58));
+      backdrop-filter: blur(20px) saturate(170%); -webkit-backdrop-filter: blur(20px) saturate(170%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 6px 18px -16px rgba(20,20,20,0.35), inset 0 1px 0 var(--glass-hi);
+      transition: box-shadow 0.32s ease, border-radius 0.32s ease;
+      animation: fadeUp 0.5s var(--ease-spring) 0.1s both;
+    }
+    /* lifts only once it is actually holding position over the list — an
+       always-on drop shadow would float it off a page it is sitting still on */
+    .cu-head.is-stuck { box-shadow: 0 20px 36px -20px rgba(20,20,20,0.55), inset 0 1px 0 var(--glass-hi); }
+    /* zero-height marker that leaves the viewport exactly when the header
+       starts sticking; cheaper and steadier than a scroll listener */
+    .cu-sentinel { height: 1px; margin-bottom: -1px; }
+    .cu-head__text { min-width: 0; }
+    .cu-acts { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+    .cu-title { font-family: var(--font-heading); font-weight: 700; font-size: 21px; margin: 0; color: var(--ink); }
+    .cu-sub { margin: 4px 0 0; font-size: 12.5px; color: var(--dim); }
+    /* Same glass pill as .add-fab in the discounts tab, widened to carry a
+       word — the two list tabs get the same affordance in the same corner. */
+    .cu-filter {
+      position: relative; flex: 0 0 auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px; border-radius: 30px; cursor: pointer;
+      font-family: var(--font-heading); font-weight: 700; font-size: 12.5px; color: var(--ink);
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 12px 24px -14px rgba(20,20,20,0.4), inset 0 1px 0 var(--glass-hi);
+      transition: transform 0.16s var(--ease-spring), box-shadow 0.3s ease,
+                  background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+    .cu-filter:hover { transform: translateY(-1px); box-shadow: 0 16px 28px -14px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi); }
+    .cu-filter:active { transform: scale(0.96); }
+    .cu-filter svg { width: 15px; height: 15px; }
+    /* Filled once anything is applied — the only sign a filter is on after
+       the sheet shuts, and the same ink the selected chips wear inside it.
+       A glass button over a list that is quietly hiding rows reads as a list
+       with fewer customers in it. */
+    .cu-filter.is-on {
+      background: #171717; background-image: none; color: #ffffff;
+      border-color: #171717;
+      box-shadow: 0 14px 26px -12px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.14);
+    }
+    .cu-filter.is-on:hover { box-shadow: 0 18px 30px -12px rgba(20,20,20,0.7), inset 0 1px 0 rgba(255,255,255,0.14); }
+    .cu-list { display: flex; flex-direction: column; gap: 10px; }
+    /* A <button>, not a div: each row opens that customer's page, so it has
+       to be reachable by keyboard and announced as something you can press.
+       The resets below are what a button costs. */
+    .cu {
+      width: 100%; font-family: inherit; text-align: start; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(150deg, rgba(255,255,255,0.62), rgba(255,255,255,0.4));
+      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 22px -16px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+      /* .rw's stagger, but renderCustomers clamps --i: at 55ms a row, the
+         286th customer would not appear for fifteen seconds. */
+      animation: rwIn 0.5s var(--ease-spring) both; animation-delay: calc(var(--i,0) * 55ms);
+      transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease;
+    }
+    .cu:hover { transform: translateY(-2px); box-shadow: 0 16px 28px -16px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.8); }
+    .cu:active { transform: scale(0.985); }
+    .cu__badge {
+      flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; line-height: 1;
+      background: linear-gradient(150deg, #2b2b2b, #121212); color: #fff;
+      font-family: var(--font-heading); font-weight: 800; font-size: 15px;
+      box-shadow: 0 8px 16px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .cu__main { min-width: 0; flex: 1; display: block; }
+    /* spans, not <p>/<div>: a <button> may not contain block-level content,
+       and browsers quietly close the button around it if it does */
+    .cu__name, .cu__phone, .cu__seen { display: block; }
+    .cu__name { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 15px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Four digits behind three dots, and it has to read left-to-right even on
+       the Persian page: an unisolated run of digits beside punctuation gets
+       reordered by the bidi algorithm and lands the dots on the wrong end. */
+    .cu__phone { margin: 1px 0 0; font-size: 12.5px; color: var(--dim); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; text-align: start; }
+    /* direction:ltr above is there to order the dots and digits, and it also
+       makes `start` mean left — which parked the number against the far edge
+       of the row while the name above it sat right. The internal order has to
+       stay LTR; only the block needs to follow the page. */
+    html[dir="rtl"] .cu__phone { text-align: right; }
+    /* The third line, and deliberately the quietest of the three: a name is
+       who, the number is how to check it is them, and this is only context. */
+    .cu__seen { margin: 3px 0 0; font-size: 11px; font-weight: 700; color: var(--faint); }
+    /* The list arrives 50 rows at a time. The count under the button is the
+       point of it — "50 of 286" tells an owner both that there is more and
+       how much more, which a bare button does not. */
+    .cu-more { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 0 2px; }
+    .cu-more__btn { min-width: 160px; }
+    .cu-more__count { margin: 0; font-size: 11.5px; font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; }
+    .cu__prog { flex: 0 0 auto; font-size: 11px; font-weight: 800; color: var(--dim); background: rgba(20,20,20,0.05); border-radius: 20px; padding: 4px 10px; direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+
+    /* A month or more since the last visit. inset-inline-start, so the bar
+       sits on the leading edge in both directions; inset 14px top and bottom
+       to stay clear of the card's 16px corner radius. The date text goes red
+       with it, but the marking is never colour alone — the line below it has
+       already switched from "4 weeks ago" to a date by this point. */
+    .cu--away { position: relative; }
+    .cu--away::before {
+      content: ""; position: absolute;
+      inset-inline-start: 0; top: 14px; bottom: 14px;
+      width: 3px; border-radius: 3px;
+      background: var(--bad);
+    }
+    .cu--away .cu__seen { color: var(--bad); }
+
+    /* Icon-only, where Filter carries a word: the pair has to fit beside a
+       heading on a 360px phone, and a paper plane needs no label. It stays
+       glass rather than filled — ink on this row already means "a filter is
+       on", and a permanently dark button would make that signal unreadable. */
+    .cu-send {
+      flex: 0 0 auto; width: 40px; height: 40px;
+      display: grid; place-items: center; padding: 0; cursor: pointer;
+      border-radius: 50%; color: var(--ink);
+      background: linear-gradient(158deg, var(--glass-fill-strong), var(--glass-fill));
+      backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 12px 24px -14px rgba(20,20,20,0.4), inset 0 1px 0 var(--glass-hi);
+      transition: transform 0.16s var(--ease-spring), box-shadow 0.3s ease;
+    }
+    .cu-send:hover { transform: translateY(-1px); box-shadow: 0 16px 28px -14px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi); }
+    .cu-send:active { transform: scale(0.94); }
+    .cu-send svg { width: 17px; height: 17px; }
+    /* the plane points the way the language reads */
+    html[dir="rtl"] .cu-send svg { transform: scaleX(-1); }
+
+    .sheet__field { position: relative; }
+    .sheet__label { display: block; margin-bottom: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: var(--faint); }
+    .sheet__msg {
+      width: 100%; display: block; resize: vertical; min-height: 104px;
+      font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.6; color: var(--ink);
+      background: rgba(255,255,255,0.6); border: 1.5px solid rgba(255,255,255,0.6);
+      border-radius: 14px; padding: 12px 13px 26px; outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .sheet__msg:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20,20,20,0.08); }
+    /* inside the box's own bottom padding, so a growing message never pushes
+       the count out of sight */
+    .sheet__chars { position: absolute; bottom: 9px; inset-inline-end: 13px; font-size: 10.5px; font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; pointer-events: none; }
+
+    /* The discount is opt-in, so its control is a row you press rather than
+       a form sitting open: an empty reward form under every message would
+       suggest one is expected. */
+    .sheet__add {
+      width: 100%; margin: 16px 0 0; padding: 11px 12px;
+      display: flex; align-items: center; gap: 12px; text-align: start; cursor: pointer;
+      font-family: inherit; border-radius: 16px;
+      background: rgba(255,255,255,0.5); border: 1px dashed rgba(20,20,20,0.2);
+      transition: background-color 0.22s ease, border-color 0.22s ease, transform 0.16s var(--ease-spring);
+    }
+    /* display:flex above has the same specificity as the browser's
+       [hidden]{display:none}, and ours comes later — without this the row
+       stays on screen under the attached ticket. Same trap as .sheet and
+       .crop-modal. */
+    .sheet__add[hidden] { display: none; }
+    .sheet__add:hover { background: rgba(255,255,255,0.72); border-color: rgba(20,20,20,0.32); }
+    .sheet__add:active { transform: scale(0.99); }
+    .sheet__add-ico {
+      flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+      display: grid; place-items: center; background: #171717; color: #fff;
+      transition: transform 0.34s var(--ease-spring);
+    }
+    .sheet__add-ico svg { width: 16px; height: 16px; }
+    /* the plus turns into a close, rather than swapping for a different
+       glyph — same trick as .add-fab in the discounts tab */
+    .sheet__add.is-open .sheet__add-ico { transform: rotate(135deg); }
+    .sheet__add-main { min-width: 0; flex: 1; display: block; }
+    .sheet__add-t { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--ink); }
+    .sheet__add-s { display: block; margin-top: 2px; font-size: 11.5px; color: var(--dim); }
+    /* the shared .add-form opens flush under the row that summons it */
+    #cuDiscForm { margin-top: 10px; }
+    #cuDiscForm.is-open { margin-bottom: 0; }
+
+    .sheet__disc { margin-top: 16px; animation: cardIn 0.5s var(--ease-spring) both; }
+    .sheet__disc[hidden] { display: none; }
+    .sheet__disc .pv-card { margin-bottom: 10px; }
+    .sheet__disc-acts { display: flex; gap: 8px; }
+    .sheet__disc-acts .btn-ghost { flex: 1; font-size: 13px; padding: 8px 12px; }
+    .sheet__disc-rm { color: var(--bad); border-color: rgba(192,80,63,0.3); background: rgba(192,80,63,0.08); }
+    .sheet__disc-rm:hover { background: rgba(192,80,63,0.16); }
+
+    /* Full-width commit. The sheen is a one-off sweep whenever the button
+       becomes usable — it is the only moment on this sheet worth drawing an
+       eye to, and it never loops, so it cannot nag. */
+    .sheet__send {
+      position: relative; overflow: hidden;
+      width: 100%; margin-top: 18px; padding: 15px 18px;
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      font-family: var(--font-heading); font-weight: 700; font-size: 15px;
+      color: #fff; background: linear-gradient(158deg, #2b2b2b, #111111);
+      border: none; border-radius: 16px; cursor: pointer;
+      box-shadow: 0 16px 30px -14px rgba(20,20,20,0.7), inset 0 1px 0 rgba(255,255,255,0.14);
+      transition: transform 0.16s var(--ease-spring), box-shadow 0.3s ease, opacity 0.25s ease;
+    }
+    .sheet__send svg { width: 17px; height: 17px; }
+    html[dir="rtl"] .sheet__send svg { transform: scaleX(-1); }
+    .sheet__send:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 22px 38px -14px rgba(20,20,20,0.8), inset 0 1px 0 rgba(255,255,255,0.14); }
+    .sheet__send:active:not(:disabled) { transform: scale(0.98); }
+    .sheet__send:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    .sheet__send-sheen {
+      position: absolute; top: 0; bottom: 0; width: 42%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,0.22), transparent);
+      transform: translateX(-180%); pointer-events: none;
+    }
+    .sheet__send.is-ready .sheet__send-sheen { animation: sheenSweep 0.9s ease-out 1; }
+    @keyframes sheenSweep { to { transform: translateX(380%); } }
+
+    /* Who the sheet is addressed to, stated before anything else in it —
+       and built as one of the list's own customer cards (.cu), badge and
+       all. The recipients ARE those rows; a flat grey strip made them look
+       like a setting instead of people. */
+    .sheet__to {
+      display: flex; align-items: center; gap: 12px;
+      margin: 0 0 18px; padding: 10px 12px; border-radius: 16px;
+      background: linear-gradient(150deg, rgba(255,255,255,0.72), rgba(255,255,255,0.46));
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 10px 22px -16px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.85);
+    }
+    .sheet__to-badge {
+      flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: linear-gradient(150deg, #2b2b2b, #121212); color: #fff;
+      box-shadow: 0 8px 16px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    .sheet__to-badge svg { width: 19px; height: 19px; }
+    .sheet__to-main { min-width: 0; flex: 1; display: block; }
+    /* Icon only, and on the card rather than floating above it: it changes
+       who this card is describing, so it belongs on the thing it changes.
+       Sits where a customer row's progress chip sits, and wears the same
+       ink-when-on state as the Filter pill in the header. */
+    .sheet__to-filter {
+      flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%;
+      display: grid; place-items: center; padding: 0; cursor: pointer;
+      color: var(--dim); background: rgba(20,20,20,0.05);
+      border: 1px solid rgba(20,20,20,0.07);
+      transition: transform 0.16s var(--ease-spring), background-color 0.22s ease, color 0.22s ease, border-color 0.22s ease;
+    }
+    .sheet__to-filter svg { width: 16px; height: 16px; }
+    .sheet__to-filter:hover { background: rgba(20,20,20,0.1); color: var(--ink); }
+    .sheet__to-filter:active { transform: scale(0.92); }
+    .sheet__to-filter.is-on { background: #171717; border-color: #171717; color: #ffffff; }
+    .sheet__to-n { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 15px; color: var(--ink); }
+    .sheet__to-k { display: block; margin-top: 2px; font-size: 12px; color: var(--dim); line-height: 1.45; }
+
+    /* ---------------- Customer detail ----------------
+       A pushed page, not another centred modal: it is a screenful of
+       material about one person, and sliding in from the leading edge says
+       "you went somewhere" the way a dialog fading in the middle does not.
+       Same .is-open transition pattern as the filter sheet below. */
+    .cdet {
+      position: fixed; inset: 0; z-index: 240;
+      background: var(--paper);
+      transform: translateX(100%);
+      transition: transform 0.46s var(--ease-spring);
+      overflow: hidden;
+      /* promote it before it moves — the page it slides over is a long list
+         of backdrop-filtered rows, and without a layer of its own the
+         compositor repaints that on every frame of the slide */
+      will-change: transform;
+    }
+    html[dir="rtl"] .cdet { transform: translateX(-100%); }
+    .cdet[hidden] { display: none; }
+    .cdet.is-open, html[dir="rtl"] .cdet.is-open { transform: translateX(0); }
+    .cdet__scroll { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+
+    /* dark hero, deliberately the same ink as the loyalty card itself — the
+       customer's own card is the thing this page is about */
+    .cdet__hero {
+      position: relative; overflow: hidden;
+      padding: calc(16px + env(safe-area-inset-top, 0px)) 22px 26px;
+      border-radius: 0 0 30px 30px;
+      background: linear-gradient(158deg, #2b2b2b, #121212);
+      color: #fff;
+      box-shadow: 0 22px 44px -22px rgba(10,10,10,0.7);
+    }
+    .cdet__hero::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(120% 70% at 18% -20%, rgba(255,255,255,0.18), transparent 56%);
+    }
+    .cdet__back {
+      position: relative; z-index: 1;
+      /* physical left in both directions, and the chevron is never mirrored:
+         the arrow means "back out of here", and pointing it at the right
+         edge in Persian read as "forward" to the person using it */
+      margin-right: auto;
+      width: 38px; height: 38px; display: grid; place-items: center; padding: 0;
+      border: none; border-radius: 50%; cursor: pointer;
+      background: rgba(255,255,255,0.12); color: #fff;
+      transition: background-color 0.2s ease, transform 0.16s var(--ease-spring);
+    }
+    .cdet__back:hover { background: rgba(255,255,255,0.2); }
+    .cdet__back:active { transform: scale(0.92); }
+    .cdet__back svg { width: 17px; height: 17px; }
+
+    .cdet__id { position: relative; z-index: 1; display: flex; align-items: center; gap: 15px; margin-top: 18px; }
+    .cdet__avatar {
+      flex: 0 0 auto; width: 64px; height: 64px; border-radius: 50%;
+      display: grid; place-items: center; line-height: 1;
+      font-family: var(--font-heading); font-weight: 800; font-size: 25px; color: #171717;
+      background: linear-gradient(158deg, #ffffff, #d9d9d9);
+      box-shadow: 0 12px 24px -10px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.9);
+      animation: cdPop 0.6s var(--ease-spring) both;
+    }
+    @keyframes cdPop { from { opacity: 0; transform: scale(0.6); } }
+    .cdet__who { min-width: 0; flex: 1; }
+    .cdet__name { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 22px; letter-spacing: -0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cdet__phone { margin: 2px 0 0; font-size: 13px; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; text-align: start; }
+    html[dir="rtl"] .cdet__phone { text-align: right; }
+    .cdet__badge {
+      /* a third item on the identity row, pushed to the far edge — inside
+         the name stack it made that column taller than the avatar and threw
+         the name and number off centre against it */
+      flex: 0 0 auto; margin-inline-start: auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 11px; border-radius: 30px;
+      font-size: 10.5px; font-weight: 800; letter-spacing: 0.2px;
+      background: rgba(255,255,255,0.14); color: #fff;
+    }
+    .cdet__badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #7bd88f; }
+    .cdet__badge.is-away { background: rgba(192,80,63,0.26); }
+    .cdet__badge.is-away::before { background: #e8806d; }
+
+    /* current card, as a ring — the one number an owner looks for first */
+    .cdet__ring { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; margin-top: 22px; }
+    .cdring { flex: 0 0 auto; width: 74px; height: 74px; position: relative; }
+    .cdring svg { width: 74px; height: 74px; transform: rotate(-90deg); }
+    .cdring__bg { fill: none; stroke: rgba(255,255,255,0.16); stroke-width: 7; }
+    .cdring__val { fill: none; stroke: #fff; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1.1s var(--ease-spring); }
+    .cdring__txt { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-heading); font-weight: 800; font-size: 15px; letter-spacing: -0.3px; }
+    .cdet__ringnote { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.72); }
+    .cdet__ringnote b { color: #fff; font-size: 14px; }
+
+    /* stat tiles */
+    .cdgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 18px 20px 0; }
+    .cdstat {
+      padding: 14px 15px; border-radius: 18px;
+      background: linear-gradient(150deg, rgba(255,255,255,0.7), rgba(255,255,255,0.46));
+      border: 1px solid rgba(255,255,255,0.65);
+      box-shadow: 0 12px 24px -18px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.85);
+      animation: cardIn 0.6s var(--ease-spring) both; animation-delay: calc(0.08s + var(--i,0) * 70ms);
+    }
+    .cdstat__v { display: block; font-family: var(--font-heading); font-weight: 800; font-size: 25px; letter-spacing: -0.8px; color: var(--ink); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+    html[dir="rtl"] .cdstat__v { text-align: right; }
+    .cdstat__k { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: var(--dim); line-height: 1.4; }
+
+    /* sections */
+    .cdbox { margin: 18px 20px 0; padding: 18px 16px; border-radius: 22px;
+      background: linear-gradient(150deg, rgba(255,255,255,0.68), rgba(255,255,255,0.44));
+      border: 1px solid rgba(255,255,255,0.65);
+      box-shadow: 0 14px 30px -22px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.85);
+      animation: cardIn 0.6s var(--ease-spring) both; animation-delay: calc(0.3s + var(--i,0) * 90ms);
+    }
+    .cdbox__title { margin: 0 0 3px; font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--ink); }
+    .cdbox__sub { margin: 0 0 14px; font-size: 11.5px; color: var(--faint); line-height: 1.5; }
+
+    /* ---- visit graph ----
+       One column per day from the day they joined to today, so the gaps are
+       as visible as the visits — a run of empty columns IS the finding. It
+       scrolls sideways and opens scrolled to today, because the recent end
+       is the one anybody reads first. */
+    .vg { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; padding-bottom: 4px; direction: ltr; }
+    .vg__track { display: flex; align-items: flex-end; gap: 3px; height: 128px; padding: 0 2px; width: max-content; }
+    .vgcol { position: relative; flex: 0 0 auto; width: 13px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; }
+    .vgcol__bar {
+      width: 100%; border-radius: 5px; background: linear-gradient(180deg, #3a3a3a, #141414);
+      height: var(--h); transform-origin: bottom;
+      animation: vgGrow 0.55s var(--ease-spring) both; animation-delay: calc(var(--i,0) * 9ms);
+    }
+    @keyframes vgGrow { from { transform: scaleY(0); opacity: 0; } }
+    .vgcol--none .vgcol__bar { height: 3px; background: rgba(20,20,20,0.12); }
+    .vgcol__d { font-size: 8.5px; font-weight: 700; color: var(--faint); font-variant-numeric: tabular-nums; }
+    /* first column of each month carries the label and a divider */
+    .vgcol--m1 { margin-left: 7px; }
+    .vgcol--m1::before { content: ""; position: absolute; left: -5px; top: 0; bottom: 16px; width: 1px; background: rgba(20,20,20,0.1); }
+    .vgcol__m { position: absolute; top: -2px; left: 0; font-size: 8.5px; font-weight: 800; color: var(--dim); white-space: nowrap; }
+    .vg__legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 10.5px; font-weight: 700; color: var(--faint); }
+
+    /* ---- rewards ---- */
+    .cdrw { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-top: 1px solid rgba(20,20,20,0.07); }
+    .cdrw:first-child { border-top: 0; padding-top: 2px; }
+    .cdrw__main { min-width: 0; flex: 1; }
+    .cdrw__deal { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cdrw__when { margin: 2px 0 0; font-size: 11px; color: var(--faint); }
+    .cdrw__st { flex: 0 0 auto; padding: 4px 10px; border-radius: 30px; font-size: 10px; font-weight: 800; }
+    .cdrw__st--redeemed { background: rgba(60,140,90,0.16); color: #2f6b45; }
+    .cdrw__st--active { background: rgba(20,20,20,0.08); color: var(--dim); }
+    .cdrw__st--expired { background: rgba(192,80,63,0.14); color: var(--bad); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cdet { transition: none; }
+      .cdet__avatar, .cdstat, .cdbox, .vgcol__bar { animation: none; opacity: 1; transform: none; }
+      .cdring__val { transition: none; }
+    }
+
+    /* ---------------- Filter sheet ----------------
+       Opening and closing are both transitions on .is-open rather than a
+       keyframe: an animation can only play on the way in, and a sheet that
+       snaps out of existence feels broken after one that slid in. The panel
+       is translateY(100%) at rest, so it is parked below the fold and never
+       needs measuring. */
+    .sheet {
+      position: fixed; inset: 0; z-index: 230;
+      display: flex; align-items: flex-end; justify-content: center;
+      background: rgba(10,10,10,0);
+      backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+      transition: background 0.3s ease, backdrop-filter 0.3s ease;
+    }
+    /* same specificity fight as .crop-modal[hidden] — our display:flex would
+       otherwise beat the browser's [hidden]{display:none} */
+    .sheet[hidden] { display: none; }
+    .sheet.is-open { background: rgba(10,10,10,0.5); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+    .sheet__panel {
+      position: relative; width: 100%; max-width: 480px;
+      /* Height follows the content: opening the discount form makes the
+         sheet taller rather than keeping it put and scrolling inside. The
+         panel is bottom-anchored, so the growth the .add-form transition
+         produces pushes the top edge up frame by frame and the sheet rises.
+         88vh is a ceiling, not a target — it leaves a strip of the list
+         showing, which is what tells you the sheet can be dismissed.
+         overflow-y stays for short screens, where even 88vh is not enough. */
+      max-height: 88vh; overflow-y: auto; overscroll-behavior: contain;
+      padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+      border-radius: 30px 30px 0 0;
+      background: linear-gradient(170deg, rgba(255,255,255,0.86), rgba(246,246,246,0.96));
+      backdrop-filter: blur(26px) saturate(180%); -webkit-backdrop-filter: blur(26px) saturate(180%);
+      border: 1px solid var(--glass-border); border-bottom: 0;
+      box-shadow: 0 -24px 60px -24px rgba(10,10,10,0.5), inset 0 1px 0 rgba(255,255,255,0.9);
+      transform: translateY(100%);
+      transition: transform 0.44s var(--ease-spring);
+    }
+    .sheet.is-open .sheet__panel { transform: translateY(0); }
+    .sheet__grab { display: block; width: 42px; height: 4px; margin: 0 auto 12px; border-radius: 4px; background: rgba(20,20,20,0.16); }
+    .sheet__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .sheet__title { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 19px; color: var(--ink); }
+    .sheet__close {
+      flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; padding: 0;
+      border: none; border-radius: 50%; background: rgba(20,20,20,0.06); color: var(--dim);
+      cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .sheet__close:hover { background: rgba(20,20,20,0.12); color: var(--ink); }
+    .sheet__close svg { width: 15px; height: 15px; }
+
+    .fgrp { margin-bottom: 18px; }
+    .fgrp__label { margin: 0 0 9px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: var(--faint); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 9px 15px; border-radius: 30px; cursor: pointer;
+      font-family: var(--font-heading); font-weight: 700; font-size: 12.5px;
+      color: var(--dim); background: rgba(255,255,255,0.55);
+      border: 1px solid rgba(255,255,255,0.7);
+      box-shadow: 0 6px 14px -10px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+      transition: transform 0.18s var(--ease-spring), background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .chip:hover { transform: translateY(-1px); }
+    .chip:active { transform: scale(0.95); }
+    .chip.is-on {
+      background: #171717; color: #ffffff; border-color: #171717;
+      box-shadow: 0 10px 20px -10px rgba(20,20,20,0.6), inset 0 1px 0 rgba(255,255,255,0.14);
+    }
+
+    .sheet__actions { display: flex; gap: 10px; margin-top: 22px; }
+    .sheet__actions .btn-ghost { flex: 0 0 auto; }
+    .sheet__apply { flex: 1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sheet, .sheet__panel, .chip { transition: none; }
+    }
+
     /* ---------------- Bottom tab bar ----------------
        Same component as the customer wallet's (index.html #tabbar / styles.css
        .tabbar) — rebuilt here since this page doesn't load that stylesheet. */
     .tabbar {
+      /* --tw is the slot every tab occupies, and so the step the indicator
+         travels. It is a variable rather than the old hard-coded 78px because
+         the bar carries five tabs now, not four: 5 x 78 plus 14px of padding
+         is 404px, wider than a 390px handset. 70px lands the whole bar at
+         364px, and the query below takes it down again on the narrowest
+         phones still in use. */
+      --tw: 70px;
       position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       transform: translateX(-50%); z-index: 210;
       display: flex; padding: 7px; border-radius: 22px;
@@ -439,28 +933,67 @@
       animation: tabbarIn 0.6s var(--ease-spring) 0.25s both;
     }
     @keyframes tabbarIn { from { opacity: 0; transform: translate(-50%, 26px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @media (max-width: 374px) { .tabbar { --tw: 60px; } }
     .tabbar__ind {
       position: absolute; top: 7px; left: 7px;
-      width: 78px; height: calc(100% - 14px);
+      width: var(--tw); height: calc(100% - 14px);
       border-radius: 16px; background: #171717;
-      transform: translateX(calc(var(--ti, 1) * 78px));
-      transition: transform 0.44s var(--ease-spring);
+      transform: translateX(calc(var(--ti, 2) * var(--tw)));
+      transition: transform 0.44s var(--ease-spring), opacity 0.22s ease;
       z-index: 0;
     }
+    /* The card tab draws its own circle, so the sliding pill would only sit
+       square behind a round button. setOwnerTab puts .is-card on the bar for
+       exactly that one index and the pill fades out instead of landing. */
+    .tabbar.is-card .tabbar__ind { opacity: 0; }
     .tab {
       position: relative; z-index: 1;
-      width: 78px; padding: 9px 0 8px;
+      width: var(--tw); padding: 9px 0 8px;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       background: none; border: 0; cursor: pointer; color: var(--dim);
       transition: color 0.35s ease;
     }
     .tab.is-active { color: #ffffff; }
     .tab__ico { position: relative; display: grid; place-items: center; height: 24px; }
-    .tab.is-active .tab__ico { animation: tabPop 0.5s var(--ease-spring); }
+    /* Not .tab--card: tabPop animates `transform`, which on that tab would
+       throw away the translateX(-50%) its circle is centred with and shunt it
+       half a button to the right for half a second. It has its own press
+       below. */
+    .tab.is-active:not(.tab--card) .tab__ico { animation: tabPop 0.5s var(--ease-spring); }
     @keyframes tabPop { 0% { transform: scale(1); } 42% { transform: scale(1.3) translateY(-2px); } 100% { transform: scale(1); } }
     .tab__ico svg { width: 22px; height: 22px; }
     .tab__label { font-family: var(--font-heading); font-size: 10px; font-weight: 700; letter-spacing: 0.2px; }
-    html[dir="rtl"] .tabbar__ind { left: auto; right: 7px; transform: translateX(calc(var(--ti, 1) * -78px)); }
+    html[dir="rtl"] .tabbar__ind { left: auto; right: 7px; transform: translateX(calc(var(--ti, 2) * -1 * var(--tw))); }
+
+    /* ---- the middle tab ----
+       Card is the one tab an owner opens in order to *show* someone something,
+       so it sits at the centre of the five and is drawn as a raised circle
+       rather than a fourth identical label in the row.
+
+       The icon is taken out of flow to do it. In flow, a 54px circle would
+       make the tallest item in the bar and push all five tabs 30px taller;
+       absolute, the bar keeps exactly the height the other four give it and
+       the circle is free to rise above its top edge. The label stays in flow,
+       pinned to the bottom with justify-content so the circle clears it. */
+    .tab--card { justify-content: flex-end; }
+    .tab--card .tab__ico {
+      position: absolute; left: 50%; bottom: 26px;
+      transform: translateX(-50%);
+      width: 54px; height: 54px; border-radius: 50%;
+      background: #171717; color: #ffffff;
+      border: 3px solid var(--glass-fill-strong);
+      box-shadow: 0 12px 24px -10px rgba(20,20,20,0.65), inset 0 1px 0 rgba(255,255,255,0.18);
+      transition: transform 0.35s var(--ease-spring), box-shadow 0.35s ease;
+    }
+    .tab--card .tab__ico svg { width: 24px; height: 24px; }
+    .tab--card.is-active .tab__ico {
+      transform: translateX(-50%) scale(1.07);
+      box-shadow: 0 16px 30px -10px rgba(20,20,20,0.75), inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    /* .tab.is-active turns the label white, which reads because the dark pill
+       is behind it. Nothing is behind this one — the pill fades out for the
+       card index — so white would be white on pale glass. */
+    .tab--card.is-active .tab__label { color: var(--ink); }
 
     /* ---------------- Live card preview ----------------
        A copy of the wallet's own card (app.js buildCard, plus the .card, .face,
@@ -849,8 +1382,17 @@
       .cb-marker.is-pop .cb-marker__ring { animation: none; }
       .cb-today__k span.is-swap, .cb-cap.is-swap { animation: none; }
       .add-form { transition: none; }
+      .sheet__add, .sheet__add-ico, .sheet__send { transition: none; }
+      .sheet__disc { animation: none; opacity: 1; transform: none; }
+      .sheet__send.is-ready .sheet__send-sheen { animation: none; }
+      .cu, .cu-head { animation: none; opacity: 1; transform: none; }
+      .cu-head { transition: none; }
       .tabbar { animation: none; }
-      .tab.is-active .tab__ico { animation: none; }
+      /* matches the :not(.tab--card) selector above — without the same
+         specificity the plain .tab.is-active form loses to it and tabPop
+         keeps running here */
+      .tab.is-active:not(.tab--card) .tab__ico { animation: none; }
+      .tab--card .tab__ico { transition: none; }
       .tabbar__ind { transition: none; }
       .own { transition: none; }
       .add-fab__icon { transition: none; }
@@ -1150,6 +1692,32 @@
     </section>
     </div><!-- /panelCard -->
 
+    <!-- ============== CUSTOMERS panel ============== -->
+    <div class="panel" id="panelCustomers" hidden>
+      <div class="cu-sentinel" id="cuSentinel" aria-hidden="true"></div>
+      <div class="cu-head" id="cuHead">
+        <div class="cu-head__text">
+          <h2 class="cu-title" data-i18n="OWNER_TAB_CUSTOMERS">Customers</h2>
+          <p class="cu-sub" id="cuSub"></p>
+        </div>
+        <div class="cu-acts">
+          <button class="cu-filter" id="cuFilterBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="cuSheet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5h18M6.5 12h11M10 18.5h4"/></svg>
+            <span data-i18n="OWNER_FILTER">Filter</span>
+          </button>
+          <button class="cu-send" id="cuSendBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="cuSend" aria-label="Send" data-i18n-aria="OWNER_SEND">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8 21 3z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="cu-list" id="cuList"></div>
+      <div class="cu-more" id="cuMore" hidden>
+        <button class="btn-ghost cu-more__btn" id="cuMoreBtn" type="button"></button>
+        <p class="cu-more__count" id="cuMoreCount" aria-live="polite"></p>
+      </div>
+      <p class="empty" id="cuNote" hidden></p>
+    </div><!-- /panelCustomers -->
+
     <!-- ============== DISCOUNTS panel ============== -->
     <div class="panel" id="panelDiscounts" hidden>
       <div class="disc-head">
@@ -1276,10 +1844,210 @@
     </div>
   </div>
 
+  <!-- One customer's history. Outside every .panel for the same reason
+       #cropModal is, and above the filter sheet because it is reached from
+       the list the sheet filters. -->
+  <div class="cdet" id="cDetail" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cdName">
+    <div class="cdet__scroll" id="cdScroll">
+      <header class="cdet__hero">
+        <button class="cdet__back" id="cdBack" type="button" aria-label="Back" data-i18n-aria="OWNER_CD_BACK">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="cdet__id">
+          <span class="cdet__avatar" id="cdAvatar" aria-hidden="true"></span>
+          <div class="cdet__who">
+            <h2 class="cdet__name" id="cdName"></h2>
+            <p class="cdet__phone" id="cdPhone"></p>
+          </div>
+          <span class="cdet__badge" id="cdBadge"></span>
+        </div>
+        <div class="cdet__ring">
+          <div class="cdring">
+            <svg viewBox="0 0 74 74" aria-hidden="true">
+              <circle class="cdring__bg" cx="37" cy="37" r="31"></circle>
+              <circle class="cdring__val" id="cdRingVal" cx="37" cy="37" r="31"></circle>
+            </svg>
+            <span class="cdring__txt" id="cdRingTxt"></span>
+          </div>
+          <p class="cdet__ringnote" id="cdRingNote"></p>
+        </div>
+      </header>
+
+      <div class="cdgrid" id="cdStats"></div>
+
+      <section class="cdbox" style="--i:0">
+        <h3 class="cdbox__title" data-i18n="OWNER_CD_VISITS">Visits</h3>
+        <p class="cdbox__sub" id="cdGraphSub"></p>
+        <div class="vg" id="cdGraph"><div class="vg__track" id="cdGraphTrack"></div></div>
+        <div class="vg__legend"><span id="cdLegendFrom"></span><span id="cdLegendTo"></span></div>
+      </section>
+
+      <section class="cdbox" style="--i:1">
+        <h3 class="cdbox__title" data-i18n="OWNER_CD_REWARDS">Rewards</h3>
+        <p class="cdbox__sub" id="cdRwSub"></p>
+        <div id="cdRewards"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Send sheet. Same component as the filter sheet below, same machinery
+       (makeSheet in owner.page.js). The body is deliberately empty — what
+       goes in it is still to be decided; the recipient line above it is not,
+       because whatever gets sent goes to whoever the list is showing. -->
+  <div class="sheet" id="cuSend" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cuSendTitle">
+    <div class="sheet__panel" id="cuSendPanel">
+      <span class="sheet__grab" aria-hidden="true"></span>
+      <div class="sheet__head">
+        <h3 class="sheet__title" id="cuSendTitle" data-i18n="OWNER_SEND_TITLE">Send</h3>
+        <button class="sheet__close" id="cuSendClose" type="button" aria-label="Close" data-i18n-aria="OWNER_SEND_CLOSE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="sheet__to">
+        <span class="sheet__to-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7.5" r="3.4"/><path d="M21.5 20v-1.6a4 4 0 0 0-3-3.87M16 4.3a4 4 0 0 1 0 7.4"/></svg>
+        </span>
+        <span class="sheet__to-main">
+          <span class="sheet__to-n" id="cuSendCount"></span>
+          <span class="sheet__to-k" id="cuSendWho"></span>
+        </span>
+        <button class="sheet__to-filter" id="cuSendFilter" type="button" aria-haspopup="dialog" aria-label="Filter" data-i18n-aria="OWNER_FILTER">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5h18M6.5 12h11M10 18.5h4"/></svg>
+        </button>
+      </div>
+      <div class="sheet__field">
+        <label class="sheet__label" for="cuSendMsg" data-i18n="OWNER_SEND_MSG">Message</label>
+        <textarea class="sheet__msg" id="cuSendMsg" rows="5" data-i18n-placeholder="OWNER_SEND_PH" placeholder="Write what they will receive…"></textarea>
+        <span class="sheet__chars" id="cuSendChars">0</span>
+      </div>
+
+      <!-- Optional discount. Same .add-form / .pv-card components the
+           Discounts tab uses, so a reward composed here looks and behaves
+           like one composed there. -->
+      <button class="sheet__add" id="cuDiscToggle" type="button" aria-expanded="false" aria-controls="cuDiscForm">
+        <span class="sheet__add-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+        <span class="sheet__add-main">
+          <span class="sheet__add-t" data-i18n="OWNER_SEND_ADD_DISC">Attach a discount</span>
+          <span class="sheet__add-s" data-i18n="OWNER_SEND_ADD_DISC_SUB">Optional — it arrives with the message</span>
+        </span>
+      </button>
+
+      <div class="add-form" id="cuDiscForm">
+        <div class="pv-card" aria-hidden="true">
+          <span class="pv-kicker" data-i18n="OWNER_PV_KICKER">Reward preview</span>
+          <p class="pv-deal" id="cuPvDeal" data-i18n="OWNER_PV_DEAL_DEFAULT">Your deal</p>
+          <p class="pv-desc" id="cuPvDesc"></p>
+          <span class="pv-exp" id="cuPvExp"></span>
+        </div>
+        <input type="text" id="cuFDeal" data-i18n-placeholder="OWNER_PH_DEAL" placeholder="Deal — e.g. 20% OFF or Free coffee" />
+        <input type="text" id="cuFDesc" data-i18n-placeholder="OWNER_PH_DESC" placeholder="Short description (optional)" />
+        <div class="add-form__row">
+          <label class="fl fl--exp"><span data-i18n="OWNER_LABEL_EXPIRES_AFTER">Expires after</span>
+            <input type="number" id="cuFExpAmt" min="1" max="365" value="2" />
+          </label>
+          <label class="fl fl--exp"><span data-i18n="OWNER_LABEL_UNIT">Unit</span>
+            <select id="cuFExpUnit">
+              <option value="day" data-i18n="OWNER_OPT_DAYS">days</option>
+              <option value="week" selected data-i18n="OWNER_OPT_WEEKS">weeks</option>
+              <option value="month" data-i18n="OWNER_OPT_MONTHS">months</option>
+            </select>
+          </label>
+        </div>
+        <div class="add-form__actions">
+          <button class="btn-ghost" id="cuDiscCancel" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+          <button class="btn-solid" id="cuDiscConfirm" type="button" data-i18n="OWNER_SEND_DISC_CONFIRM">Attach this discount</button>
+        </div>
+      </div>
+
+      <!-- What the confirmed discount looks like once it is attached: the
+           real ticket, not a summary line, because that is the object the
+           customer will receive. -->
+      <div class="sheet__disc" id="cuDiscAttached" hidden>
+        <div class="pv-card">
+          <span class="pv-kicker" data-i18n="OWNER_SEND_DISC_ATTACHED">Attached discount</span>
+          <p class="pv-deal" id="cuAttDeal"></p>
+          <p class="pv-desc" id="cuAttDesc"></p>
+          <span class="pv-exp" id="cuAttExp"></span>
+        </div>
+        <div class="sheet__disc-acts">
+          <button class="btn-ghost" id="cuDiscEdit" type="button" data-i18n="OWNER_SEND_DISC_EDIT">Edit</button>
+          <button class="btn-ghost sheet__disc-rm" id="cuDiscRemove" type="button" data-i18n="OWNER_SEND_DISC_REMOVE">Remove</button>
+        </div>
+      </div>
+
+      <button class="sheet__send" id="cuSendGo" type="button" disabled>
+        <span class="sheet__send-sheen" aria-hidden="true"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8 21 3z"/></svg>
+        <span id="cuSendGoLabel" data-i18n="OWNER_SEND_GO">Send</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter sheet. Outside every .panel for the same reason #cropModal is:
+       it is fixed-position, and display:none on a hidden ancestor panel
+       would take it with them. Rises from the bottom edge rather than
+       landing in the middle — the controls end up under the thumb that
+       opened them, and the list stays visible behind the sheet. -->
+  <div class="sheet" id="cuSheet" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cuSheetTitle">
+    <div class="sheet__panel" id="cuSheetPanel">
+      <span class="sheet__grab" aria-hidden="true"></span>
+      <div class="sheet__head">
+        <h3 class="sheet__title" id="cuSheetTitle" data-i18n="OWNER_FILTER_TITLE">Filter customers</h3>
+        <button class="sheet__close" id="cuSheetClose" type="button" aria-label="Close" data-i18n-aria="OWNER_FILTER_CLOSE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+
+      <div class="fgrp">
+        <p class="fgrp__label" id="fVisitLbl" data-i18n="OWNER_F_VISIT">Last visit</p>
+        <div class="chips" id="fVisit" role="group" aria-labelledby="fVisitLbl">
+          <button class="chip is-on" type="button" data-v="all" aria-pressed="true" data-i18n="OWNER_F_ALL">All</button>
+          <button class="chip" type="button" data-v="week" aria-pressed="false" data-i18n="OWNER_F_VISIT_WEEK">Less than a week ago</button>
+          <button class="chip" type="button" data-v="month" aria-pressed="false" data-i18n="OWNER_F_VISIT_MONTH">Less than a month ago</button>
+          <button class="chip" type="button" data-v="away" aria-pressed="false" data-i18n="OWNER_F_VISIT_AWAY">A month ago or more</button>
+        </div>
+      </div>
+
+      <div class="fgrp">
+        <p class="fgrp__label" id="fCardLbl" data-i18n="OWNER_F_CARD">Card progress</p>
+        <div class="chips" id="fCard" role="group" aria-labelledby="fCardLbl">
+          <button class="chip is-on" type="button" data-v="all" aria-pressed="true" data-i18n="OWNER_F_ALL">All</button>
+          <button class="chip" type="button" data-v="empty" aria-pressed="false" data-i18n="OWNER_F_CARD_EMPTY">No stamps</button>
+          <button class="chip" type="button" data-v="started" aria-pressed="false" data-i18n="OWNER_F_CARD_STARTED">At least one stamp</button>
+          <button class="chip" type="button" data-v="half" aria-pressed="false" data-i18n="OWNER_F_CARD_HALF">Less than half the card</button>
+          <button class="chip" type="button" data-v="over" aria-pressed="false" data-i18n="OWNER_F_CARD_OVER">More than half the card</button>
+          <button class="chip" type="button" data-v="nearly" aria-pressed="false" data-i18n="OWNER_F_CARD_NEARLY">One stamp from a reward</button>
+        </div>
+      </div>
+
+      <div class="fgrp">
+        <p class="fgrp__label" id="fSortLbl" data-i18n="OWNER_F_SORT">Sort by</p>
+        <div class="chips" id="fSort" role="group" aria-labelledby="fSortLbl">
+          <button class="chip is-on" type="button" data-v="recent" aria-pressed="true" data-i18n="OWNER_F_SORT_RECENT">Visited most recently</button>
+          <button class="chip" type="button" data-v="away" aria-pressed="false" data-i18n="OWNER_F_SORT_AWAY">Visited longest ago</button>
+          <button class="chip" type="button" data-v="stamps" aria-pressed="false" data-i18n="OWNER_F_SORT_STAMPS">Most stamps</button>
+          <button class="chip" type="button" data-v="name" aria-pressed="false" data-i18n="OWNER_F_SORT_NAME">Name (A&ndash;Z)</button>
+        </div>
+      </div>
+
+      <div class="sheet__actions">
+        <button class="btn-ghost" id="cuReset" type="button" data-i18n="OWNER_FILTER_RESET">Reset</button>
+        <button class="btn-solid sheet__apply" id="cuApply" type="button"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Glassy bottom navigation — same component as the customer wallet's
        (index.html #tabbar / styles.css .tabbar), rebuilt here since this page
-       doesn't load the wallet stylesheet. -->
-  <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
+       doesn't load the wallet stylesheet.
+
+       Five tabs, with Card deliberately third: it is the centre slot, and the
+       only one drawn as a circle (see .tab--card). Source order here IS the
+       visual order and must stay in step with TAB_INDEX in owner.page.js,
+       which is what positions the sliding indicator. -->
+  <nav class="tabbar is-card" id="tabbar" style="--ti:2" aria-label="Primary">
     <span class="tabbar__ind" aria-hidden="true"></span>
     <button class="tab" id="tabAnalytics" type="button" aria-label="Analytics" data-i18n-aria="OWNER_TAB_ANALYTICS">
       <span class="tab__ico">
@@ -1287,7 +2055,13 @@
       </span>
       <span class="tab__label" data-i18n="OWNER_TAB_ANALYTICS">Analytics</span>
     </button>
-    <button class="tab is-active" id="tabCard" type="button" aria-label="Card" data-i18n-aria="OWNER_TAB_CARD">
+    <button class="tab" id="tabCustomers" type="button" aria-label="Customers" data-i18n-aria="OWNER_TAB_CUSTOMERS">
+      <span class="tab__ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 20v-1.6a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7.5" r="3.4"/><path d="M21.5 20v-1.6a4 4 0 0 0-3-3.87M16 4.3a4 4 0 0 1 0 7.4"/></svg>
+      </span>
+      <span class="tab__label" data-i18n="OWNER_TAB_CUSTOMERS">Customers</span>
+    </button>
+    <button class="tab tab--card is-active" id="tabCard" type="button" aria-label="Card" data-i18n-aria="OWNER_TAB_CARD">
       <span class="tab__ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><circle cx="8" cy="12" r="2.3"/><path d="M13.5 9.5h4M13.5 12h4M13.5 14.5h2.6"/></svg>
       </span>
@@ -1307,6 +2081,6 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=37"></script>
+  <script src="owner.page.js?v=68"></script>
 </body>
 </html>
