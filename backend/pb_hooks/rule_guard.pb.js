@@ -52,6 +52,8 @@ onBootstrap((e) => {
     ["stamp_events", "viewRule", SELF_OR_CAFE_STAFF],
     ["stamp_requests", "listRule", SELF_OR_CAFE_STAFF],
     ["stamp_requests", "viewRule", SELF_OR_CAFE_STAFF],
+    ["messages", "listRule", SELF_OR_CAFE_STAFF],
+    ["messages", "viewRule", SELF_OR_CAFE_STAFF],
   ];
 
   // group by collection so a drifting collection is saved once

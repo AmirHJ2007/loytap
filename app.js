@@ -874,7 +874,10 @@ function activeCoupon(d) {
   const urgent = typeof d.days === "number" && d.days <= 5;
   c.className = "coupon-card" + (urgent ? " is-urgent" : "");
   c.setAttribute("role", "button");
-  let expText = d.due || "—";
+  // A bare "15.10.26" under a reward is ambiguous — it could as easily be the
+  // day it was won. Label it. The urgent line below already says "expires" or
+  // counts days down, so it reads as a deadline without the prefix.
+  let expText = d.due ? t("WALLET_VALID_UNTIL", { date: d.due }) : "—";
   if (urgent) expText = d.days <= 0 ? t("WALLET_EXPIRES_TODAY") : t(d.days > 1 ? "WALLET_DAYS_LEFT" : "WALLET_DAY_LEFT", { n: d.days });
   const glow = urgent ? "rgba(255,90,74,0.55)" : "rgba(255,255,255,0.16)";
   c.innerHTML = `
@@ -895,7 +898,7 @@ function activeCoupon(d) {
 
 // the tab badge / pocket badge always count ALL cafés' usable discounts
 function updateBadges() {
-  const count = discounts.filter((d) => !pocketState(d).past).length;
+  const count = discounts.filter(inPocket).length;
   pocketBadge.hidden = count === 0;
   pocketBadge.textContent = String(count);
   const tabBadge = document.getElementById("tabBadge");
@@ -922,7 +925,7 @@ function renderCafeList() {
   const list = document.createElement("div");
   list.className = "cafe-list";
   memberships.forEach((m) => {
-    const rewardCount = discounts.filter((d) => d.cafeId === m.cafeId && !pocketState(d).past).length;
+    const rewardCount = discounts.filter((d) => d.cafeId === m.cafeId && inPocket(d)).length;
     const initial = (m.cafeName || "?").trim().charAt(0).toUpperCase();
     const accent = m.accent || "#171717";
     const row = document.createElement("button");
@@ -947,7 +950,7 @@ function renderCafeDiscounts(cafeId) {
   if (drawerTitle) drawerTitle.textContent = (m && m.cafeName) || t("WALLET_TAB_DISCOUNTS");
   if (drawerBack) drawerBack.hidden = false;
 
-  const active = discounts.filter((d) => d.cafeId === cafeId && !pocketState(d).past);
+  const active = discounts.filter((d) => d.cafeId === cafeId && inPocket(d));
   // most urgent (soonest to expire) sits first in the grid
   active.sort((a, b) => (typeof a.days === "number" ? a.days : 1e9) - (typeof b.days === "number" ? b.days : 1e9));
 
@@ -1029,6 +1032,43 @@ function msgWhen(raw) {
   try { return msgFmt ? msgFmt.format(new Date(at)) : ""; } catch (e) { return ""; }
 }
 
+// A reward that arrived attached to a message is NOT in the pocket until the
+// customer takes it: the message offers it with a button, and tapping that
+// button flies it into the Discounts tab. inPocket() is what makes the flight
+// true rather than decorative — until the tap, the Discounts tab genuinely
+// does not list it and the badge does not count it.
+//
+// Claim state is local because there is nowhere else to put it yet: nothing
+// writes `messages` through the API at all (see 1700000031_messages.js), so
+// there is no field to flip. When the send/claim routes exist this becomes a
+// column on the message row and the key below can go — an id in this list is
+// only ever a reward the customer already owns, so a cleared browser shows
+// them their own reward again, which is the right way round to fail.
+const CLAIM_KEY = "reloy_claimed_gifts";
+function claimedGifts() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLAIM_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch (_) { return []; }
+}
+// no id means a row we cannot track — treated as already taken, so a broken
+// message can never hide a reward from the pocket for good
+function isClaimed(id) { return !id || claimedGifts().indexOf(id) !== -1; }
+function markClaimed(id) {
+  if (isClaimed(id)) return;
+  const all = claimedGifts();
+  all.push(id);
+  try { localStorage.setItem(CLAIM_KEY, JSON.stringify(all.slice(-200))); } catch (_) {}
+}
+function isUnclaimedGift(id) {
+  if (!id || isClaimed(id)) return false;
+  return messages.some((m) => m.discount && m.discount.id === id);
+}
+// the one test for "this belongs in the Discounts tab"
+function inPocket(d) { return !pocketState(d).past && !isUnclaimedGift(d.id); }
+
+const GIFT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-8-8V3.6a1 1 0 0 1 1-1H12l8.6 8.6a2 2 0 0 1 0 2.2z"/><circle cx="7.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg>';
+
 function renderMessages() {
   const list = document.getElementById("msgsList");
   const empty = document.getElementById("msgsEmpty");
@@ -1040,37 +1080,221 @@ function renderMessages() {
 
   const wrap = document.createElement("div");
   wrap.className = "msg-list";
-  messages.forEach((m, i) => {
-    const cafe = m.cafeName || t("WALLET_TAB_MESSAGES");
-    // Array.from, not [0]: a café name starting with an emoji would
-    // otherwise give half a surrogate pair
-    const initial = (Array.from(cafe.trim())[0] || "?").toUpperCase();
-    const card = document.createElement("article");
-    card.className = "msg" + (m.read ? "" : " is-unread");
-    card.style.setProperty("--i", Math.min(i, 10));
-    card.innerHTML =
-      '<div class="msg__head">' +
-        '<span class="msg__ava" aria-hidden="true" style="background:' + escapeHtml(m.accent || "#171717") + '">' + escapeHtml(initial) + "</span>" +
-        '<span class="msg__who">' +
-          '<span class="msg__cafe">' + escapeHtml(cafe) + "</span>" +
-          '<span class="msg__when">' + escapeHtml(msgWhen(m.created)) + "</span>" +
-        "</span>" +
-      "</div>" +
-      '<p class="msg__body">' + escapeHtml(m.body || "") + "</p>";
-
-    if (m.discount) {
-      const box = document.createElement("div");
-      box.className = "msg__reward";
-      const lbl = document.createElement("span");
-      lbl.className = "msg__rewardlbl";
-      lbl.textContent = t("WALLET_MSG_WITH_REWARD");
-      box.appendChild(lbl);
-      box.appendChild(activeCoupon(m.discount));   // the real component
-      card.appendChild(box);
-    }
-    wrap.appendChild(card);
-  });
+  messages.forEach((m, i) => wrap.appendChild(buildMessage(m, i)));
   list.appendChild(wrap);
+
+  // One read pass over the finished list, then one write pass. "Read more"
+  // belongs only on messages whose text is actually cut off, and asking each
+  // card for its height as it is built would interleave measure and mutate
+  // down the whole column.
+  const folds = Array.from(wrap.querySelectorAll(".msg__fold"));
+  const cut = folds.map((f) => f.scrollHeight - f.clientHeight > 4);
+  folds.forEach((f, i) => { if (cut[i]) f.closest(".msg").classList.add("is-long"); });
+}
+
+function buildMessage(m, i) {
+  const card = document.createElement("article");
+  card.className = "msg" + (m.read ? "" : " is-unread");
+  card.style.setProperty("--i", Math.min(i, 10));
+
+  // The header is a slice of that café's own loyalty card: the same two
+  // shades of its accent, the same white name. A message then arrives
+  // visibly FROM the card the customer already carries, instead of from a
+  // list of identical white rectangles.
+  const accent = m.accent || "#171717";
+  card.style.setProperty("--p1", shade(accent, -0.08));
+  card.style.setProperty("--p2", shade(accent, -0.30));
+
+  const cafe = m.cafeName || t("WALLET_TAB_MESSAGES");
+  card.innerHTML =
+    '<header class="msg__top">' +
+      '<h3 class="msg__cafe">' + escapeHtml(cafe) + "</h3>" +
+      '<span class="msg__when">' + escapeHtml(msgWhen(m.created)) + "</span>" +
+    "</header>" +
+    '<div class="msg__main">' +
+      '<div class="msg__fold"><p class="msg__body">' + escapeHtml(m.body || "") + "</p></div>" +
+      '<button class="msg__more" type="button" aria-expanded="false">' +
+        '<span class="msg__more-t">' + escapeHtml(t("WALLET_MSG_MORE")) + "</span>" +
+        '<span class="msg__chev" aria-hidden="true"></span>' +
+      "</button>" +
+    "</div>";
+
+  const fold = card.querySelector(".msg__fold");
+  const more = card.querySelector(".msg__more");
+  more.addEventListener("click", () => toggleMessage(card, fold, more));
+
+  if (m.discount) card.querySelector(".msg__main").appendChild(giftButton(m.discount));
+  return card;
+}
+
+// Open/close the clamped body. max-height is animated to a measured pixel
+// height and then released to `none`, so a message that reflows while open
+// (a language switch, a rotation) is not pinned to the height it had when it
+// was opened.
+function toggleMessage(card, fold, btn) {
+  const open = card.classList.contains("is-open");
+  const label = btn.querySelector(".msg__more-t");
+  if (open) {
+    clearTimeout(fold._release);
+    fold.style.maxHeight = fold.scrollHeight + "px";   // off `none`, so there is something to animate from
+    requestAnimationFrame(() => {
+      card.classList.remove("is-open");
+      fold.style.maxHeight = "";                       // back to the clamp in the stylesheet
+    });
+  } else {
+    card.classList.add("is-open");
+    fold.style.maxHeight = fold.scrollHeight + "px";
+    // released on a timer rather than on transitionend: the event does not
+    // arrive at all when the transition is cancelled or never starts (an
+    // equal start and end height), and a message left pinned to the pixel
+    // height it had when it opened would clip itself the moment it reflows.
+    clearTimeout(fold._release);
+    fold._release = setTimeout(() => {
+      if (card.classList.contains("is-open")) fold.style.maxHeight = "none";
+    }, 460);
+  }
+  if (label) label.textContent = t(open ? "WALLET_MSG_MORE" : "WALLET_MSG_LESS");
+  btn.setAttribute("aria-expanded", String(!open));
+}
+
+function giftButton(d) {
+  const taken = isClaimed(d.id);
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "msg__gift" + (taken ? " is-taken" : "");
+  b.innerHTML =
+    '<span class="msg__gift-ico">' + GIFT_SVG + "</span>" +
+    '<span class="msg__gift-txt">' +
+      '<span class="msg__gift-deal">' + escapeHtml(d.short || d.deal || "") + "</span>" +
+      '<span class="msg__gift-cta">' + escapeHtml(t(taken ? "WALLET_MSG_CLAIMED" : "WALLET_MSG_CLAIM")) + "</span>" +
+    "</span>" +
+    '<span class="msg__gift-go" aria-hidden="true">' + (taken ? "✓" : "+") + "</span>";
+  b.addEventListener("click", () => claimGift(d, b));
+  return b;
+}
+
+// Already taken: the button is the way back to it, not a dead end.
+function claimGift(d, btn) {
+  if (btn.classList.contains("is-taken")) { goToTab("discounts"); return; }
+  btn.disabled = true;
+  flyToDiscounts(btn, d.short || d.deal || "", () => {
+    markClaimed(d.id);
+    btn.disabled = false;
+    btn.classList.add("is-taken");
+    const cta = btn.querySelector(".msg__gift-cta");
+    const go = btn.querySelector(".msg__gift-go");
+    if (cta) cta.textContent = t("WALLET_MSG_CLAIMED");
+    if (go) go.textContent = "✓";
+    // the pocket holds it from this moment — the badge ticks up as it lands
+    updateBadges();
+    renderDrawer();
+  });
+}
+
+// The path the reward takes from the message to the tab bar.
+//
+// Three straight keyframes with an apex between them is not an arc, it is a
+// dog-leg — the eye reads the corner. So the curve is sampled instead: a
+// real throw, solved so that it leaves the button upward, hangs, and falls
+// into the icon. y = at² + bt with a ruling gravity, b the launch speed, and
+// the pair chosen to put the apex `lift` px above the start and the landing
+// exactly on the target. The horizontal eases out, the way a thrown thing
+// loses sideways speed; the scale, tilt and corner radius ride the same
+// clock, so the pill turns into a token as it goes over the top.
+function flightFrames(dx, dy, fade) {
+  const N = 36, LIFT = 96;
+  // solved from b² = 4·a·LIFT and a + b = DY (apex height and landing point)
+  const DY = Math.max(dy, 24);
+  const b = -2 * LIFT - 2 * Math.sqrt(LIFT * LIFT + LIFT * DY);
+  const a = DY - b;
+  const drop = dy - DY;          // keeps the landing exact when dy is tiny
+  const frames = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const ease = t * t * (3 - 2 * t);                 // smoothstep
+    const x = dx * (1 - Math.pow(1 - t, 1.7));
+    const y = a * t * t + b * t + drop * t;
+    const sc = 1 - 0.88 * ease;
+    const rot = -9 + 26 * t * t;
+    frames.push({
+      offset: t,
+      transform: "translate(" + x.toFixed(2) + "px," + y.toFixed(2) + "px) scale(" + sc.toFixed(3) + ") rotate(" + rot.toFixed(2) + "deg)",
+      borderRadius: (17 + 40 * ease).toFixed(1) + "px",
+      opacity: (fade * (t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2 * 0.9)).toFixed(3),
+    });
+  }
+  return frames;
+}
+
+// The reward leaves the message and arrives in the tab bar: a ticket-shaped
+// ghost lifts off the button, is thrown over the list and shrinks into the
+// Discounts icon, which takes the hit. Two dimmer copies run the same path a
+// breath behind it, which is the whole of the motion trail. `done` runs when
+// it lands, so the badge and the button change at the end of the journey
+// rather than at the start of it — and runs immediately when there is
+// nothing to animate, so a reduced-motion reader still gets the reward.
+function flyToDiscounts(fromEl, label, done) {
+  const tab = document.getElementById("tabDiscounts");
+  const target = (tab && tab.querySelector(".tab__ico")) || tab;
+  const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!target || still || !fromEl.animate) { bumpDiscountTab(); done(); return; }
+
+  const a = fromEl.getBoundingClientRect();
+  const b = target.getBoundingClientRect();
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2);
+  const dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const DUR = 900;
+
+  const made = [];
+  const launch = (cls, fade, delay, text) => {
+    const el = document.createElement("span");
+    el.className = cls;
+    if (text) el.textContent = text;
+    el.style.left = a.left + "px";
+    el.style.top = a.top + "px";
+    el.style.width = a.width + "px";
+    el.style.height = a.height + "px";
+    document.body.appendChild(el);
+    made.push(el);
+    return el.animate(flightFrames(dx, dy, fade), {
+      duration: DUR, delay: delay, fill: "both",
+      // the throw itself carries the pacing — warping it again here would
+      // fight the curve the frames already describe
+      easing: "linear",
+    });
+  };
+
+  launch("gift-fly gift-fly--trail", 0.22, 120);
+  launch("gift-fly gift-fly--trail", 0.4, 60);
+  const fly = launch("gift-fly", 1, 0, label);
+
+  let landed = false;
+  const land = () => {
+    if (landed) return;
+    landed = true;
+    made.forEach((el) => el.remove());
+    bumpDiscountTab();
+    done();
+  };
+  fly.onfinish = land;
+  // a tab backgrounded mid-flight never fires onfinish; the reward must not
+  // be left hanging in the air
+  setTimeout(land, DUR + 700);
+}
+
+function bumpDiscountTab() {
+  const tab = document.getElementById("tabDiscounts");
+  const badge = document.getElementById("tabBadge");
+  if (tab) { tab.classList.remove("is-hit"); void tab.offsetWidth; tab.classList.add("is-hit"); }
+  if (badge) { badge.classList.remove("bump"); void badge.offsetWidth; badge.classList.add("bump"); }
+  // the ring the impact throws off, so the icon is hit rather than just poked
+  const ico = tab && tab.querySelector(".tab__ico");
+  if (ico) {
+    const ring = document.createElement("span");
+    ring.className = "tab-splash";
+    ico.appendChild(ring);
+    setTimeout(() => ring.remove(), 700);
+  }
 }
 
 function showPanel(name) {
@@ -1082,10 +1306,79 @@ function showPanel(name) {
     renderDrawer();
     loadDiscounts();
   }
-  // TODO: no endpoint yet — `messages` stays empty until there is somewhere
-  // for a café's send to land. Rendering is already wired, so the fetch is
-  // the only missing piece.
-  if (name === "messages") renderMessages();
+  if (name === "messages") { renderMessages(); loadMessages(); markMessagesSeen(); }
+  else clearTimeout(seenTimer);
+}
+
+// Read straight off the collection, the way loadDiscounts() reads discounts:
+// the list rule already scopes rows to this customer, so there is nothing
+// for a bespoke endpoint to add. `discount` is expanded because the ticket
+// inside a message is a real discount row, not a copy of one.
+async function loadMessages() {
+  const before = JSON.stringify(messages);
+  try {
+    const r = await fetch(API + "/api/collections/messages/records?perPage=100&sort=-created&expand=cafe,discount",
+      { headers: { Authorization: token } });
+    const data = await r.json();
+    if (data && data.items) {
+      messages = data.items.map((it) => {
+        const cafe = (it.expand && it.expand.cafe) || {};
+        const disc = (it.expand && it.expand.discount) || null;
+        return {
+          id: it.id,
+          cafeId: it.cafe,
+          cafeName: cafe.cafe_name || "",
+          accent: cafe.accent || cafe.paper || "#171717",
+          body: it.body || "",
+          created: it.created,
+          read: !!it.read,
+          // mapDiscount wants the cafe expand its own fetch provides; this
+          // row was expanded from the message, so hand it the same shape
+          discount: disc ? mapDiscount(Object.assign({}, disc, { expand: { cafe: cafe } })) : null,
+        };
+      });
+    }
+  } catch (_) {}
+  updateMsgBadge();
+  // same guard loadDiscounts() uses: re-rendering identical rows would
+  // replay their entrance animation a beat after the panel opened
+  if (JSON.stringify(messages) === before) return;
+  renderMessages();
+  // A reward still sitting in a message is not in the pocket (inPocket), and
+  // this is the fetch that decides which those are — the Discounts tab may
+  // have been built before the messages arrived, counting one too many.
+  updateBadges();
+  renderDrawer();
+}
+
+// Opening the tab is what "seen" means for a bell badge — not scrolling each
+// message into view, and not opening every one of them. The short delay is so
+// a mis-tap that bounces straight back out does not silently clear the count.
+//
+// The cards keep their unread dot for the rest of this visit on purpose: the
+// dot says WHICH messages are new, and wiping it a beat after the reader
+// arrives takes that away at the exact moment it is useful. They come back
+// without dots on the next open, which is when they have genuinely been read.
+let seenTimer = null;
+function markMessagesSeen() {
+  clearTimeout(seenTimer);
+  seenTimer = setTimeout(async () => {
+    if (!messages.some((m) => !m.read)) return;
+    try {
+      const r = await fetch(API + "/messages/seen", { method: "POST", headers: { Authorization: token } });
+      if (!r.ok) return;                 // badge stays up; the next open tries again
+    } catch (_) { return; }
+    messages.forEach((m) => { m.read = true; });
+    updateMsgBadge();
+  }, 700);
+}
+
+function updateMsgBadge() {
+  const b = document.getElementById("msgBadge");
+  if (!b) return;
+  const n = messages.filter((m) => !m.read).length;
+  b.hidden = n === 0;
+  b.textContent = String(n);
 }
 function setTab(name) {
   if (tabbarEl) tabbarEl.style.setProperty("--ti", TAB_INDEX[name]);
@@ -1495,6 +1788,12 @@ async function init() {
   if (tapCode) setTimeout(() => handleTap(tapCode), decks.length ? 650 : 200);
 
   loadDiscounts(); // populate the Discounts tab badge + café list on load
+  // Messages load at boot too, not only when the tab is opened. The bell
+  // badge exists to tell someone there is something to read, which it can
+  // never do if the only way to fill it is to go and read it — and the
+  // Discounts badge needs these rows as well, to know which rewards are
+  // still sitting unclaimed in a message (inPocket).
+  loadMessages();
 
   if (params.get("debugopen") === "discounts") {
     setTimeout(() => {
