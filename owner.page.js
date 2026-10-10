@@ -75,6 +75,10 @@
       } catch (e) {}
     }
 
+    // Last known reward pool, shared by the Discounts tab and the send
+    // sheet's picker so choosing one to send does not need a second fetch.
+    let rewardPool = [];
+
     async function loadRewards() {
       const list = $("rewardList");
       if (!cafeId) { list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_EMPTY")}</p>`; return; }
@@ -82,6 +86,7 @@
         const r = await fetch(API + "/api/collections/reward_options/records?perPage=100&sort=created&filter=" + encodeURIComponent("(cafe='" + cafeId + "')"));
         const d = await r.json();
         const items = (d && d.items) || [];
+        rewardPool = items;   // the send sheet's picker reads the same rows
         if (!items.length) { list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_EMPTY")}</p>`; return; }
 
         // Copies are separate rows in the database — that is what makes one
@@ -2228,9 +2233,11 @@
     function setDiscState(state) {
       const form = $("cuDiscForm"), toggle = $("cuDiscToggle"), att = $("cuDiscAttached");
       const composing = state === "form";
+      const picking = state === "pick";
       form.classList.toggle("is-open", composing);
-      toggle.classList.toggle("is-open", composing);
-      toggle.setAttribute("aria-expanded", composing ? "true" : "false");
+      $("cuDiscPick").hidden = !picking;
+      toggle.classList.toggle("is-open", composing || picking);
+      toggle.setAttribute("aria-expanded", composing || picking ? "true" : "false");
       // the press-row is only an invitation; once a ticket is attached it
       // would be a second way to do the same thing
       toggle.hidden = state === "attached";
@@ -2238,33 +2245,97 @@
       refreshSendReady();
     }
 
-    $("cuDiscToggle").onclick = () => {
-      const composing = $("cuDiscForm").classList.contains("is-open");
-      setDiscState(composing ? "none" : "form");
-      if (!composing) { updateSendPreview(); $("cuFDeal").focus(); }
-    };
+    // The rewards this café already offers, as the tickets a customer would
+    // be handed. Deduplicated: the Discounts tab stacks copies because copies
+    // are what change the odds of the draw, and a send is not a draw — three
+    // identical options here would be three ways to do one thing.
+    function renderDiscPicker() {
+      const rail = $("cuDiscPickList");
+      const seen = {}, opts = [];
+      rewardPool.forEach((x) => {
+        if (!x.active) return;   // not offered to customers, so not offered here
+        const key = [x.deal, x.description, x.expiry_amount, x.expiry_unit].join("\u0000");
+        if (seen[key]) return;
+        seen[key] = true;
+        opts.push(x);
+      });
+      rail.innerHTML = opts.map((x, i) => {
+        const amt = Number(x.expiry_amount) || 0;
+        const unit = x.expiry_unit || "";
+        const exp = amt && unit ? t("OWNER_PV_EXPIRES", { amt: amt, unit: unitWord(unit, amt) }) : "";
+        return `<button class="dpick__opt" type="button" data-i="${i}">
+          <span class="dpick__opt-deal">${esc(x.deal || t("WALLET_REWARD_FALLBACK"))}</span>
+          ${x.description ? `<span class="dpick__opt-desc">${esc(x.description)}</span>` : ""}
+          ${exp ? `<span class="dpick__opt-exp">${esc(exp)}</span>` : ""}
+        </button>`;
+      }).join("");
+      rail.querySelectorAll(".dpick__opt").forEach((b) => {
+        b.onclick = () => attachDiscount(opts[parseInt(b.dataset.i, 10)]);
+      });
+      return opts.length;
+    }
 
-    $("cuDiscCancel").onclick = () => {
-      // cancelling out of an edit keeps whatever was already attached
-      setDiscState(discAttached ? "attached" : "none");
-    };
-
-    $("cuDiscConfirm").onclick = () => {
-      const deal = $("cuFDeal").value.trim();
-      if (!deal) { $("cuFDeal").focus(); return; }   // the one required field
+    // One way in for both paths, so a picked reward and a written one become
+    // the same attached ticket — and the same thing the send endpoint gets.
+    function attachDiscount(x) {
       discAttached = {
-        deal: deal,
-        desc: $("cuFDesc").value.trim(),
-        amt: Math.max(1, parseInt($("cuFExpAmt").value, 10) || 1),
-        unit: $("cuFExpUnit").value,
+        deal: (x.deal || "").trim(),
+        desc: (x.description || "").trim(),
+        amt: Math.max(1, parseInt(x.expiry_amount, 10) || 1),
+        unit: x.expiry_unit || "week",
       };
       $("cuAttDeal").textContent = discAttached.deal;
       $("cuAttDesc").textContent = discAttached.desc;
       $("cuAttExp").textContent = t("OWNER_PV_EXPIRES", { amt: discAttached.amt, unit: unitWord(discAttached.unit, discAttached.amt) });
       setDiscState("attached");
+    }
+
+    $("cuDiscToggle").onclick = async () => {
+      const open = $("cuDiscForm").classList.contains("is-open") || !$("cuDiscPick").hidden;
+      if (open) { setDiscState("none"); return; }
+      // the pool is normally already loaded by the Discounts tab; fetch only
+      // if this is the first thing the owner opened
+      if (!rewardPool.length) { try { await loadRewards(); } catch (e) {} }
+      // nothing to choose between is not a choice — go straight to writing one
+      if (!renderDiscPicker()) { setDiscState("form"); updateSendPreview(); $("cuFDeal").focus(); return; }
+      setDiscState("pick");
     };
 
-    $("cuDiscEdit").onclick = () => { setDiscState("form"); updateSendPreview(); $("cuFDeal").focus(); };
+    $("cuDiscNew").onclick = () => { setDiscState("form"); updateSendPreview(); $("cuFDeal").focus(); };
+
+    $("cuDiscCancel").onclick = () => {
+      // cancelling out of an edit keeps whatever was already attached;
+      // otherwise it steps back to the choice rather than all the way out
+      if (discAttached) { setDiscState("attached"); return; }
+      setDiscState(renderDiscPicker() ? "pick" : "none");
+    };
+
+    $("cuDiscConfirm").onclick = () => {
+      const deal = $("cuFDeal").value.trim();
+      if (!deal) { $("cuFDeal").focus(); return; }   // the one required field
+      // through the same door a picked reward goes through
+      attachDiscount({
+        deal: deal,
+        description: $("cuFDesc").value.trim(),
+        expiry_amount: $("cuFExpAmt").value,
+        expiry_unit: $("cuFExpUnit").value,
+      });
+    };
+
+    // The form is filled from what is attached, not from whatever was last
+    // typed into it: a reward picked off the rail was never typed, so Edit
+    // used to open an empty form and quietly drop the deal.
+    $("cuDiscEdit").onclick = () => {
+      if (discAttached) {
+        $("cuFDeal").value = discAttached.deal;
+        $("cuFDesc").value = discAttached.desc;
+        $("cuFExpAmt").value = String(discAttached.amt);
+        $("cuFExpUnit").value = discAttached.unit;
+      }
+      setDiscState("form");
+      updateSendPreview();
+      $("cuFDeal").focus();
+    };
 
     $("cuDiscRemove").onclick = () => {
       discAttached = null;

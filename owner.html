@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=75"></script>
+  <script src="i18n.js?v=76"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -648,6 +648,78 @@
     .sheet__send:active:not(:disabled) { transform: scale(0.98); }
     /* While a broadcast is in flight the sheet will not close, so the ✕ and
        the backdrop have to stop inviting the press that does nothing. */
+    /* ---- picking a reward that already exists ----
+       The options are drawn as the dark tickets the customer will be handed,
+       on a rail that scrolls sideways: a café with ten rewards would turn a
+       vertical list into most of the sheet, and these are objects to choose
+       between rather than a list to read down. */
+    .dpick { margin-top: 14px; animation: errIn 0.32s var(--ease-spring) both; }
+    .dpick[hidden] { display: none; }
+    .dpick__label {
+      display: block; margin-bottom: 9px;
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: var(--faint);
+    }
+    /* bleeds to the sheet's edges so the row reads as scrollable rather than
+       as a cut-off list */
+    .dpick__rail {
+      display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain;
+      scroll-snap-type: x proximity; padding: 2px 20px 6px; margin: 0 -20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .dpick__rail::-webkit-scrollbar { height: 0; }
+    .dpick__opt {
+      position: relative; overflow: hidden; flex: 0 0 auto; scroll-snap-align: start;
+      width: 168px; min-height: 96px; padding: 12px 13px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      border: none; border-radius: 15px; text-align: start;
+      background: linear-gradient(150deg, #2b2b2b 0%, #161616 60%, #0c0c0c 100%); color: #fff;
+      box-shadow: 0 14px 26px -16px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease;
+    }
+    .dpick__opt:hover { transform: translateY(-3px); box-shadow: 0 20px 32px -16px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1); }
+    .dpick__opt:active { transform: scale(0.98); }
+    .dpick__opt::after {
+      content: ""; position: absolute; top: -26px; inset-inline-end: -26px;
+      width: 84px; height: 84px; border-radius: 50%; background: rgba(255,255,255,0.1); filter: blur(20px);
+    }
+    .dpick__opt-deal {
+      position: relative; font-family: var(--font-heading); font-weight: 700; font-size: 16px;
+      line-height: 1.25; color: #fff;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .dpick__opt-desc {
+      position: relative; font-size: 11.5px; color: rgba(255,255,255,0.6);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+    }
+    .dpick__opt-exp {
+      position: relative; margin-top: auto; padding-top: 8px;
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5);
+    }
+    .dpick__or {
+      display: flex; align-items: center; gap: 12px; margin: 14px 0 12px;
+      font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--faint);
+    }
+    .dpick__or::before, .dpick__or::after { content: ""; flex: 1; height: 1px; background: rgba(20,20,20,0.1); }
+    .dpick__new {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 14px; cursor: pointer;
+      border: 1px dashed rgba(20,20,20,0.22); border-radius: 16px; background: rgba(255,255,255,0.5);
+      text-align: start; transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.14s ease;
+    }
+    .dpick__new:hover { background: rgba(255,255,255,0.72); border-color: rgba(20,20,20,0.32); }
+    .dpick__new:active { transform: scale(0.99); }
+    .dpick__new-ico {
+      flex: 0 0 auto; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+      background: #171717; color: #fff;
+    }
+    .dpick__new-ico svg { width: 16px; height: 16px; }
+    .dpick__new-main { min-width: 0; flex: 1; }
+    .dpick__new-t { display: block; font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--ink); }
+    .dpick__new-s { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.45; color: var(--dim); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dpick { animation: none; }
+    }
+
     /* ---- the confirm step ----
        The Send button does not vanish and get replaced: it SPLITS. "Yes,
        send it" starts out occupying exactly the button that was pressed —
@@ -2263,6 +2335,27 @@
         </span>
       </button>
 
+      <!-- Two ways to attach a reward, and the first one is the one an owner
+           usually wants: the deals they already run. Picking one does not
+           take it out of the café's draw and does not add a copy to it —
+           the same wording simply goes out with this message, and because
+           /owner/stats groups by deal text, what gets redeemed lands under
+           that reward in the analytics without any id being passed around. -->
+      <div class="dpick" id="cuDiscPick" hidden>
+        <span class="dpick__label" data-i18n="OWNER_PICK_FROM">From your discounts</span>
+        <div class="dpick__rail" id="cuDiscPickList"></div>
+        <div class="dpick__or"><span data-i18n="OWNER_PICK_OR">or</span></div>
+        <button class="dpick__new" id="cuDiscNew" type="button">
+          <span class="dpick__new-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </span>
+          <span class="dpick__new-main">
+            <span class="dpick__new-t" data-i18n="OWNER_PICK_NEW">Write a new one</span>
+            <span class="dpick__new-s" data-i18n="OWNER_PICK_NEW_SUB">For this message only — it does not join your draw</span>
+          </span>
+        </button>
+      </div>
+
       <div class="add-form" id="cuDiscForm">
         <div class="pv-card" aria-hidden="true">
           <span class="pv-kicker" data-i18n="OWNER_PV_KICKER">Reward preview</span>
@@ -2541,6 +2634,6 @@
     </svg>
   </div>
 
-  <script src="owner.page.js?v=88"></script>
+  <script src="owner.page.js?v=90"></script>
 </body>
 </html>
