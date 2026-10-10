@@ -46,11 +46,6 @@
         month: amt > 1 ? "OWNER_UNIT_MONTHS" : "OWNER_UNIT_MONTH" }[unit];
       return key ? t(key) : unit;
     }
-    document.querySelectorAll('#fQty option[value]').forEach((opt) => {
-      const n = parseInt(opt.value, 10);
-      if (n >= 4) opt.textContent = t("OWNER_QTY_COPIES", { n });
-    });
-
     let cafeId = "";
 
     async function loadCafe() {
@@ -88,30 +83,96 @@
         const d = await r.json();
         const items = (d && d.items) || [];
         if (!items.length) { list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_EMPTY")}</p>`; return; }
-        list.innerHTML = items.map((x, i) => {
+
+        // Copies are separate rows in the database — that is what makes one
+        // reward likelier than another, since the draw picks a row. They are
+        // not separate rewards to look at, though: three identical lines in
+        // a column reads as a mistake. Identical rows collapse into one card
+        // with the pile drawn behind it and the count on its face.
+        const groups = [];
+        const byKey = {};
+        items.forEach((x) => {
+          const key = [x.deal, x.description, x.expiry_amount, x.expiry_unit, x.active].join("\u0000");
+          if (byKey[key]) { byKey[key].ids.push(x.id); return; }
+          byKey[key] = { row: x, ids: [x.id] };
+          groups.push(byKey[key]);
+        });
+
+        // ---- odds ----
+        // card.pb.js draws uniformly from the ACTIVE rows of this café
+        // (`opts[Math.floor(Math.random() * opts.length)]`), so a reward's
+        // chance is simply its share of those rows. Copies are the only
+        // lever: three copies out of twelve rows is one in four. Hidden
+        // rewards are not in the draw at all, so they are out of both the
+        // numerator and the denominator.
+        //
+        // Nothing caches this. It is derived here, on the rows the server
+        // just returned, which is why adding or deleting a reward — both of
+        // which end in loadRewards() — repaints every percentage on the list
+        // and not just the one that changed.
+        const activeRows = items.filter((x) => x.active).length;
+        const shares = groups.map((g) => (g.row.active && activeRows ? (g.ids.length / activeRows) * 100 : 0));
+        // Largest remainder, so what is on screen adds up to 100 rather than
+        // to 99 from three honest 33.3s.
+        const pct = shares.map((v) => Math.floor(v));
+        let spare = 100 - pct.reduce((a, b) => a + b, 0);
+        shares
+          .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+          .sort((a, b) => b.frac - a.frac)
+          .forEach((e) => { if (spare > 0 && shares[e.i] > 0) { pct[e.i]++; spare--; } });
+
+        list.innerHTML = groups.map((g, i) => {
+          const x = g.row, n = g.ids.length;
           const deal = x.deal || t("WALLET_REWARD_FALLBACK");
           const tag = x.active ? "" : `<span class="rw__off">${t("OWNER_TAG_HIDDEN")}</span>`;
           const amt = Number(x.expiry_amount) || 0;
           const unit = x.expiry_unit || "";
           const exp = amt && unit ? `<span class="rw__exp">⏳ ${amt} ${unitWord(unit, amt)}</span>` : "";
-          const pctM = deal.match(/(\d+)\s*%/);
-          const badge = pctM ? `<span class="rw__badge">${pctM[1]}%</span>` : `<span class="rw__badge rw__badge--emoji">🎁</span>`;
-          return `<div class="rw${x.active ? "" : " rw--off"}" style="--i:${i}">
-            ${badge}
-            <div class="rw__main">
-              <div class="rw__top"><span class="rw__deal">${esc(deal)}</span>${tag}</div>
-              ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
-              ${exp}
+          const count = n > 1 ? `<span class="rw__count">${t("OWNER_RW_COPIES", { n })}</span>` : "";
+          // The dial replaces what used to be a 🎁 on every row: four
+          // identical gift boxes in a column carried no information, while
+          // the one number that differs per reward was a grey chip at the
+          // bottom. C is the circumference of the r=19 track; the arc is
+          // drawn by holding back the rest of it.
+          const C = 119.38;
+          const off = (C * (1 - (x.active ? pct[i] : 0) / 100)).toFixed(2);
+          const dial = `<span class="rw__dial${x.active ? "" : " rw__dial--off"}" style="--off:${off}"
+              role="img" aria-label="${x.active ? esc(t("OWNER_RW_CHANCE", { p: pct[i] })) : esc(t("OWNER_TAG_HIDDEN"))}">
+            <svg viewBox="0 0 44 44" aria-hidden="true">
+              <circle class="rw__dial-t" cx="22" cy="22" r="19" />
+              <circle class="rw__dial-v" cx="22" cy="22" r="19" />
+            </svg>
+            <span class="rw__dial-n" aria-hidden="true">${x.active ? pct[i] : "–"}<i>${x.active ? "%" : ""}</i></span>
+          </span>`;
+          // Two sheets at most, however deep the pile: a stack says "more
+          // than one" by being a stack, and the number on the card says how
+          // many. Ten slivers would just be ten slivers.
+          const sheets = n > 1
+            ? `<span class="rwg__sheet rwg__sheet--2" aria-hidden="true"></span>` +
+              (n > 2 ? "" : "") + `<span class="rwg__sheet rwg__sheet--1" aria-hidden="true"></span>`
+            : "";
+          // deleting a stack takes the whole pile, so the lock is about
+          // whether anything would be left afterwards, not about row count
+          const last = n === items.length;
+          return `<div class="rwg${n > 1 ? " rwg--stack" : ""}" style="--i:${i}">
+            ${sheets}
+            <div class="rw${x.active ? "" : " rw--off"}">
+              ${dial}
+              <div class="rw__main">
+                <div class="rw__top"><span class="rw__deal">${esc(deal)}</span>${count}${tag}</div>
+                ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
+                <span class="rw__meta">${exp}</span>
+              </div>
+              <button class="rw__del${last ? " rw__del--locked" : ""}" data-ids="${g.ids.join(",")}" data-n="${n}"
+                title="${last ? t("OWNER_RW_LAST_TITLE") : t("OWNER_BTN_DELETE_TITLE")}">✕</button>
             </div>
-            <button class="rw__del${items.length === 1 ? " rw__del--locked" : ""}" data-id="${x.id}"
-              title="${items.length === 1 ? t("OWNER_RW_LAST_TITLE") : t("OWNER_BTN_DELETE_TITLE")}">✕</button>
           </div>`;
         }).join("");
         // The last reward is not deletable — a café with none cannot finish a
         // customer's card at all. Say why on the spot instead of opening a
         // confirm that is only going to be refused by the server.
         list.querySelectorAll(".rw__del").forEach((b) => b.addEventListener("click", () => {
-          if (items.length === 1) { rewardNote(t("OWNER_RW_LAST_MSG")); return; }
+          if (b.classList.contains("rw__del--locked")) { rewardNote(t("OWNER_RW_LAST_MSG")); return; }
           askDelete(b);
         }));
       } catch (e) {
@@ -120,12 +181,14 @@
     }
 
     function askDelete(btn) {
-      const id = btn.dataset.id;
+      const ids = (btn.dataset.ids || "").split(",").filter(Boolean);
+      const n = ids.length;
+      const ask = n > 1 ? t("OWNER_CONFIRM_DELETE_N", { n }) : t("OWNER_CONFIRM_DELETE");
       const wrap = document.createElement("div");
       wrap.className = "rw__confirm";
-      wrap.innerHTML = `<span class="rw__ask">${t("OWNER_CONFIRM_DELETE")}</span><button class="rw__yes" type="button">${t("OWNER_YES")}</button><button class="rw__no" type="button">${t("OWNER_NO")}</button>`;
+      wrap.innerHTML = `<span class="rw__ask">${ask}</span><button class="rw__yes" type="button">${t("OWNER_YES")}</button><button class="rw__no" type="button">${t("OWNER_NO")}</button>`;
       btn.replaceWith(wrap);
-      wrap.querySelector(".rw__yes").onclick = () => delReward(id);
+      wrap.querySelector(".rw__yes").onclick = () => delReward(ids);
       wrap.querySelector(".rw__no").onclick = () => loadRewards();
     }
 
@@ -142,14 +205,21 @@
       rewardNoteTimer = setTimeout(() => { box.hidden = true; }, 6000);
     }
 
-    async function delReward(id) {
+    // Takes every copy in the stack. One at a time rather than in parallel:
+    // lastreward.pb.js counts what is left on each delete, and a burst of
+    // concurrent deletes can all read "one other remains" and empty the café
+    // between them.
+    async function delReward(ids) {
       try {
-        const r = await fetch(API + "/api/collections/reward_options/records/" + id, { method: "DELETE", headers: { Authorization: token } });
-        if (r.ok || r.status === 204) { loadRewards(); return; }
-        // the server keeps the same rule (lastreward.pb.js) and is the one that
-        // actually enforces it — a refusal here used to vanish silently
-        if (r.status === 400) { loadRewards(); rewardNote(t("OWNER_RW_LAST_MSG")); return; }
-        loadRewards(); rewardNote(t("OWNER_RW_DELETE_FAILED"));
+        for (const id of ids) {
+          const r = await fetch(API + "/api/collections/reward_options/records/" + id, { method: "DELETE", headers: { Authorization: token } });
+          if (r.ok || r.status === 204) continue;
+          // the server keeps the same rule (lastreward.pb.js) and is the one
+          // that actually enforces it — a refusal here used to vanish silently
+          if (r.status === 400) { loadRewards(); rewardNote(t("OWNER_RW_LAST_MSG")); return; }
+          loadRewards(); rewardNote(t("OWNER_RW_DELETE_FAILED")); return;
+        }
+        loadRewards();
       } catch (e) { rewardNote(t("AUTH_ERR_SERVER_UNREACHABLE")); }
     }
 
@@ -164,7 +234,11 @@
           deal,
           description: $("fDesc").value.trim(),
           weight: 1,
-          active: $("fActive").checked,
+          // Always live. The only control for this was on the add form, and
+          // nothing in the dashboard could switch a reward back on once it
+          // was off — so "add a hidden reward" was a one-way door to a row
+          // that did nothing. Rewards you no longer want are deleted.
+          active: true,
           expiry_amount: Math.max(1, Math.min(365, parseInt($("fExpAmt").value, 10) || 30)),
           expiry_unit: $("fExpUnit").value,
           cafe: cafeId,
@@ -178,15 +252,40 @@
           if (!r.ok) { failed = true; break; }
         }
         if (failed) { $("addErr").textContent = t("OWNER_ERR_SAVE_FAILED"); $("addErr").hidden = false; loadRewards(); return; }
-        $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1"; $("fActive").checked = true;
+        $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1";
         $("fExpAmt").value = "2"; $("fExpUnit").value = "week";
-        $("addForm").classList.remove("is-open"); $("addBtn").classList.remove("is-open"); updatePreview();
-        loadRewards();
+        updatePreview();
+        // the list is rebuilt once the page is gone: fifty backdrop-filtered
+        // rows redrawn on the closing animation's first frame eats it
+        closeAddPage(loadRewards);
       } catch (e) {
         $("addErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("addErr").hidden = false;
       } finally {
         $("saveBtn").disabled = false;
       }
+    }
+
+    // addReward() runs before the page object exists in source order; this
+    // is the hop between them.
+    function closeAddPage(after) { if (typeof addPageClose === "function") addPageClose(after); }
+    let addPageClose = null;
+
+    // The segmented control and the two steppers are painted FROM the inputs
+    // rather than holding their own state, so there is one source of truth
+    // and the reset after a save (which writes the inputs directly) brings
+    // the whole form back with it. updatePreview is the single sync point —
+    // it already runs on every edit and after every reset.
+    function syncAddControls() {
+      const unit = $("fExpUnit").value;
+      [...$("fExpSeg").children].forEach((b) => b.classList.toggle("is-on", b.dataset.v === unit));
+      const amt = Math.max(1, parseInt($("fExpAmt").value, 10) || 1);
+      $("expDec").disabled = amt <= 1;
+      $("expInc").disabled = amt >= 365;
+      const qty = Math.min(10, Math.max(1, parseInt($("fQty").value, 10) || 1));
+      $("qtyVal").textContent = String(qty);
+      $("qtyDec").disabled = qty <= 1;
+      $("qtyInc").disabled = qty >= 10;
+      $("qtyOdds").textContent = qty === 1 ? t("OWNER_ODDS_EVEN") : t("OWNER_ODDS_N", { n: qty });
     }
 
     function updatePreview() {
@@ -197,19 +296,38 @@
       $("pvDeal").textContent = deal;
       $("pvDesc").textContent = desc;
       $("pvExp").textContent = t("OWNER_PV_EXPIRES", { amt, unit: unitWord(unit, amt) });
+      syncAddControls();
     }
+
+    // a hidden input does not fire `input` when script sets .value, so each
+    // control calls the sync itself
+    $("fExpSeg").addEventListener("click", (e) => {
+      const b = e.target.closest(".af-seg__b");
+      if (!b) return;
+      $("fExpUnit").value = b.dataset.v;
+      updatePreview();
+    });
+    function nudgeExp(by) {
+      const n = Math.min(365, Math.max(1, (parseInt($("fExpAmt").value, 10) || 1) + by));
+      $("fExpAmt").value = String(n);
+      updatePreview();
+    }
+    function nudgeQty(by) {
+      const n = Math.min(10, Math.max(1, (parseInt($("fQty").value, 10) || 1) + by));
+      $("fQty").value = String(n);
+      updatePreview();
+    }
+    $("expDec").onclick = () => nudgeExp(-1);
+    $("expInc").onclick = () => nudgeExp(1);
+    $("qtyDec").onclick = () => nudgeQty(-1);
+    $("qtyInc").onclick = () => nudgeQty(1);
     ["fDeal", "fDesc", "fExpAmt", "fExpUnit"].forEach((id) => {
       const el = $(id); if (!el) return;
       el.addEventListener("input", updatePreview); el.addEventListener("change", updatePreview);
     });
 
-    $("addBtn").onclick = () => {
-      const open = $("addForm").classList.toggle("is-open");
-      $("addBtn").classList.toggle("is-open", open);
-      $("addBtn").setAttribute("aria-label", t(open ? "STAFF_BTN_CLOSE" : "OWNER_ARIA_ADD_DISCOUNT"));
-      if (open) { updatePreview(); $("fDeal").focus(); }
-    };
-    $("cancelBtn").onclick = () => { $("addForm").classList.remove("is-open"); $("addBtn").classList.remove("is-open"); $("addBtn").setAttribute("aria-label", t("OWNER_ARIA_ADD_DISCOUNT")); };
+    // opening and closing live with the other sheets, further down — the
+    // helper that does it is defined there
     $("saveBtn").onclick = addReward;
     async function copyStaffCode() {
       const code = $("staffCode").textContent.trim();
@@ -250,6 +368,7 @@
     }
     $("stampsDec").onclick = () => { if (stampsVal > 1) { stampsVal--; renderStamps(); saveStamps(); } };
     $("stampsInc").onclick = () => { if (stampsVal < 12) { stampsVal++; renderStamps(); saveStamps(); } };
+    $("ownPrevStamp").onclick = () => ownPreviewStamp();
 
     $("minSave").onclick = async () => {
       let amt = parseInt($("fMinPurchase").value, 10); if (isNaN(amt) || amt < 0) amt = 0;
@@ -334,6 +453,12 @@
       if (n > 0) { el.textContent = t("WALLET_MIN_PURCHASE", { amt: formatToman(n) }); el.hidden = false; }
       else { el.hidden = true; }
     }
+    // Preview stamping state. Declared above rebuildOwnPreviewGrid because it
+    // resets them and `let` has no hoisting — the functions below can be
+    // defined after their caller, these cannot.
+    const STAMPER_W = 120, BASE_OFFSET = 100;
+    let ownPrevStamped = 0, ownPrevBusy = false;
+
     // Rebuilt whenever the stamps-per-reward count changes, same cols maths as
     // app.js's cfgFromCafe: Math.ceil(n / 2), so the preview always matches the
     // real 2-row grid a customer's card actually gets.
@@ -345,10 +470,106 @@
         const s = document.createElement("div");
         s.className = "slot";
         s.style.setProperty("--i", i);
-        s.innerHTML = `<span class="slot__num">${i + 1}</span>`;
+        // same three children the wallet builds (app.js buildCard), so the
+        // stamped state below has the same things to animate
+        s.innerHTML = `<span class="halo"></span><span class="slot__num">${i + 1}</span>` +
+          `<span class="stamp"><img class="stamp-mark" src="knot-stamp.png?v=1" alt="" /></span>`;
         grid.appendChild(s);
       }
       $("ownPrevTotal").textContent = n;
+      resetOwnPreviewStamps();   // a card with a new number of slots starts empty
+    }
+
+    // ---------------- the preview's own Stamp button ----------------
+    // A demo, and only a demo. It presses a stamp onto the preview card with
+    // the animation a customer sees and stops there: no stamp_event, no
+    // membership, no reward when the card fills, no confetti. The owner is
+    // looking at their own card, not working a till — the real thing happens
+    // on the customer's phone against the staff scanner.
+    //
+    // A full card starts over on the next press rather than going dead, so
+    // the whole sequence can be watched more than once.
+    function resetOwnPreviewStamps() {
+      ownPrevStamped = 0;
+      const grid = $("ownPrevGrid");
+      if (grid) grid.querySelectorAll(".slot").forEach((s) => {
+        s.classList.remove("is-stamped", "impact");
+        ["--r", "--dx", "--dy", "--sa"].forEach((v) => s.style.removeProperty(v));
+      });
+      const count = document.querySelector("#ownPreview .oram-mini .count");
+      if (count) count.textContent = "0";
+    }
+
+    function ownPreviewStamp() {
+      if (ownPrevBusy) return;
+      const slots = [...$("ownPrevGrid").querySelectorAll(".slot")];
+      if (!slots.length) return;
+      if (ownPrevStamped >= slots.length) { resetOwnPreviewStamps(); return; }
+
+      const slot = slots[ownPrevStamped];
+      ownPrevStamped++;
+      // the jitter the backend sends with a real stamp, rolled here instead:
+      // a few px of slop and a few degrees of tilt, so no two land identically
+      const v = {
+        dx: Math.round((Math.random() - 0.5) * 7),
+        dy: Math.round((Math.random() - 0.5) * 7),
+        r: Math.round((Math.random() - 0.5) * 24),
+        sa: (0.86 + Math.random() * 0.14).toFixed(2),
+      };
+      ownPrevBusy = true;
+      playOwnPreviewStamp(slot, v, () => {
+        slot.style.setProperty("--r", v.r + "deg");
+        slot.style.setProperty("--dx", v.dx + "px");
+        slot.style.setProperty("--dy", v.dy + "px");
+        slot.style.setProperty("--sa", v.sa);
+        slot.classList.add("is-stamped");
+        slot.classList.remove("impact"); void slot.offsetWidth; slot.classList.add("impact");
+        const count = document.querySelector("#ownPreview .oram-mini .count");
+        if (count) count.textContent = String(ownPrevStamped);
+        const btn = $("ownPrevStamp");
+        btn.classList.remove("pulse"); void btn.offsetWidth; btn.classList.add("pulse");
+        const card = document.querySelector("#ownPreview .card");
+        if (card && card.animate) card.animate(
+          [{ transform: "translate(0,0)" }, { transform: "translate(-3px,2px)" },
+           { transform: "translate(3px,-1px)" }, { transform: "translate(0,0)" }],
+          { duration: 260, easing: "ease" });
+      }, () => { ownPrevBusy = false; });
+    }
+
+    // the tool's flight, lifted from app.js playStamp() — same keyframes, same
+    // 336ms to contact, so the press lands on the beat a customer knows
+    function playOwnPreviewStamp(slot, v, onContact, onDone) {
+      const tool = $("ownStamper");
+      const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!tool || reduced || !tool.animate) { onContact(); onDone(); return; }
+      const rect = slot.getBoundingClientRect();
+      const x = rect.left + rect.width / 2 - STAMPER_W / 2 + v.dx;
+      const yHit = rect.top + rect.height / 2 + v.dy - BASE_OFFSET;
+      const up = yHit - 320;
+      // the previous press leaves a fill:forwards animation in effect; two of
+      // them on the same element composite into a half-faded tool
+      tool.getAnimations().forEach((a) => a.cancel());
+      clearTimeout(tool._bail);
+      tool.style.opacity = "1";
+      const anim = tool.animate([
+        { transform: `translate(${x}px, ${up}px) rotate(-8deg) scale(1.08,1.08)`, opacity: 0, offset: 0 },
+        { transform: `translate(${x}px, ${up + 150}px) rotate(-4deg) scale(1.08,1.08)`, opacity: 1, offset: 0.14 },
+        { transform: `translate(${x}px, ${yHit}px) rotate(0deg) scale(1.07,0.9)`, opacity: 1, offset: 0.4 },
+        { transform: `translate(${x}px, ${yHit - 4}px) rotate(0deg) scale(0.99,1.02)`, opacity: 1, offset: 0.5 },
+        { transform: `translate(${x}px, ${yHit - 16}px) rotate(2deg) scale(1,1)`, opacity: 1, offset: 0.62 },
+        { transform: `translate(${x}px, ${up}px) rotate(7deg) scale(1.05,1.05)`, opacity: 0, offset: 1 },
+      ], { duration: 840, easing: "cubic-bezier(0.45,0.05,0.35,1)", fill: "forwards" });
+      // Both halves run exactly once, by whichever path gets there first. A
+      // backgrounded tab freezes the animation and onfinish never arrives, so
+      // the timer below has to FINISH the press, not merely unlock the button
+      // — the slot is counted the moment it is claimed, and a press that is
+      // released without its stamp landing leaves the count ahead of the card.
+      let touched = false, ended = false;
+      const contact = () => { if (!touched) { touched = true; onContact(); } };
+      const end = () => { if (ended) return; ended = true; tool.style.opacity = "0"; contact(); onDone(); };
+      setTimeout(contact, 336);
+      anim.onfinish = end;
+      tool._bail = setTimeout(end, 1500);
     }
 
     let identTypeSel = "Cafe";
@@ -1824,7 +2045,8 @@
     // the send sheet, for one. Asking whether anything is still up makes
     // the lock behave like a count without keeping one.
     function releaseScrollLock() {
-      const open = !$("cuSheet").hidden || !$("cuSend").hidden || !$("cDetail").hidden;
+      const open = !$("cuSheet").hidden || !$("cuSend").hidden || !$("cDetail").hidden ||
+        !$("addPage").hidden;
       if (!open) document.body.style.overflow = "";
     }
 
@@ -1835,7 +2057,12 @@
     // lands, and releasing the scroll lock only after the slide finishes —
     // are exactly the parts that were silently dropping the animation when
     // the filter sheet had its own copy.
-    function makeSheet(el, panel, opener, onOpen, onClosed) {
+    // `blocked` is consulted by close(), so every way out goes through it:
+    // the ✕, Escape, the backdrop, and any code that calls close() itself.
+    // The send sheet uses it to stay put while a broadcast is in flight —
+    // walking away mid-send leaves the owner with no idea whether several
+    // hundred people got the message.
+    function makeSheet(el, panel, opener, onOpen, onClosed, blocked) {
       let timer = null;
       function open() {
         if (onOpen) onOpen();
@@ -1843,12 +2070,16 @@
         el.hidden = false;
         el.setAttribute("aria-hidden", "false");
         if (opener) opener.setAttribute("aria-expanded", "true");
-        // The panel is parked at translateY(100%) and only travels if the
-        // browser has resolved that start value before the class lands.
-        // Reading the panel's OWN computed transform forces exactly that.
-        // rAF would too, except it is throttled to a standstill in a
-        // background tab, which opens the sheet with no animation at all.
-        void getComputedStyle(panel).transform;
+        // The panel is parked at translateY(100%) — or, for the add page,
+        // clipped to a zero-radius circle — and only travels if the browser
+        // has resolved that start value before the class lands. Reading the
+        // panel's OWN computed style forces exactly that; both properties
+        // are read because the element that moves is not always the one that
+        // transforms. rAF would do it too, except it is throttled to a
+        // standstill in a background tab, which opens the sheet with no
+        // animation at all.
+        const parked = getComputedStyle(panel);
+        void parked.transform; void parked.clipPath;
         el.classList.add("is-open");
         document.body.style.overflow = "hidden";
         const first = el.querySelector(".sheet__close");
@@ -1859,6 +2090,7 @@
       // transition's first frame ate the closing animation.
       function close(after) {
         if (el.hidden) return;
+        if (blocked && blocked()) return;
         el.classList.remove("is-open");
         if (opener) opener.setAttribute("aria-expanded", "false");
         clearTimeout(timer);
@@ -1883,6 +2115,34 @@
       if (closeBtn) closeBtn.onclick = () => close();
       return { open: open, close: close };
     }
+
+    // The add-a-discount page. Same plumbing as the bottom sheets — scroll
+    // lock, focus, Escape, aria — and a different arrival: the circle it is
+    // revealed through is centred on the + that opened it.
+    //
+    // The origin is measured at open time, not once at startup: the + moves
+    // with the header, the page scrolls, and phones rotate.
+    const addPage = makeSheet($("addPage"), $("addPage"), $("addBtn"), () => {
+      const el = $("addPage"), r = $("addBtn").getBoundingClientRect();
+      const ox = r.left + r.width / 2, oy = r.top + r.height / 2;
+      // radius out to the furthest corner, so the circle finishes by
+      // covering the screen rather than stopping short of a corner
+      const reach = Math.max(
+        Math.hypot(ox, oy), Math.hypot(window.innerWidth - ox, oy),
+        Math.hypot(ox, window.innerHeight - oy), Math.hypot(window.innerWidth - ox, window.innerHeight - oy));
+      el.style.setProperty("--ox", ox.toFixed(1) + "px");
+      el.style.setProperty("--oy", oy.toFixed(1) + "px");
+      el.style.setProperty("--r", Math.ceil(reach) + "px");
+      $("addBtn").classList.add("is-open");
+      $("addBtn").setAttribute("aria-label", t("STAFF_BTN_CLOSE"));
+      updatePreview();
+    }, () => {
+      $("addBtn").classList.remove("is-open");
+      $("addBtn").setAttribute("aria-label", t("OWNER_ARIA_ADD_DISCOUNT"));
+    });
+    addPageClose = addPage.close;
+    $("addBtn").onclick = () => { addPage.open(); $("fDeal").focus(); };
+    $("cancelBtn").onclick = () => addPage.close();
 
     // Set when the filter sheet was opened from inside the send sheet, so
     // dismissing it drops the owner back where they were instead of on the
@@ -1930,7 +2190,8 @@
     const sendSheet = makeSheet($("cuSend"), $("cuSendPanel"), $("cuSendBtn"), () => {
       syncSendRecipients();
       refreshSendReady();   // filtering to nobody must disable Send
-    });
+      showSendConfirm(false, true);   // never reopen onto a half-answered question
+    }, () => showSendConfirm(false, true), () => sending);
     $("cuSendBtn").onclick = sendSheet.open;
 
     // Filter from inside Send: swap one sheet for the other, and come back
@@ -2037,12 +2298,216 @@
     sendMsg.addEventListener("input", () => {
       $("cuSendChars").textContent = sendMsg.value.length;
       refreshSendReady();
+      // the confirm named a recipient count and a reward; editing either
+      // makes it a question about something that no longer exists
+      if (!$("cuConfirm").hidden) showSendConfirm(false);
     });
 
-    // TODO: nothing is wired to an endpoint yet — there is no broadcast API,
-    // and inventing one quietly would mean deciding channel, cost and
-    // consent on the owner's behalf. The button validates and nothing more.
-    $("cuSendGo").onclick = () => {};
+    // ---- sending ----
+    // Addressed by MEMBERSHIP id, which is all /owner/customers ever handed
+    // out: each one names exactly one café, so the server can refuse any
+    // that is not this owner's without the user id ever travelling.
+    //
+    // `sending` guards the only mistake here that cannot be taken back. The
+    // button is disabled for the round trip as well, but a disabled button
+    // is a rendering detail and a double tap on a slow connection is a
+    // second message to several hundred people.
+    let sending = false;
+    let sentNoteTimer = null;
+
+    // One key per composed message, not per attempt. A retry after a dropped
+    // connection carries the same key, which is how the server recognises it
+    // as the same send rather than a second one (1700000032_message_send_id).
+    //
+    // It outlives the page, because the retry usually does too: when a send
+    // appears to fail, the next thing people do is reload. A key held only
+    // in a variable would be gone by then, and the retry would be a second
+    // broadcast to everyone.
+    //
+    // Stored against a fingerprint of what was composed — the body and the
+    // attached reward — so it is reused ONLY for an identical message that
+    // has not landed. Change a word and it is a different send with its own
+    // key, which is what stops a stale key from swallowing a real message.
+    // Removed on success, so deliberately sending the same text again later
+    // mints a fresh key and goes out properly.
+    const SEND_RETRY_KEY = "loytap_send_retry";
+    let sendKey = "";
+    function newSendKey() {
+      try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+      return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    }
+    function composedFingerprint(body) {
+      const d = discAttached
+        ? [discAttached.deal, discAttached.desc, discAttached.amt, discAttached.unit].join("\u0000")
+        : "";
+      return body + "\u0000" + d;
+    }
+    function keyForSend(body) {
+      const fp = composedFingerprint(body);
+      try {
+        const saved = JSON.parse(localStorage.getItem(SEND_RETRY_KEY) || "null");
+        if (saved && saved.key && saved.fp === fp) return saved.key;
+      } catch (e) {}
+      const key = newSendKey();
+      try { localStorage.setItem(SEND_RETRY_KEY, JSON.stringify({ fp: fp, key: key })); } catch (e) {}
+      return key;
+    }
+
+    // The browser's own "are you sure" while rows are being written. Not a
+    // nicety: closing the tab mid-request can cancel it server-side, and the
+    // owner would walk away believing a message went out that never did.
+    function holdPage(e) { e.preventDefault(); e.returnValue = ""; return ""; }
+
+    function sendError(code) {
+      const key = "ERR_" + String(code || "");
+      const box = $("cuSendErr");
+      box.textContent = STRINGS.en[key] ? t(key) : t("ERR_SEND_FAILED");
+      box.hidden = false;
+    }
+
+    function sendNote(msg) {
+      const note = $("cuSent");
+      note.textContent = msg;
+      note.hidden = false;
+      clearTimeout(sentNoteTimer);
+      sentNoteTimer = setTimeout(() => { note.hidden = true; }, 9000);
+    }
+
+    // Cleared only after something actually landed — a send that failed
+    // keeps its text and its key, so the owner can press again and the
+    // server can tell it is the same send.
+    function clearComposer() {
+      sendKey = "";
+      try { localStorage.removeItem(SEND_RETRY_KEY); } catch (e) {}
+      sendMsg.value = "";
+      $("cuSendChars").textContent = "0";
+      discAttached = null;
+      $("cuFDeal").value = ""; $("cuFDesc").value = "";
+      $("cuFExpAmt").value = "2"; $("cuFExpUnit").value = "week";
+      setDiscState("none");
+    }
+
+    // Send asks; it does not send. Nothing on this page reaches as far as
+    // this button does, and there is no unsend — so the press that does it
+    // is a separate, deliberate one, on a control that is not where the
+    // first press was.
+    // `instant` skips the choreography for the cases that are not a
+    // transition at all: opening the sheet, and the hand-off into sending.
+    let confirmTimer = null;
+    function showSendConfirm(show, instant) {
+      const box = $("cuConfirm"), btn = $("cuSendGo");
+      clearTimeout(confirmTimer);
+
+      if (!show) {
+        if (instant || box.hidden) { box.hidden = true; box.classList.add("is-sealed"); btn.hidden = false; return; }
+        // collapse back into one button, THEN hand the slot back to Send
+        box.classList.add("is-sealed");
+        confirmTimer = setTimeout(() => { box.hidden = true; btn.hidden = false; }, 420);
+        return;
+      }
+
+      $("cuConfirmQ").textContent = t("OWNER_SEND_CONFIRM_Q", { n: cuView.length });
+      const r = $("cuConfirmR");
+      r.hidden = !discAttached;
+      if (discAttached) r.textContent = t("OWNER_SEND_CONFIRM_REWARD", { deal: discAttached.deal });
+
+      // "Yes" takes the pressed button's exact place in the same frame it
+      // is hidden, so the swap is invisible and only the split is seen.
+      box.classList.add("is-sealed");
+      box.hidden = false;
+      btn.hidden = true;
+      // measured while sealed (max-height:0 does not stop scrollHeight from
+      // reporting the content's real height), so the opening has a true
+      // target rather than a guessed ceiling
+      const say = $("cuConfirmSay");
+      box.style.setProperty("--sayh", say.scrollHeight + "px");
+      // resolve the sealed geometry before releasing it, or the transition
+      // has no start value. rAF would do it too, except it is throttled to
+      // a standstill in a background tab (see makeSheet).
+      void getComputedStyle($("cuConfirmNo")).flexGrow;
+      box.classList.remove("is-sealed");
+      $("cuConfirmNo").focus();   // the safe half, not the one that sends
+    }
+
+    $("cuSendGo").onclick = () => {
+      if (sending || $("cuSendGo").disabled) return;
+      showSendConfirm(true);
+    };
+    $("cuConfirmNo").onclick = () => showSendConfirm(false);
+    $("cuConfirmYes").onclick = () => doSend();
+
+    async function doSend() {
+      if (sending) return;
+      const ids = cuView.map((c) => c.id).filter(Boolean);
+      const body = sendMsg.value.trim();
+      if (!body || !ids.length) { showSendConfirm(false); return; }
+      sendKey = keyForSend(body);
+      // back to the Send button, which carries the sending state — no
+      // split to play backwards here, the press was accepted
+      showSendConfirm(false, true);
+
+      sending = true;                       // also bolts the sheet shut
+      $("cuSend").classList.add("is-sending");
+      $("cuSendGo").disabled = true;
+      $("cuSendErr").hidden = true;
+      $("cuSendGoLabel").textContent = t("OWNER_SEND_SENDING");
+      window.addEventListener("beforeunload", holdPage);
+
+      const payload = { ids: ids, body: body, send_id: sendKey };
+      if (discAttached) {
+        payload.discount = {
+          deal: discAttached.deal,
+          description: discAttached.desc,
+          expiry_amount: discAttached.amt,
+          expiry_unit: discAttached.unit,
+        };
+      }
+
+      let data = null, failCode = null, offline = false;
+      try {
+        const r = await fetch(API + "/owner/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: token },
+          body: JSON.stringify(payload),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok) data = d; else failCode = (d && d.code) || "SEND_FAILED";
+      } catch (e) {
+        offline = true;
+      }
+
+      // The round trip is over however it went, so the sheet is free to move
+      // again and the page is free to leave. Both are released BEFORE the
+      // outcome is acted on, because the success path closes the sheet.
+      sending = false;
+      $("cuSend").classList.remove("is-sending");
+      window.removeEventListener("beforeunload", holdPage);
+      $("cuSendGoLabel").textContent = t("OWNER_SEND_GO");
+      refreshSendReady();
+
+      if (offline) {
+        // Deliberately not "nothing was sent": the request may have landed
+        // and committed with only the answer lost. Pressing Send again is
+        // safe — the key makes the retry a no-op if it did.
+        $("cuSendErr").textContent = t("ERR_SEND_LOST");
+        $("cuSendErr").hidden = false;
+        return;
+      }
+      if (failCode) { sendError(failCode); return; }
+
+      if (data.duplicate) {
+        sendNote(t("OWNER_SEND_ALREADY"));
+      } else {
+        sendNote(data.skipped
+          ? t("OWNER_SEND_DONE_SKIPPED", { n: data.sent, s: data.skipped })
+          : t("OWNER_SEND_DONE", { n: data.sent }));
+      }
+      // Cleared whether or not the sheet is still open: if the owner shut it
+      // between the response and here, the composer still has to be emptied
+      // or the next open offers the same message again.
+      clearComposer();
+      sendSheet.close();
+    }
     $("cuReset").onclick = () => { cuDraft = Object.assign({}, CU_FILTER_OFF); syncSheetChips(); };
     $("cuApply").onclick = () => {
       cuFilter = Object.assign({}, cuDraft);
