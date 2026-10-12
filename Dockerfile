@@ -6,7 +6,12 @@ FROM alpine:3.20
 # Must match the version used locally so migrations/hooks behave identically.
 ARG PB_VERSION=0.39.11
 
-RUN apk add --no-cache ca-certificates unzip wget
+# openssl and curl are not decoration: web push needs P-256 (ECDH + ES256
+# signing), which PocketBase's JS engine cannot do, and the encrypted body has
+# to be POSTed as raw bytes, which $http.send() cannot carry. Both are shelled
+# out to from backend/pb_hooks/webpush.js. Dropping either silently disables
+# every staff notification.
+RUN apk add --no-cache ca-certificates unzip wget openssl curl
 
 WORKDIR /pb
 
@@ -26,6 +31,9 @@ COPY backend/pb_migrations/ /pb/pb_migrations/
 # *.xml is sitemap.xml. Without it PocketBase has no such file to serve and falls
 # back to index.html, so /sitemap.xml answers 200 with HTML and every crawler
 # that asks for the URL list gets a web page instead.
+# sw.js rides the *.js glob. It MUST land at the public root: a service
+# worker's scope is its own directory, so one served from a subdirectory could
+# not receive pushes for /staff.
 COPY *.html *.js *.css *.png *.jpg *.txt *.xml manifest*.json /pb/pb_public/
 # Self-hosted fonts (woff2) so typography works where Google Fonts is blocked.
 COPY fonts/ /pb/pb_public/fonts/

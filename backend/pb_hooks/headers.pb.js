@@ -46,6 +46,11 @@ routerUse(new Middleware((e) => {
       "img-src 'self' data:",             // data: for the .grain background-image svg in styles.css
       "font-src 'self'",                  // fonts/*.woff2
       "connect-src 'self'",               // the API shares this origin
+      // sw.js, for staff push notifications. Same-origin workers would be
+      // allowed anyway by the worker-src -> child-src -> script-src fallback,
+      // but spelling it out means a later tightening of script-src cannot
+      // disable every till's notifications as a side effect.
+      "worker-src 'self'",
       "manifest-src 'self'",              // <link rel="manifest" href="manifest.json">
       "object-src 'none'",
       "base-uri 'self'",

@@ -28,6 +28,17 @@ if lsof -ti:"$PORT" >/dev/null 2>&1; then
   exit 1
 fi
 
+# VAPID keys for web push, if they have been generated. Without them the push
+# endpoints answer "not configured" and everything else still works — see
+# push.pb.js. Generate with ./backend/vapid-keygen.sh > vapid.env.local
+# (gitignored: it holds a private key).
+if [ -f "$ROOT/vapid.env.local" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$ROOT/vapid.env.local"
+  set +a
+fi
+
 # --publicDir points at the repo root so the frontend is served from the real
 # files. backend/pb_public/ is a symlink farm that silently goes stale whenever
 # a new page or script is added.
