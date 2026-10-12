@@ -16,8 +16,8 @@ applyI18n();
 // auth-refresh can't extend one — it just hands back the same unchanged
 // expiry. This mirrors the customer wallet's silent refresh-on-load
 // (app.js's init()) but calls our own /staff/session/refresh instead, which
-// mints a fresh 24h token. Runs once per page load: a staff member who
-// opens the scanner at least once every 24h never sees the wall-clock
+// mints a fresh 7-day token. Runs once per page load: a staff member who
+// opens the scanner at least once a week never sees the wall-clock
 // expiry.
 (async function refreshStaffSession() {
   try {
