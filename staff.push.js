@@ -136,6 +136,45 @@
     try { return await registration.pushManager.getSubscription(); } catch (e) { return null; }
   }
 
+  // Registers this device with the server. Upserts on endpoint, so calling it
+  // again for a subscription the server already knows about simply refreshes
+  // the row — which is the whole point of the heartbeat below.
+  function postSubscription(sub) {
+    const json = sub.toJSON();
+    return fetch(API + "/staff/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: token() },
+      body: JSON.stringify({
+        endpoint: sub.endpoint,
+        keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+        // so the owner can tell two tills apart in a list later
+        label: (navigator.userAgent.match(/\((.*?)\)/) || [, ""])[1].slice(0, 80),
+        lang: (typeof getLang === "function" ? getLang() : "fa"),
+      }),
+    });
+  }
+
+  // "This device is still here." Re-registers an EXISTING subscription on
+  // every page load, which bumps the row's `updated` timestamp and lets the
+  // server reap rows nothing has checked in on (see push-stale in push.pb.js).
+  //
+  // WHY THE SERVER CANNOT WORK THIS OUT ALONE. A subscription dies silently.
+  // Delete a home-screen web app on iOS and its storage — service worker,
+  // subscription and all — goes with it, but the server is never told: the
+  // next push to that endpoint was observed returning 201 from APNs, not the
+  // 404/410 the reaper keys on. So the row lingers, and a reinstall adds a
+  // SECOND row beside it. That is why a till can end up notified twice for
+  // one stamp request.
+  //
+  // Deliberately only for a subscription that already exists — never a way to
+  // re-subscribe a till whose staff turned notifications off.
+  //
+  // Fire-and-forget: a failed heartbeat costs one missed refresh out of a
+  // 30-day window, so it is never worth interrupting page load for.
+  function heartbeat(sub) {
+    try { postSubscription(sub).catch(() => {}); } catch (e) {}
+  }
+
   async function subscribe() {
     // Must be called from a user gesture — every browser refuses the
     // permission prompt otherwise, and Safari refuses silently.
@@ -157,18 +196,7 @@
       applicationServerKey: keyToBytes(key),
     });
 
-    const json = sub.toJSON();
-    const res = await fetch(API + "/staff/push/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: token() },
-      body: JSON.stringify({
-        endpoint: sub.endpoint,
-        keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
-        // so the owner can tell two tills apart in a list later
-        label: (navigator.userAgent.match(/\((.*?)\)/) || [, ""])[1].slice(0, 80),
-        lang: (typeof getLang === "function" ? getLang() : "fa"),
-      }),
-    });
+    const res = await postSubscription(sub);
     if (!res.ok) {
       // Leave no orphan: a subscription the server does not know about would
       // sit in the browser forever looking enabled and never deliver anything.
@@ -257,7 +285,10 @@
       return;
     }
 
-    setState((await currentSubscription()) && Notification.permission === "granted" ? "on" : "off");
+    const existing = await currentSubscription();
+    const live = existing && Notification.permission === "granted";
+    setState(live ? "on" : "off");
+    if (live) heartbeat(existing);
 
     // Mirror now, again once staff.js's async token refresh has had time to
     // land, and whenever the till is brought back to the foreground.

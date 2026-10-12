@@ -343,3 +343,63 @@ cronAdd("push-reap", "*/5 * * * *", () => {
     try { $app.logger().error("push-reap failed", "err", String(err)); } catch (e2) {}
   }
 });
+
+// ---------------------------------------------------------------------------
+// reaping subscriptions nothing has checked in on
+// ---------------------------------------------------------------------------
+// The 404/410 reaper above only removes subscriptions a push service admits
+// are dead. Observed in practice: it does not catch everything. Delete a
+// home-screen web app on iOS and its subscription dies with it, but APNs kept
+// answering 201 for that endpoint rather than 410 — so the row survived, the
+// reinstall added a second row beside it, and the till was notified twice for
+// every stamp request.
+//
+// This is the other direction: instead of waiting to be told a device is
+// gone, require every device to say it is still here. staff.push.js
+// re-registers an existing subscription on each page load, which upserts the
+// row and bumps `updated`. Anything that has not checked in for 30 days is a
+// device that is not coming back.
+//
+// WHY 30 DAYS. A staff session lasts 7 (staff.pb.js), so a till still in use
+// signs in — and therefore checks in — at least weekly. 30 days is four times
+// that, which is the margin this wants: the failure mode of reaping too eagerly
+// is silently unsubscribing working tills, and nobody would notice until a
+// café complained that notifications stopped.
+//
+// Depends on PocketBase bumping `updated` on a save whose values are
+// unchanged. Verified on 0.39.11 against a real re-registration. If that ever
+// changes, this cron starts deleting live rows — the generous window and the
+// log line below are what buy time to notice.
+cronAdd("push-stale", "17 4 * * *", () => {
+  try {
+    const CUTOFF_DAYS = 30;
+    // Capped per run. Nothing legitimate deletes dozens of rows in one night,
+    // so if this ever starts sweeping it does so slowly and visibly rather
+    // than wiping every café's tills in a single pass.
+    const MAX_PER_RUN = 50;
+
+    const cutoff = new Date(Date.now() - CUTOFF_DAYS * 24 * 60 * 60 * 1000)
+      .toISOString().replace("T", " ");
+
+    let stale = [];
+    try {
+      stale = $app.findRecordsByFilter("push_subs", "updated < {:c}", "updated", MAX_PER_RUN, 0, { c: cutoff });
+    } catch (err) { return; }
+    if (!stale.length) return;
+
+    let removed = 0;
+    for (const row of stale) {
+      try {
+        // Logged individually and before the delete: this is the only record
+        // that a till stopped being notified, and "my notifications just
+        // stopped" is otherwise an unanswerable support question.
+        $app.logger().info("push-stale removing subscription",
+          "sub", row.id, "label", row.getString("label"), "last_seen", row.getString("updated"));
+      } catch (e2) {}
+      try { $app.delete(row); removed++; } catch (err) {}
+    }
+    try { $app.logger().info("push-stale done", "removed", removed, "cutoff_days", CUTOFF_DAYS); } catch (e2) {}
+  } catch (err) {
+    try { $app.logger().error("push-stale failed", "err", String(err)); } catch (e2) {}
+  }
+});
