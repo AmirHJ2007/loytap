@@ -47,7 +47,7 @@
   // storage both sides can see, so the page mirrors the token into it.
   //
   // Re-mirrored on a timer and on tab focus, not just once: staff.js mints a
-  // fresh 24h token asynchronously on every page load
+  // fresh 7-day token asynchronously on every page load
   // (refreshStaffSession()), so a single mirror at startup would copy the
   // token that is about to be replaced and leave the worker holding a stale
   // one. A stale token means a button that 401s — which looks exactly like a
@@ -67,6 +67,25 @@
         try {
           const tx = req.result.transaction(IDB_STORE, "readwrite");
           tx.objectStore(IDB_STORE).put(value, key);
+          tx.oncomplete = () => { req.result.close(); resolve(true); };
+          tx.onerror = () => { req.result.close(); resolve(false); };
+        } catch (e) { resolve(false); }
+      };
+    });
+  }
+
+  function idbDel(key) {
+    return new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open(IDB_NAME, 1); } catch (e) { return resolve(false); }
+      req.onupgradeneeded = () => {
+        try { req.result.createObjectStore(IDB_STORE); } catch (e) {}
+      };
+      req.onerror = () => resolve(false);
+      req.onsuccess = () => {
+        try {
+          const tx = req.result.transaction(IDB_STORE, "readwrite");
+          tx.objectStore(IDB_STORE).delete(key);
           tx.oncomplete = () => { req.result.close(); resolve(true); };
           tx.onerror = () => { req.result.close(); resolve(false); };
         } catch (e) { resolve(false); }
@@ -195,6 +214,37 @@
       btn.classList.remove("is-busy");
     }
   });
+
+  // ---- what sign-out has to undo ----
+  //
+  // Exported because the sign-out paths live in other files (staff.page.js's
+  // button, and staff.js's "the server rejected this token" path) and this is
+  // the only file that knows what the push feature stored.
+  //
+  // MUST be awaited, and MUST run BEFORE the caller clears localStorage:
+  //   - the unsubscribe POST authenticates with the token it is about to drop
+  //   - an IndexedDB delete is asynchronous, so a caller that fires it and
+  //     immediately runs location.replace() can navigate away before the
+  //     transaction commits, leaving the token exactly where it was
+  //
+  // Two separate jobs, and both matter:
+  //   the subscription   a signed-out till that keeps its subscription keeps
+  //                      receiving notifications — with customer names on its
+  //                      lock screen. Dropping it is a privacy fix.
+  //   the mirrored token the service worker's copy of the session. Left
+  //                      behind, the Approve button on one of those
+  //                      notifications still stamps a card, because a static
+  //                      staff token stays valid server-side for a week and
+  //                      nothing can revoke it. That is the security fix.
+  //
+  // Never throws: sign-out must complete even if the network is down or
+  // IndexedDB is unavailable. Anything that fails here is still cleaned up
+  // server-side — an unsubscribed endpoint makes the next push 404/410, which
+  // the push-reap cron turns into a deleted row.
+  window.tillSignout = async function tillSignout() {
+    try { await unsubscribe(); } catch (e) {}
+    try { await idbDel("staff_token"); } catch (e) {}
+  };
 
   (async function init() {
     if (!supported) { setState("unsupported"); return; }

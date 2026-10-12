@@ -6,7 +6,13 @@
       var cn = localStorage.getItem("loytap_cafe");
       if (cn) document.getElementById("cafeName").textContent = cn;
     } catch (e) {}
-    document.getElementById("signoutBtn").addEventListener("click", function () {
+    document.getElementById("signoutBtn").addEventListener("click", async function () {
+      // Undo what the push feature stored, BEFORE the token is cleared: the
+      // unsubscribe call authenticates with it, and the service worker keeps
+      // its own copy in IndexedDB that localStorage.removeItem cannot reach.
+      // Awaited, so the redirect below cannot cut the IndexedDB transaction
+      // short. See window.tillSignout in staff.push.js.
+      try { if (window.tillSignout) await window.tillSignout(); } catch (e) {}
       ["loytap_token","loytap_staff","loytap_owner","loytap_role","loytap_signed_in","loytap_name","loytap_cafe"]
         .forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
       location.replace("/business/signin");

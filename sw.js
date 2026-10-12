@@ -128,6 +128,20 @@ self.addEventListener("notificationclick", (event) => {
     // alarming anyone about — they just need saying plainly.
     if (res.status === 410) return toast(t.expired);
     if (res.status === 409) return toast(t.expired);
+
+    // The session is gone: signed out, or the token simply expired. Delete
+    // our own copy rather than keep presenting buttons that cannot work.
+    //
+    // Belt and braces. staff.push.js's tillSignout() already clears this on
+    // both sign-out paths, but that is page-side code — it cannot run if the
+    // page was never opened again, and a future third sign-out path could
+    // forget to call it. This is the one place that always notices, because
+    // it is the thing actually using the token.
+    if (res.status === 401 || res.status === 403) {
+      await deleteToken();
+      return toast(t.failed, d.url);
+    }
+
     if (!res.ok) return toast(t.failed, d.url);
 
     return toast(event.action === "approve" ? t.approved : t.denied);
@@ -158,6 +172,24 @@ async function toast(message, url) {
   await new Promise((r) => setTimeout(r, 5000));
   const open = await self.registration.getNotifications({ tag: tag });
   for (const n of open) n.close();
+}
+
+// Drops this worker's copy of the session token. See the 401/403 branch above.
+function deleteToken() {
+  return new Promise((resolve) => {
+    let req;
+    try { req = indexedDB.open("reloy-till", 1); } catch (e) { return resolve(false); }
+    req.onupgradeneeded = () => { try { req.result.createObjectStore("kv"); } catch (e) {} };
+    req.onerror = () => resolve(false);
+    req.onsuccess = () => {
+      try {
+        const tx = req.result.transaction("kv", "readwrite");
+        tx.objectStore("kv").delete("staff_token");
+        tx.oncomplete = () => { req.result.close(); resolve(true); };
+        tx.onerror = () => { req.result.close(); resolve(false); };
+      } catch (e) { resolve(false); }
+    };
+  });
 }
 
 // The session token, mirrored into IndexedDB by staff.push.js because a
