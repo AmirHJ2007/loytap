@@ -15,10 +15,25 @@ RUN apk add --no-cache ca-certificates unzip wget openssl curl
 
 WORKDIR /pb
 
-# Download the Linux build of PocketBase (the local ./backend/pocketbase is macOS-only).
-RUN wget -q "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -O /tmp/pb.zip \
+# The Linux build of PocketBase (the local ./backend/pocketbase is macOS-only),
+# shipped in the build context rather than downloaded.
+#
+# This was a wget from GitHub releases. Liara's build environment cannot reach
+# that host: the build sat on the download until it hit the 20-minute ceiling,
+# twice, identically, while everything before it finished in seconds. Alpine's
+# CDN and Docker Hub are both reachable from there; GitHub releases is not. So
+# the one remaining build-time fetch was the one that could not succeed.
+#
+# See vendor/README.md for why the zip is committed rather than gitignored, and
+# for the command that refreshes it. Keep it in step with PB_VERSION above.
+COPY vendor/pocketbase_linux_amd64.zip      /tmp/pb.zip
+COPY vendor/pocketbase_linux_amd64.zip.sha256 /tmp/pb.zip.sha256
+
+# Verified before unzipping: a truncated or substituted archive fails the build
+# here, loudly, instead of producing an image that misbehaves at runtime.
+RUN echo "$(cat /tmp/pb.zip.sha256)  /tmp/pb.zip" | sha256sum -c - \
     && unzip /tmp/pb.zip -d /pb \
-    && rm /tmp/pb.zip
+    && rm /tmp/pb.zip /tmp/pb.zip.sha256
 
 # Server-side logic (OTP, redeem, stats, card draw) + schema migrations.
 COPY backend/pb_hooks/      /pb/pb_hooks/
