@@ -27,6 +27,22 @@
     </svg>
   </button>
 
+  <!-- Notifications toggle. Hidden until staff.push.js decides this device
+       can actually receive a push — a browser without PushManager, or an
+       iPhone that has not been added to the Home Screen, gets no control
+       rather than one that silently does nothing. -->
+  <button class="staff-notify" id="notifyBtn" type="button" hidden data-state="off" aria-pressed="false">
+    <svg class="staff-notify__on" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <svg class="staff-notify__off" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      <path d="M3 3l18 18"/>
+    </svg>
+  </button>
+
   <!-- Incoming stamp-tap requests — realtime, no refresh. Deliberately OUTSIDE
        both panels and floating over them: a request is created by a customer
        scanning the code on the QR tab, so penning the approve button inside the
@@ -159,8 +175,9 @@
        different libraries, both needed. qrcode.js must come before
        staff.page.js, which calls it on load to draw the code. -->
   <script src="qrcode.js"></script>
-  <script src="staff.page.js?v=11"></script>
+  <script src="staff.page.js?v=12"></script>
   <script src="jsQR.js"></script>
-  <script src="staff.js?v=13"></script>
+  <script src="staff.js?v=14"></script>
+  <script src="staff.push.js?v=4"></script>
 </body>
 </html>

@@ -16,8 +16,8 @@ applyI18n();
 // auth-refresh can't extend one — it just hands back the same unchanged
 // expiry. This mirrors the customer wallet's silent refresh-on-load
 // (app.js's init()) but calls our own /staff/session/refresh instead, which
-// mints a fresh 24h token. Runs once per page load: a staff member who
-// opens the scanner at least once every 24h never sees the wall-clock
+// mints a fresh 7-day token. Runs once per page load: a staff member who
+// opens the scanner at least once a week never sees the wall-clock
 // expiry.
 (async function refreshStaffSession() {
   try {
@@ -39,6 +39,18 @@ applyI18n();
   }
   // the server actually turned this token down — it is dead, not merely
   // unreachable, so clear it rather than loop on a session that cannot work
+  //
+  // Same teardown as the sign-out button (staff.page.js): drop the push
+  // subscription and the service worker's mirrored copy of the token. The
+  // unsubscribe POST will fail here — the token being cleared is the one it
+  // would authenticate with — but sub.unsubscribe() still stops this device
+  // receiving, and the dead endpoint then 404s on the next push, which the
+  // push-reap cron turns into a deleted row.
+  //
+  // staff.push.js is a plain <script> after this file, so it has finished
+  // executing by the time this async continuation runs; the guard is for a
+  // page that somehow loaded without it.
+  try { if (window.tillSignout) await window.tillSignout(); } catch (e) {}
   ["loytap_token", "loytap_staff", "loytap_owner", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe"]
     .forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
   location.replace("/business/signin");

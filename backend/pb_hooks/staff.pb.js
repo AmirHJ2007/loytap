@@ -157,10 +157,23 @@ routerAdd("POST", "/staff/login", (e) => {
   // good code → this IP starts clean again
   try { if (att) $app.delete(att); } catch (err) {}
 
-  // Static 24h token, deliberately not the (now 14-day, customer-only)
+  // Static 7-day token, deliberately not the (now 14-day, customer-only)
   // collection default — see owner.pb.js's /owner/register for the same
   // reasoning: a staff token can confirm/deny stamps and redeem rewards.
-  const token = staff.newStaticAuthToken(24 * 60 * 60 * 1e9);
+  //
+  // WHY A WEEK, AND WHAT IT COSTS. This was 24h. A week means a till that
+  // sits unused over a quiet stretch — a café shut for a few days, a second
+  // device used only at weekends — still comes back signed in instead of
+  // asking for the café code. That is the whole benefit.
+  //
+  // The cost is real and worth stating: these tokens are static, and nothing
+  // in this codebase can revoke one. Changing the café's staff code does NOT
+  // invalidate tokens already issued from it — they stay valid until they
+  // expire on their own. So a lost or stolen till can confirm stamps and
+  // redeem rewards for up to a week, and the only remedies are the ones that
+  // were always available: the owner watching their stats, and rewards being
+  // worth a coffee rather than money.
+  const token = staff.newStaticAuthToken(7 * 24 * 60 * 60 * 1e9);
   return e.json(200, {
     token,
     cafe_name: card.getString("cafe_name"),
@@ -173,15 +186,17 @@ routerAdd("POST", "/staff/login", (e) => {
 // /owner/session/refresh: staff tokens are static (non-refreshable), so
 // PocketBase's core auth-refresh endpoint can't extend one — it just hands
 // back an equivalent token with the same unchanged expiry. This route mints
-// a fresh 24h static token instead. staff.js calls it once per page load:
-// a staff member who opens the scanner at least once every 24h never sees
-// the wall-clock expiry; anyone who stays away longer has to sign back in
-// with the café code.
+// a fresh 7-day static token instead. staff.js calls it once per page load:
+// a staff member who opens the scanner at least once a week never sees the
+// wall-clock expiry; anyone who stays away longer has to sign back in with
+// the café code. Keep this duration in step with /staff/login above — two
+// different windows would mean a till's session length depended on whether
+// it had reloaded since signing in.
 //   POST /staff/session/refresh  (staff auth) -> { token }
 routerAdd("POST", "/staff/session/refresh", (e) => {
   const u = e.auth;
   if (!u || u.getString("role") !== "staff") return e.json(403, { error: "Staff access only", code: "STAFF_ONLY" });
-  return e.json(200, { token: u.newStaticAuthToken(24 * 60 * 60 * 1e9) });
+  return e.json(200, { token: u.newStaticAuthToken(7 * 24 * 60 * 60 * 1e9) });
 }, $apis.requireAuth());
 
 // The café's own tap link, for the QR the staff page shows customers.

@@ -99,6 +99,33 @@ body {
 .staff-signout:active { transform: scale(0.94); }
 .staff-signout:focus-visible { outline: 2px solid #c0503f; outline-offset: 3px; }
 
+/* Notifications toggle — the sign-out button's twin on the other corner, in
+   the page's ink rather than its warning red: turning pushes on is routine,
+   signing a till out is not. */
+.staff-notify {
+  position: fixed; top: 16px; right: 16px; z-index: 60;
+  width: 44px; height: 44px; border-radius: 14px;
+  display: grid; place-items: center; cursor: pointer;
+  color: #4a4a4a;
+  background: linear-gradient(155deg, rgba(250,248,246,0.62), rgba(236,231,226,0.5));
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid rgba(80,70,65,0.22);
+  box-shadow: 0 10px 22px -10px rgba(60,45,35,0.36), inset 0 1px 0 rgba(255,255,255,0.55);
+  transition: transform 0.16s ease, box-shadow 0.3s ease, color 0.2s ease;
+  animation: fadeDown 0.7s var(--ease-spring) both;
+}
+.staff-notify:hover { box-shadow: 0 12px 26px -10px rgba(60,45,35,0.46), inset 0 1px 0 rgba(255,255,255,0.6); }
+.staff-notify:active { transform: scale(0.94); }
+.staff-notify:focus-visible { outline: 2px solid #4a4a4a; outline-offset: 3px; }
+.staff-notify.is-busy { opacity: 0.55; pointer-events: none; }
+
+/* Only one of the two bells is ever drawn. */
+.staff-notify__on,
+.staff-notify[data-state="on"] .staff-notify__off { display: none; }
+.staff-notify[data-state="on"] .staff-notify__on { display: block; }
+.staff-notify[data-state="on"] { color: #2f7d58; border-color: rgba(47,125,88,0.3); }
+
 /* ---------------- Layout ---------------- */
 .staff {
   position: relative; z-index: 1;
