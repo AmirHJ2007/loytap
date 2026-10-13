@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=40"></script>
+  <script src="i18n.js?v=46"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -471,7 +471,11 @@
        this page's own --paper/--ink values for the preview subtree only. */
     .ownpv-wrap { animation: cardIn 0.7s var(--ease-spring) 0.18s both; }
     .ownpv-label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--faint); margin-bottom: 8px; }
-    .pcard { --cream: #e8e8e8; --radius: 24px; direction: ltr; }
+    /* No ticket punch-holes on the sides: the customer's wallet card (index.html
+       / styles.css) has none, and the preview's whole job is to show what they
+       actually get. --cream went with them — it was only the colour the holes
+       were filled with to fake the page showing through. */
+    .pcard { --radius: 24px; direction: ltr; }
     /* The preview reuses the wallet's own .card class name, which on this page
        also matches the analytics reveal rule below (.card starts at opacity:0
        and only becomes visible once revealCards() adds .in). revealCards()
@@ -499,9 +503,6 @@
         radial-gradient(130% 60% at 20% -10%, rgba(255,255,255,0.28), transparent 52%),
         linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.08) 46%, transparent 60%);
     }
-    .pcard .notch { position: absolute; top: 50%; width: 20px; height: 20px; background: var(--cream); border-radius: 50%; transform: translateY(-50%); box-shadow: inset 0 0 0 2px rgba(0,0,0,0.07); z-index: 2; }
-    .pcard .notch--l { left: -10px; }
-    .pcard .notch--r { right: -10px; }
     .pcard .oram-sheen {
       position: absolute; top: 0; left: 0; width: 55%; height: 100%;
       background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
@@ -634,42 +635,284 @@
     .add-fab__icon { width: 20px; height: 20px; transition: transform 0.3s var(--ease-spring); }
     .add-fab.is-open .add-fab__icon { transform: rotate(45deg); }
 
+    /* Round close button, shared by the add-a-discount page's header.
+       Named .sheet__close because it is the same control the bottom
+       sheets use on the branches that have them. */
+    .sheet__close {
+      flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; padding: 0;
+      border: none; border-radius: 50%; background: rgba(20,20,20,0.06); color: var(--dim);
+      cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .sheet__close:hover { background: rgba(20,20,20,0.12); color: var(--ink); }
+    .sheet__close svg { width: 15px; height: 15px; }
+
     .rw-list { display: flex; flex-direction: column; gap: 10px; direction: ltr; }
+    /* A group of identical rewards. The copies are real rows in the
+       database — that is what makes one reward likelier than another — but
+       they are one thing to look at, so the pile is drawn behind the card
+       instead of repeating it down the column. The sheets are siblings, not
+       children: .rw clips its own overflow. */
+    .rwg { position: relative; animation: rwIn 0.5s var(--ease-spring) both; animation-delay: calc(var(--i,0) * 55ms); }
+    .rwg .rw { animation: none; }
+    .rwg--stack { margin-bottom: 9px; }   /* room for the sheets under it */
+    .rwg__sheet {
+      position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+      border-radius: 16px; pointer-events: none;
+      background: linear-gradient(150deg, rgba(255,255,255,0.5), rgba(255,255,255,0.3));
+      border: 1px solid rgba(255,255,255,0.55);
+      box-shadow: 0 8px 18px -16px rgba(20,20,20,0.4);
+      transition: transform 0.22s var(--ease-spring);
+    }
+    .rwg__sheet--1 { transform: translateY(5px) scaleX(0.96); }
+    .rwg__sheet--2 { transform: translateY(9px) scaleX(0.92); opacity: 0.75; }
+    /* the pile spreads a little under the cursor */
+    .rwg--stack:hover .rwg__sheet--1 { transform: translateY(7px) scaleX(0.955); }
+    .rwg--stack:hover .rwg__sheet--2 { transform: translateY(13px) scaleX(0.91); }
+    .rwg .rw { position: relative; z-index: 1; }
+    /* how many are in the pile, said on the card rather than counted by eye */
+    .rw__count {
+      flex: 0 0 auto; font-size: 10px; font-weight: 800; letter-spacing: 0.3px;
+      color: #fff; background: #171717; border-radius: 20px; padding: 3px 9px;
+    }
     html[dir="rtl"] .rw__main { direction: rtl; text-align: right; }
     .rw {
-      position: relative; display: flex; align-items: center; gap: 12px; overflow: hidden;
-      background: linear-gradient(150deg, rgba(255,255,255,0.62), rgba(255,255,255,0.4));
-      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px;
-      padding: 11px 11px 11px 12px;
-      box-shadow: 0 10px 22px -16px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+      position: relative; display: flex; align-items: center; gap: 13px; overflow: hidden;
+      background: linear-gradient(150deg, rgba(255,255,255,0.72), rgba(255,255,255,0.46));
+      backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.7); border-radius: 18px;
+      padding: 13px 13px 13px 14px;
+      box-shadow: 0 10px 22px -16px rgba(20,20,20,0.4), inset 0 1px 0 rgba(255,255,255,0.85);
       animation: rwIn 0.5s var(--ease-spring) both; animation-delay: calc(var(--i,0) * 55ms);
       transition: transform 0.18s var(--ease-spring), box-shadow 0.3s ease;
     }
-    .rw:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -16px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.8); }
+    .rw:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -16px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.85); }
     .rw--off { opacity: 0.62; }
     @keyframes rwIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } }
     @keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
-    .rw__badge {
-      flex: 0 0 auto; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; line-height: 1;
-      background: linear-gradient(150deg, #2b2b2b, #121212); color: #fff;
-      font-family: var(--font-heading); font-weight: 800; font-size: 15px; letter-spacing: -0.5px;
-      box-shadow: 0 8px 16px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+    /* The odds, as the thing you see first. Every row used to open with the
+       same 🎁, which told you nothing; this is the one value that differs
+       between rewards, and it is now the largest thing on the card after
+       the deal itself. */
+    /* the ring and the word that says what it measures, as one column */
+    .rw__odds { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .rw__dial-c { font-size: 8.5px; font-weight: 800; letter-spacing: 0.3px; color: var(--faint); text-transform: uppercase; }
+    .rw__dial { position: relative; flex: 0 0 auto; width: 50px; height: 50px; display: grid; place-items: center; }
+    .rw__dial svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+    .rw__dial circle { fill: none; stroke-width: 4; stroke-linecap: round; }
+    .rw__dial-t { stroke: rgba(20,20,20,0.1); }
+    .rw__dial-v {
+      stroke: #171717;
+      /* 2πr for r=19 — the whole track, held back by --off to leave an arc */
+      stroke-dasharray: 119.38; stroke-dashoffset: var(--off, 119.38);
+      animation: dialIn 0.85s var(--ease-spring) both;
+      animation-delay: calc(var(--i, 0) * 55ms + 0.12s);
     }
-    .rw__badge--emoji { font-size: 23px; }
+    /* only a `from`: the implicit `to` is the element's own --off, which is
+       per row, so one keyframe serves every dial on the list */
+    @keyframes dialIn { from { stroke-dashoffset: 119.38; } }
+    .rw__dial-n {
+      position: relative; font-family: var(--font-heading); font-weight: 800; font-size: 15px;
+      line-height: 1; color: var(--ink); letter-spacing: -0.4px; font-variant-numeric: tabular-nums;
+      direction: ltr;
+    }
+    .rw__dial-n i { font-style: normal; font-size: 9px; font-weight: 700; color: var(--dim); margin-inline-start: 1px; }
+    .rw__dial--off .rw__dial-v { stroke: rgba(20,20,20,0.18); }
+    .rw__dial--off .rw__dial-n { color: var(--faint); }
     .rw__main { min-width: 0; flex: 1; }
     .rw__top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .rw__deal { font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--ink); }
     .rw__off { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #8a6d00; background: rgba(214,178,42,0.2); border-radius: 20px; padding: 3px 9px; }
     .rw__desc { margin: 2px 0 0; font-size: 12px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .rw__exp { display: inline-flex; align-items: center; gap: 5px; margin: 6px 0 0; font-size: 10.5px; font-weight: 700; color: var(--dim); background: rgba(20,20,20,0.05); border-radius: 20px; padding: 3px 9px; }
-    .rw__del { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(192,80,63,0.3); background: rgba(192,80,63,0.1); color: var(--bad); font-size: 15px; cursor: pointer; transition: background 0.2s ease, transform 0.14s ease; }
-    .rw__del:hover { background: rgba(192,80,63,0.2); transform: scale(1.07); }
+    .rw__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+    .rw__exp { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: var(--faint); }
+    /* Quiet until it is reached for. A red button on every row made delete
+       the second-loudest thing on a list whose job is to show rewards. */
+    .rw__del {
+      flex: 0 0 auto; width: 32px; height: 32px; border-radius: 10px;
+      border: 1px solid transparent; background: rgba(20,20,20,0.05); color: var(--faint);
+      font-size: 14px; cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.14s ease;
+    }
+    .rw:hover .rw__del { color: var(--dim); }
+    .rw__del:hover { background: rgba(192,80,63,0.14); border-color: rgba(192,80,63,0.3); color: var(--bad); transform: scale(1.07); }
+    .rw__del--locked { opacity: 0.45; }
     .rw__confirm { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; animation: pop 0.2s ease; }
     .rw__ask { font-size: 12px; font-weight: 700; color: var(--bad); }
     .rw__yes, .rw__no { border: none; border-radius: 9px; font-family: var(--font-heading); font-weight: 700; font-size: 12px; padding: 6px 11px; cursor: pointer; }
     .rw__yes { background: var(--bad); color: #fff; }
     .rw__no { background: rgba(0,0,0,0.08); color: var(--dim); }
     .rw-empty { text-align: center; color: var(--faint); font-size: 13px; padding: 22px 14px; }
+
+    /* ---------------- Add-a-discount page ----------------
+       Revealed FROM the + that opens it. The clip-path circle is centred on
+       that button and grown to the furthest corner, so the page unfolds out
+       of the control instead of sliding over the screen from an edge — the
+       one gesture that says "this came from there".
+
+       clip-path is the whole animation: no transform on the page, so the
+       form inside is never scaled mid-flight and the text stays sharp from
+       the first frame. The content then arrives on its own short stagger,
+       which is what keeps the reveal from reading as a flat wipe. */
+    .addpage {
+      position: fixed; inset: 0; z-index: 240;
+      background: linear-gradient(165deg, #f5f5f5 0%, #e9e9e9 46%, #d8d8d8 100%);
+      clip-path: circle(0px at var(--ox, 50%) var(--oy, 0px));
+      /* Closing curve: the destination state owns the transition, so this is
+         the one that runs on the way out. Deliberately quicker than the way
+         in — a page you are leaving should not keep you waiting — and it
+         must finish inside makeSheet's SHEET_MS, which hides the element. */
+      transition: clip-path 0.38s cubic-bezier(0.45, 0, 0.75, 0.4);
+    }
+    .addpage[hidden] { display: none; }
+    .addpage.is-open {
+      clip-path: circle(var(--r, 150vmax) at var(--ox, 50%) var(--oy, 0px));
+      transition: clip-path 0.56s cubic-bezier(0.22, 0.84, 0.3, 1);
+    }
+    /* the page's own aurora, so it is not a flat sheet of grey */
+    .addpage::before {
+      content: ""; position: absolute; top: -120px; inset-inline-end: -90px;
+      width: 320px; height: 320px; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%);
+    }
+    .addpage__inner {
+      position: relative; z-index: 1;
+      height: 100%; max-width: 560px; margin: 0 auto;
+      display: flex; flex-direction: column;
+      padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 0;
+    }
+    /* Each band comes in a beat after the circle passes over it. The delays
+       live on .is-open only, so closing takes them all away at once and the
+       page leaves as one object. */
+    .addpage__head, .addpage__body, .addpage__foot {
+      opacity: 0; transform: translateY(18px);
+      transition: opacity 0.2s ease, transform 0.28s ease-in;   /* leaving */
+    }
+    .addpage.is-open .addpage__head,
+    .addpage.is-open .addpage__body,
+    .addpage.is-open .addpage__foot {
+      opacity: 1; transform: none;
+      transition: opacity 0.3s ease, transform 0.44s var(--ease-spring);
+    }
+    .addpage.is-open .addpage__head { transition-delay: 0.13s; }
+    .addpage.is-open .addpage__body { transition-delay: 0.19s; }
+    .addpage.is-open .addpage__foot { transition-delay: 0.25s; }
+
+    .addpage__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    .addpage__id { min-width: 0; }
+    .addpage__title { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 25px; letter-spacing: -0.4px; color: var(--ink); }
+    .addpage__lead { margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--dim); }
+    .addpage__close { margin-top: 3px; width: 38px; height: 38px; }
+    .addpage__close svg { width: 16px; height: 16px; }
+    /* the form scrolls, the header and the actions do not */
+    .addpage__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 6px; }
+    .addpage__foot {
+      flex: 0 0 auto; padding: 14px 0 calc(18px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid rgba(20,20,20,0.08);
+    }
+    .addpage__foot .add-form__actions { justify-content: stretch; }
+    .addpage__foot .btn-ghost, .addpage__foot .btn-solid { flex: 1; }
+    /* The form keeps .add-form for its field styling and loses the accordion
+       it no longer is: no max-height to clip a tall form, no frame, and the
+       page itself does the animating. */
+    .addpage .add-form {
+      max-height: none; opacity: 1; overflow: visible;
+      padding: 0; margin: 0; border: 0; border-radius: 0;
+      background: none; backdrop-filter: none; transition: none;
+    }
+
+    /* ---- the form inside the page ----
+       Grouped rather than stacked: a labelled band per decision, so the page
+       reads as three questions (what is it, how long does it last, how often
+       does it come up) instead of six controls in a column. Nothing here is
+       a native dropdown or a native checkbox — at three options a segmented
+       control beats a select, and a switch says on/off without a label
+       wrapping onto two lines next to it. */
+    .af-group { margin-bottom: 20px; }
+    .af-label {
+      display: block; margin-bottom: 9px;
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--faint);
+    }
+    .addpage .af-input {
+      width: 100%; margin-bottom: 9px; padding: 13px 14px;
+      font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--ink);
+      background: rgba(255,255,255,0.72); border: 1.5px solid rgba(255,255,255,0.9);
+      border-radius: 14px; outline: none;
+      box-shadow: 0 8px 18px -14px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.9);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+    .addpage .af-input:last-child { margin-bottom: 0; }
+    .addpage .af-input::placeholder { color: var(--faint); font-weight: 500; }
+    .addpage .af-input:focus {
+      background: #fff; border-color: rgba(20,20,20,0.6);
+      box-shadow: 0 0 0 4px rgba(20,20,20,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    /* the field the save stopped on, until something is typed into it */
+    .addpage .af-input.is-bad { border-color: rgba(192,80,63,0.65); background: rgba(192,80,63,0.05); }
+    .addpage .af-input.is-bad:focus { box-shadow: 0 0 0 4px rgba(192,80,63,0.12), inset 0 1px 0 rgba(255,255,255,0.9); }
+
+    /* amount stepper — the same − value + shape as the stamps control on the
+       Card tab, so the two numbers on this dashboard are set the same way */
+    .af-stepper {
+      display: flex; width: 100%; align-items: center; gap: 4px; direction: ltr;
+      padding: 4px; border-radius: 15px;
+      background: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.85);
+      box-shadow: 0 8px 18px -14px rgba(20,20,20,0.5), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    .af-step {
+      width: 38px; height: 38px; flex: 0 0 auto; border: none; border-radius: 11px; cursor: pointer;
+      background: rgba(20,20,20,0.06); color: var(--ink);
+      font-family: var(--font-heading); font-weight: 700; font-size: 19px; line-height: 1;
+      transition: background-color 0.2s ease, transform 0.14s var(--ease-spring);
+    }
+    .af-step:hover { background: rgba(20,20,20,0.12); }
+    .af-step:active { transform: scale(0.92); }
+    .af-step:disabled { opacity: 0.35; cursor: default; }
+    .af-step:disabled:active { transform: none; }
+    .addpage .af-stepper__v {
+      flex: 1; width: auto; min-width: 0; margin: 0; padding: 0; border: 0; background: none; outline: none; text-align: center;
+      font-family: var(--font-heading); font-weight: 800; font-size: 20px; color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+    .af-stepper__v--static { display: grid; place-items: center; height: 38px; }
+    /* the spinners would sit on top of the buttons that replace them */
+    .addpage .af-stepper__v::-webkit-outer-spin-button,
+    .addpage .af-stepper__v::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .addpage .af-stepper__v { -moz-appearance: textfield; appearance: textfield; }
+
+    .af-seg {
+      display: flex; gap: 4px; margin-top: 10px; padding: 4px; direction: ltr;
+      border-radius: 15px; background: rgba(20,20,20,0.05);
+      border: 1px solid rgba(255,255,255,0.7);
+    }
+    .af-seg__b {
+      flex: 1; padding: 10px 6px; border: none; border-radius: 11px; cursor: pointer;
+      background: transparent; color: var(--dim);
+      font-family: var(--font-heading); font-weight: 700; font-size: 13px;
+      transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+    }
+    .af-seg__b:hover { color: var(--ink); }
+    .af-seg__b.is-on {
+      background: #fff; color: var(--ink);
+      box-shadow: 0 6px 14px -8px rgba(20,20,20,0.45), inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    .af-odds { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+    .af-stepper--copies { width: auto; flex: 0 0 auto; }
+    .af-stepper--copies .af-stepper__v { flex: 0 0 auto; width: 54px; }
+    .af-odds__t { font-size: 12.5px; font-weight: 700; color: var(--dim); line-height: 1.45; }
+    .af-note {
+      margin: 11px 0 0; padding: 11px 13px; border-radius: 13px;
+      font-size: 11.5px; line-height: 1.6; color: var(--dim);
+      background: rgba(20,20,20,0.04); border: 1px dashed rgba(20,20,20,0.12);
+    }
+
+
+    @media (prefers-reduced-motion: reduce) {
+      .addpage, .addpage__head, .addpage__body, .addpage__foot { transition: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .af-seg__b, .af-step { transition: none; }
+    }
 
     /* add form expands smoothly instead of snapping open */
     .add-form { overflow: hidden; max-height: 0; opacity: 0; padding: 0 14px; margin-bottom: 0; border: 0; border-radius: 16px; background: rgba(255,255,255,0.4); backdrop-filter: blur(6px);
@@ -1032,7 +1275,6 @@
       <div class="pcard" id="ownPreview">
         <div class="card">
           <section class="face face--front">
-            <span class="notch notch--l"></span><span class="notch notch--r"></span>
             <div class="oram-sheen" aria-hidden="true"></div>
             <header class="oram-head">
               <div class="oram-head__main">
@@ -1162,51 +1404,6 @@
         </button>
       </div>
 
-      <div class="add-form" id="addForm">
-        <div class="pv-card" aria-hidden="true">
-          <span class="pv-kicker" data-i18n="OWNER_PV_KICKER">Reward preview</span>
-          <p class="pv-deal" id="pvDeal" data-i18n="OWNER_PV_DEAL_DEFAULT">Your deal</p>
-          <p class="pv-desc" id="pvDesc"></p>
-          <span class="pv-exp" id="pvExp">Expires 2 weeks after it's won</span>
-        </div>
-        <input type="text" id="fDeal" placeholder="Deal — e.g. 20% OFF or Free coffee" data-i18n-placeholder="OWNER_PH_DEAL" />
-        <input type="text" id="fDesc" placeholder="Short description (optional)" data-i18n-placeholder="OWNER_PH_DESC" />
-        <div class="add-form__row">
-          <label class="fl fl--exp"><span data-i18n="OWNER_LABEL_EXPIRES_AFTER">Expires after</span>
-            <input type="number" id="fExpAmt" min="1" max="365" value="2" />
-          </label>
-          <label class="fl fl--exp"><span data-i18n="OWNER_LABEL_UNIT">Unit</span>
-            <select id="fExpUnit">
-              <option value="day" data-i18n="OWNER_OPT_DAYS">days</option>
-              <option value="week" selected data-i18n="OWNER_OPT_WEEKS">weeks</option>
-              <option value="month" data-i18n="OWNER_OPT_MONTHS">months</option>
-            </select>
-          </label>
-        </div>
-        <p class="add-hint" data-i18n="OWNER_ADD_HINT">Every reward has an equal chance of being won. Want this one to come up more often? Add more than one copy.</p>
-        <div class="add-form__row">
-          <label class="fl"><span data-i18n="OWNER_LABEL_QTY">How many to add?</span>
-            <select id="fQty">
-              <option value="1" selected data-i18n="OWNER_QTY_1">1 copy</option>
-              <option value="2" data-i18n="OWNER_QTY_2">2 copies — 2× more likely</option>
-              <option value="3" data-i18n="OWNER_QTY_3">3 copies — 3× more likely</option>
-              <option value="4">4 copies</option>
-              <option value="5">5 copies</option>
-              <option value="6">6 copies</option>
-              <option value="7">7 copies</option>
-              <option value="8">8 copies</option>
-              <option value="9">9 copies</option>
-              <option value="10">10 copies</option>
-            </select>
-          </label>
-          <label class="fl fl--check"><input type="checkbox" id="fActive" checked /> <span data-i18n="OWNER_LABEL_SHOW_REWARD">Show this reward</span></label>
-        </div>
-        <div class="add-form__actions">
-          <button class="btn-ghost" id="cancelBtn" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
-          <button class="btn-solid" id="saveBtn" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
-        </div>
-        <p class="add-err" id="addErr" hidden></p>
-      </div>
 
       <div class="rw-list" id="rewardList"></div>
       <p class="rw-note" id="rewardNote" hidden></p>
@@ -1276,6 +1473,89 @@
     </div>
   </div>
 
+  <!-- Add-a-discount page.
+       Opened by the + in the Discounts header and revealed FROM it: the
+       circle in the clip-path below is centred on that button and grown
+       until it covers the corner furthest from it, so the page comes out of
+       the thing that was pressed rather than appearing over it. The owner
+       gets the whole screen for a form that was previously an accordion
+       squeezed between the header and the reward list.
+
+       Same makeSheet() plumbing the bottom sheets use (scroll lock, focus,
+       Escape, aria) — only the way it arrives is different. -->
+  <div class="addpage" id="addPage" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="addPageTitle">
+    <div class="addpage__inner" id="addPageInner">
+      <header class="addpage__head">
+        <span class="addpage__id">
+          <h2 class="addpage__title" id="addPageTitle" data-i18n="OWNER_ADD_TITLE">New discount</h2>
+          <p class="addpage__lead" data-i18n="OWNER_ADD_LEAD">Customers win one of these at random when they fill a card.</p>
+        </span>
+        <button class="sheet__close addpage__close" type="button" aria-label="Close" data-i18n-aria="STAFF_BTN_CLOSE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </header>
+      <div class="addpage__body">
+        <div class="add-form" id="addForm">
+          <!-- the dark ticket the customer will actually be handed, kept in
+               step with the fields below as they are typed -->
+          <div class="pv-card" aria-hidden="true">
+            <span class="pv-kicker" data-i18n="OWNER_PV_KICKER">Reward preview</span>
+            <p class="pv-deal" id="pvDeal" data-i18n="OWNER_PV_DEAL_DEFAULT">Your deal</p>
+            <p class="pv-desc" id="pvDesc"></p>
+            <span class="pv-exp" id="pvExp">Expires 2 weeks after it's won</span>
+          </div>
+
+          <div class="af-group">
+            <span class="af-label" data-i18n="OWNER_LABEL_DEAL">The reward</span>
+            <input type="text" id="fDeal" class="af-input" placeholder="Deal — e.g. 20% OFF or Free coffee" data-i18n-placeholder="OWNER_PH_DEAL" />
+            <input type="text" id="fDesc" class="af-input" placeholder="Short description (optional)" data-i18n-placeholder="OWNER_PH_DESC" />
+          </div>
+
+          <div class="af-group">
+            <span class="af-label" data-i18n="OWNER_LABEL_EXPIRES_AFTER">Expires after</span>
+            <div class="af-stepper">
+              <button class="af-step" id="expDec" type="button" aria-label="−">−</button>
+              <input type="number" id="fExpAmt" class="af-stepper__v" min="1" max="365" value="2" inputmode="numeric" />
+              <button class="af-step" id="expInc" type="button" aria-label="+">+</button>
+            </div>
+            <!-- A segmented control instead of a <select>: three options is
+                 fewer taps than a dropdown, and all three stay readable. The
+                 hidden input keeps `$("fExpUnit").value` working for the
+                 preview and the save, exactly as the select did. -->
+            <div class="af-seg" id="fExpSeg" role="group" data-i18n-aria="OWNER_LABEL_UNIT" aria-label="Unit">
+              <button class="af-seg__b" type="button" data-v="day" data-i18n="OWNER_OPT_DAYS">days</button>
+              <button class="af-seg__b" type="button" data-v="week" data-i18n="OWNER_OPT_WEEKS">weeks</button>
+              <button class="af-seg__b" type="button" data-v="month" data-i18n="OWNER_OPT_MONTHS">months</button>
+            </div>
+            <input type="hidden" id="fExpUnit" value="week" />
+          </div>
+
+          <div class="af-group">
+            <span class="af-label" data-i18n="OWNER_LABEL_CHANCE">Chance of winning it</span>
+            <div class="af-odds">
+              <div class="af-stepper af-stepper--copies">
+                <button class="af-step" id="qtyDec" type="button" aria-label="−">−</button>
+                <span class="af-stepper__v af-stepper__v--static" id="qtyVal">1</span>
+                <button class="af-step" id="qtyInc" type="button" aria-label="+">+</button>
+              </div>
+              <span class="af-odds__t" id="qtyOdds"></span>
+            </div>
+            <input type="hidden" id="fQty" value="1" />
+            <p class="af-note" data-i18n="OWNER_ADD_HINT">Every reward has an equal chance of being won. Want this one to come up more often? Add more than one copy.</p>
+          </div>
+
+        </div>
+      </div>
+      <footer class="addpage__foot">
+        <p class="add-err" id="addErr" hidden></p>
+        <div class="add-form__actions">
+          <button class="btn-ghost" id="cancelBtn" type="button" data-i18n="STAFF_BTN_CANCEL">Cancel</button>
+          <button class="btn-solid" id="saveBtn" type="button" data-i18n="OWNER_BTN_SAVE">Save</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
   <!-- Glassy bottom navigation — same component as the customer wallet's
        (index.html #tabbar / styles.css .tabbar), rebuilt here since this page
        doesn't load the wallet stylesheet. -->
@@ -1307,6 +1587,6 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=37"></script>
+  <script src="owner.page.js?v=40"></script>
 </body>
 </html>
