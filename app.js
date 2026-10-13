@@ -147,13 +147,16 @@ function updateTeaser(deck) {
     : (sub ? `<span class="reward-teaser__sub">${sub}</span>` : "");
   const panelHtml = seePrizes ? `
     <div class="reward-teaser__panel">
-      <div class="reward-teaser__panel-inner">${rewardPool.map((r, i) => `
+      <div class="reward-teaser__panel-inner">
+        <p class="reward-teaser__panel-note">${t("WALLET_PRIZE_ODDS_NOTE")}</p>
+        ${rewardPool.map((r, i) => `
         <div class="prize-row" style="--i:${i}">
           <span class="prize-row__gift">🎁</span>
           <span class="prize-row__body">
             <span class="prize-row__deal">${escapeHtml(r.deal)}</span>
             ${r.description ? `<span class="prize-row__desc">${escapeHtml(r.description)}</span>` : ""}
           </span>
+          <span class="prize-row__odds" aria-label="${escapeHtml(t("WALLET_PRIZE_CHANCE", { p: r.chance }))}">${t("WALLET_PRIZE_ODDS", { p: r.chance })}</span>
         </div>`).join("")}</div>
     </div>` : "";
   box.innerHTML = `
@@ -1320,9 +1323,35 @@ async function loadRewardPool(cafeId) {
       "&filter=" + encodeURIComponent(`(active=true && cafe='${cafeId}')`)
     );
     const rd = await rr.json();
-    rewardPool = ((rd && rd.items) || [])
-      .filter((x) => x.deal)
-      .map((x) => ({ deal: x.deal, description: x.description || "" }));
+    // A café makes one reward likelier by keeping several identical rows of
+    // it (see the owner's Discounts tab). They are one prize to a customer,
+    // so they collapse into a single entry carrying how many there are —
+    // otherwise the prize list repeats the same line six times and reads as
+    // a bug rather than as better odds.
+    const groups = [];
+    const byKey = {};
+    ((rd && rd.items) || []).filter((x) => x.deal).forEach((x) => {
+      const deal = x.deal, description = x.description || "";
+      const key = deal + "\u0000" + description;
+      if (byKey[key]) { byKey[key].copies++; return; }
+      byKey[key] = { deal, description, copies: 1 };
+      groups.push(byKey[key]);
+    });
+    // card.pb.js draws uniformly from the café's active reward rows, so a
+    // prize's chance is its share of them — which is what the copies were
+    // for. The customer sees the chance itself rather than the mechanism.
+    const total = groups.reduce((a, g) => a + g.copies, 0);
+    const shares = groups.map((g) => (total ? (g.copies / total) * 100 : 0));
+    // Largest remainder, so the column adds up to 100 instead of to 99 from
+    // three honest 33.3s.
+    const pct = shares.map((v) => Math.floor(v));
+    let spare = 100 - pct.reduce((a, b) => a + b, 0);
+    shares
+      .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+      .sort((a, b) => b.frac - a.frac)
+      .forEach((e) => { if (spare > 0 && shares[e.i] > 0) { pct[e.i]++; spare--; } });
+    groups.forEach((g, i) => { g.chance = pct[i]; });
+    rewardPool = groups;
   } catch (_) { rewardPool = []; }
 }
 

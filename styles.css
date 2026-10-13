@@ -319,20 +319,30 @@ html[dir="rtl"] .reward-teaser { direction: rtl; }
   overflow: hidden; min-height: 0;
   display: flex; flex-direction: column; gap: 8px;
 }
+/* Names the column of numbers down the side. Read once, at the top, rather
+   than repeated as a word inside all six chips. */
+.reward-teaser__panel-note {
+  margin: 0 2px 2px; font-size: 11px; line-height: 1.45; color: var(--ink-dim);
+}
 .prize-row {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 13px;
   background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
 }
-/* the panel starts collapsed (0fr) — an entrance animation on its rows would
-   just play invisibly behind that, so it's only worth animating once the
-   panel is actually open (each toggle-open re-triggers it since the whole
-   box's innerHTML — panel included — is rebuilt fresh every time). */
-.reward-teaser__panel.is-open .prize-row { animation: rowIn 0.4s var(--ease-spring) both; animation-delay: calc(var(--i, 0) * 0.05s); }
 .prize-row__gift { font-size: 18px; flex: 0 0 auto; line-height: 1; }
-.prize-row__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.prize-row__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .prize-row__deal { font-family: var(--font-heading); font-weight: 700; font-size: 13.5px; color: var(--ink); }
 .prize-row__desc { font-size: 11.5px; line-height: 1.4; color: var(--ink-dim); }
+/* How likely this prize is, sat at the end of the row — the empty side, and
+   the same value the owner's Discounts tab shows on its dial. */
+.prize-row__odds {
+  flex: 0 0 auto; direction: ltr;
+  font-family: var(--font-heading); font-weight: 800; font-size: 12px; letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,0.78); background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 3px 9px;
+}
 
 /* ---------------- Stamp grid ---------------- */
 .grid { flex: 1; display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); grid-template-rows: repeat(2, 1fr); gap: 7px 6px; margin-bottom: 12px; position: relative; z-index: 1; }

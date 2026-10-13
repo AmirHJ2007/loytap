@@ -46,10 +46,6 @@
         month: amt > 1 ? "OWNER_UNIT_MONTHS" : "OWNER_UNIT_MONTH" }[unit];
       return key ? t(key) : unit;
     }
-    document.querySelectorAll('#fQty option[value]').forEach((opt) => {
-      const n = parseInt(opt.value, 10);
-      if (n >= 4) opt.textContent = t("OWNER_QTY_COPIES", { n });
-    });
 
     let cafeId = "";
 
@@ -88,30 +84,101 @@
         const d = await r.json();
         const items = (d && d.items) || [];
         if (!items.length) { list.innerHTML = `<p class="rw-empty">${t("OWNER_RW_EMPTY")}</p>`; return; }
-        list.innerHTML = items.map((x, i) => {
+
+        // Copies are separate rows in the database — that is what makes one
+        // reward likelier than another, since the draw picks a row. They are
+        // not separate rewards to look at, though: three identical lines in
+        // a column reads as a mistake. Identical rows collapse into one card
+        // with the pile drawn behind it and the count on its face.
+        const groups = [];
+        const byKey = {};
+        items.forEach((x) => {
+          const key = [x.deal, x.description, x.expiry_amount, x.expiry_unit, x.active].join("\u0000");
+          if (byKey[key]) { byKey[key].ids.push(x.id); return; }
+          byKey[key] = { row: x, ids: [x.id] };
+          groups.push(byKey[key]);
+        });
+
+        // ---- odds ----
+        // card.pb.js draws uniformly from the ACTIVE rows of this café
+        // (`opts[Math.floor(Math.random() * opts.length)]`), so a reward's
+        // chance is simply its share of those rows. Copies are the only
+        // lever: three copies out of twelve rows is one in four. Hidden
+        // rewards are not in the draw at all, so they are out of both the
+        // numerator and the denominator.
+        //
+        // Nothing caches this. It is derived here, on the rows the server
+        // just returned, which is why adding or deleting a reward — both of
+        // which end in loadRewards() — repaints every percentage on the list
+        // and not just the one that changed.
+        const activeRows = items.filter((x) => x.active).length;
+        const shares = groups.map((g) => (g.row.active && activeRows ? (g.ids.length / activeRows) * 100 : 0));
+        // Largest remainder, so what is on screen adds up to 100 rather than
+        // to 99 from three honest 33.3s.
+        const pct = shares.map((v) => Math.floor(v));
+        let spare = 100 - pct.reduce((a, b) => a + b, 0);
+        shares
+          .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+          .sort((a, b) => b.frac - a.frac)
+          .forEach((e) => { if (spare > 0 && shares[e.i] > 0) { pct[e.i]++; spare--; } });
+
+        list.innerHTML = groups.map((g, i) => {
+          const x = g.row, n = g.ids.length;
           const deal = x.deal || t("WALLET_REWARD_FALLBACK");
           const tag = x.active ? "" : `<span class="rw__off">${t("OWNER_TAG_HIDDEN")}</span>`;
           const amt = Number(x.expiry_amount) || 0;
           const unit = x.expiry_unit || "";
           const exp = amt && unit ? `<span class="rw__exp">⏳ ${amt} ${unitWord(unit, amt)}</span>` : "";
-          const pctM = deal.match(/(\d+)\s*%/);
-          const badge = pctM ? `<span class="rw__badge">${pctM[1]}%</span>` : `<span class="rw__badge rw__badge--emoji">🎁</span>`;
-          return `<div class="rw${x.active ? "" : " rw--off"}" style="--i:${i}">
-            ${badge}
-            <div class="rw__main">
-              <div class="rw__top"><span class="rw__deal">${esc(deal)}</span>${tag}</div>
-              ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
-              ${exp}
+          const count = n > 1 ? `<span class="rw__count">${t("OWNER_RW_COPIES", { n })}</span>` : "";
+          // The dial replaces what used to be a 🎁 on every row: four
+          // identical gift boxes in a column carried no information, while
+          // the one number that differs per reward was a grey chip at the
+          // bottom. C is the circumference of the r=19 track; the arc is
+          // drawn by holding back the rest of it.
+          const C = 119.38;
+          const off = (C * (1 - (x.active ? pct[i] : 0) / 100)).toFixed(2);
+          // The ring alone left the owner to work out what the number was.
+          // One word under it says so, without repeating the figure.
+          const dial = `<span class="rw__odds">
+            <span class="rw__dial${x.active ? "" : " rw__dial--off"}" style="--off:${off}"
+              role="img" aria-label="${x.active ? esc(t("OWNER_RW_CHANCE", { p: pct[i] })) : esc(t("OWNER_TAG_HIDDEN"))}">
+              <svg viewBox="0 0 44 44" aria-hidden="true">
+                <circle class="rw__dial-t" cx="22" cy="22" r="19" />
+                <circle class="rw__dial-v" cx="22" cy="22" r="19" />
+              </svg>
+              <span class="rw__dial-n" aria-hidden="true">${x.active ? pct[i] : "–"}<i>${x.active ? "%" : ""}</i></span>
+            </span>
+            <span class="rw__dial-c" aria-hidden="true">${t("OWNER_RW_CHANCE_LABEL")}</span>
+          </span>`;
+          // Two sheets at most, however deep the pile: a stack says "more
+          // than one" by being a stack, and the number on the card says how
+          // many. Ten slivers would just be ten slivers.
+          const sheets = n > 1
+            ? `<span class="rwg__sheet rwg__sheet--2" aria-hidden="true"></span>` +
+              (n > 2 ? "" : "") + `<span class="rwg__sheet rwg__sheet--1" aria-hidden="true"></span>`
+            : "";
+          // deleting a stack takes the whole pile, so the lock is about
+          // whether anything would be left afterwards, not about row count
+          const last = n === items.length;
+          return `<div class="rwg${n > 1 ? " rwg--stack" : ""}" style="--i:${i}">
+            ${sheets}
+            <div class="rw${x.active ? "" : " rw--off"}">
+              ${dial}
+              <div class="rw__main">
+                <div class="rw__top"><span class="rw__deal">${esc(deal)}</span>${count}${tag}</div>
+                ${x.description ? `<p class="rw__desc">${esc(x.description)}</p>` : ""}
+                <span class="rw__meta">${exp}</span>
+              </div>
+              <button class="rw__del${last ? " rw__del--locked" : ""}" data-ids="${g.ids.join(",")}" data-n="${n}"
+                title="${last ? t("OWNER_RW_LAST_TITLE") : t("OWNER_BTN_DELETE_TITLE")}">✕</button>
             </div>
-            <button class="rw__del${items.length === 1 ? " rw__del--locked" : ""}" data-id="${x.id}"
-              title="${items.length === 1 ? t("OWNER_RW_LAST_TITLE") : t("OWNER_BTN_DELETE_TITLE")}">✕</button>
           </div>`;
         }).join("");
         // The last reward is not deletable — a café with none cannot finish a
         // customer's card at all. Say why on the spot instead of opening a
         // confirm that is only going to be refused by the server.
         list.querySelectorAll(".rw__del").forEach((b) => b.addEventListener("click", () => {
-          if (items.length === 1) { rewardNote(t("OWNER_RW_LAST_MSG")); return; }
+          if (b.classList.contains("rw__del--locked")) { rewardNote(t("OWNER_RW_LAST_MSG")); return; }
           askDelete(b);
         }));
       } catch (e) {
@@ -120,12 +187,14 @@
     }
 
     function askDelete(btn) {
-      const id = btn.dataset.id;
+      const ids = (btn.dataset.ids || "").split(",").filter(Boolean);
+      const n = ids.length;
+      const ask = n > 1 ? t("OWNER_CONFIRM_DELETE_N", { n }) : t("OWNER_CONFIRM_DELETE");
       const wrap = document.createElement("div");
       wrap.className = "rw__confirm";
-      wrap.innerHTML = `<span class="rw__ask">${t("OWNER_CONFIRM_DELETE")}</span><button class="rw__yes" type="button">${t("OWNER_YES")}</button><button class="rw__no" type="button">${t("OWNER_NO")}</button>`;
+      wrap.innerHTML = `<span class="rw__ask">${ask}</span><button class="rw__yes" type="button">${t("OWNER_YES")}</button><button class="rw__no" type="button">${t("OWNER_NO")}</button>`;
       btn.replaceWith(wrap);
-      wrap.querySelector(".rw__yes").onclick = () => delReward(id);
+      wrap.querySelector(".rw__yes").onclick = () => delReward(ids);
       wrap.querySelector(".rw__no").onclick = () => loadRewards();
     }
 
@@ -142,20 +211,37 @@
       rewardNoteTimer = setTimeout(() => { box.hidden = true; }, 6000);
     }
 
-    async function delReward(id) {
+    // Takes every copy in the stack. One at a time rather than in parallel:
+    // lastreward.pb.js counts what is left on each delete, and a burst of
+    // concurrent deletes can all read "one other remains" and empty the café
+    // between them.
+    async function delReward(ids) {
       try {
-        const r = await fetch(API + "/api/collections/reward_options/records/" + id, { method: "DELETE", headers: { Authorization: token } });
-        if (r.ok || r.status === 204) { loadRewards(); return; }
-        // the server keeps the same rule (lastreward.pb.js) and is the one that
-        // actually enforces it — a refusal here used to vanish silently
-        if (r.status === 400) { loadRewards(); rewardNote(t("OWNER_RW_LAST_MSG")); return; }
-        loadRewards(); rewardNote(t("OWNER_RW_DELETE_FAILED"));
+        for (const id of ids) {
+          const r = await fetch(API + "/api/collections/reward_options/records/" + id, { method: "DELETE", headers: { Authorization: token } });
+          if (r.ok || r.status === 204) continue;
+          // the server keeps the same rule (lastreward.pb.js) and is the one
+          // that actually enforces it — a refusal here used to vanish silently
+          if (r.status === 400) { loadRewards(); rewardNote(t("OWNER_RW_LAST_MSG")); return; }
+          loadRewards(); rewardNote(t("OWNER_RW_DELETE_FAILED")); return;
+        }
+        loadRewards();
       } catch (e) { rewardNote(t("AUTH_ERR_SERVER_UNREACHABLE")); }
     }
 
     async function addReward() {
       const deal = $("fDeal").value.trim();
-      if (!deal) { $("fDeal").focus(); return; }
+      // Saying nothing and moving the cursor looked like the button was
+      // broken. The reason goes in the footer, which is pinned, so it is
+      // read even when the field itself has scrolled out of the form.
+      if (!deal) {
+        $("addErr").textContent = t("OWNER_ERR_DEAL_REQUIRED");
+        $("addErr").hidden = false;
+        $("fDeal").classList.add("is-bad");
+        $("fDeal").setAttribute("aria-invalid", "true");
+        $("fDeal").focus();
+        return;
+      }
       $("addErr").hidden = true;
       $("saveBtn").disabled = true;
       try {
@@ -164,7 +250,11 @@
           deal,
           description: $("fDesc").value.trim(),
           weight: 1,
-          active: $("fActive").checked,
+          // Always live. The only control for this was on the add form, and
+          // nothing in the dashboard could switch a reward back on once it
+          // was off — so "add a hidden reward" was a one-way door to a row
+          // that did nothing. Rewards you no longer want are deleted.
+          active: true,
           expiry_amount: Math.max(1, Math.min(365, parseInt($("fExpAmt").value, 10) || 30)),
           expiry_unit: $("fExpUnit").value,
           cafe: cafeId,
@@ -178,15 +268,40 @@
           if (!r.ok) { failed = true; break; }
         }
         if (failed) { $("addErr").textContent = t("OWNER_ERR_SAVE_FAILED"); $("addErr").hidden = false; loadRewards(); return; }
-        $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1"; $("fActive").checked = true;
+        $("fDeal").value = ""; $("fDesc").value = ""; $("fQty").value = "1";
         $("fExpAmt").value = "2"; $("fExpUnit").value = "week";
-        $("addForm").classList.remove("is-open"); $("addBtn").classList.remove("is-open"); updatePreview();
-        loadRewards();
+        updatePreview();
+        // the list is rebuilt once the page is gone: fifty backdrop-filtered
+        // rows redrawn on the closing animation's first frame eats it
+        closeAddPage(loadRewards);
       } catch (e) {
         $("addErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("addErr").hidden = false;
       } finally {
         $("saveBtn").disabled = false;
       }
+    }
+
+    // addReward() runs before the page object exists in source order; this
+    // is the hop between them.
+    function closeAddPage(after) { if (typeof addPageClose === "function") addPageClose(after); }
+    let addPageClose = null;
+
+    // The segmented control and the two steppers are painted FROM the inputs
+    // rather than holding their own state, so there is one source of truth
+    // and the reset after a save (which writes the inputs directly) brings
+    // the whole form back with it. updatePreview is the single sync point —
+    // it already runs on every edit and after every reset.
+    function syncAddControls() {
+      const unit = $("fExpUnit").value;
+      [...$("fExpSeg").children].forEach((b) => b.classList.toggle("is-on", b.dataset.v === unit));
+      const amt = Math.max(1, parseInt($("fExpAmt").value, 10) || 1);
+      $("expDec").disabled = amt <= 1;
+      $("expInc").disabled = amt >= 365;
+      const qty = Math.min(10, Math.max(1, parseInt($("fQty").value, 10) || 1));
+      $("qtyVal").textContent = String(qty);
+      $("qtyDec").disabled = qty <= 1;
+      $("qtyInc").disabled = qty >= 10;
+      $("qtyOdds").textContent = qty === 1 ? t("OWNER_ODDS_EVEN") : t("OWNER_ODDS_N", { n: qty });
     }
 
     function updatePreview() {
@@ -197,20 +312,148 @@
       $("pvDeal").textContent = deal;
       $("pvDesc").textContent = desc;
       $("pvExp").textContent = t("OWNER_PV_EXPIRES", { amt, unit: unitWord(unit, amt) });
+      syncAddControls();
     }
+
+    // a hidden input does not fire `input` when script sets .value, so each
+    // control calls the sync itself
+    $("fExpSeg").addEventListener("click", (e) => {
+      const b = e.target.closest(".af-seg__b");
+      if (!b) return;
+      $("fExpUnit").value = b.dataset.v;
+      updatePreview();
+    });
+    function nudgeExp(by) {
+      const n = Math.min(365, Math.max(1, (parseInt($("fExpAmt").value, 10) || 1) + by));
+      $("fExpAmt").value = String(n);
+      updatePreview();
+    }
+    function nudgeQty(by) {
+      const n = Math.min(10, Math.max(1, (parseInt($("fQty").value, 10) || 1) + by));
+      $("fQty").value = String(n);
+      updatePreview();
+    }
+    $("expDec").onclick = () => nudgeExp(-1);
+    $("expInc").onclick = () => nudgeExp(1);
+    $("qtyDec").onclick = () => nudgeQty(-1);
+    $("qtyInc").onclick = () => nudgeQty(1);
     ["fDeal", "fDesc", "fExpAmt", "fExpUnit"].forEach((id) => {
       const el = $(id); if (!el) return;
       el.addEventListener("input", updatePreview); el.addEventListener("change", updatePreview);
     });
+    // the complaint goes away as soon as it is being answered
+    $("fDeal").addEventListener("input", () => {
+      if (!$("fDeal").value.trim()) return;
+      $("addErr").hidden = true;
+      $("fDeal").classList.remove("is-bad");
+      $("fDeal").removeAttribute("aria-invalid");
+    });
 
-    $("addBtn").onclick = () => {
-      const open = $("addForm").classList.toggle("is-open");
-      $("addBtn").classList.toggle("is-open", open);
-      $("addBtn").setAttribute("aria-label", t(open ? "STAFF_BTN_CLOSE" : "OWNER_ARIA_ADD_DISCOUNT"));
-      if (open) { updatePreview(); $("fDeal").focus(); }
-    };
-    $("cancelBtn").onclick = () => { $("addForm").classList.remove("is-open"); $("addBtn").classList.remove("is-open"); $("addBtn").setAttribute("aria-label", t("OWNER_ARIA_ADD_DISCOUNT")); };
+    // opening and closing live with the other sheets, further down — the
+    // helper that does it is defined there
     $("saveBtn").onclick = addReward;
+
+    // ---- the add-a-discount page ----
+    // Ported from version-two without the customer sheets it was written
+    // alongside: the add page is the only overlay on this branch, so the
+    // scroll lock has just the one thing to ask about.
+    function releaseScrollLock() {
+      if ($("addPage").hidden) document.body.style.overflow = "";
+    }
+    const SHEET_MS = 440;   // must stay >= the .sheet__panel transition
+
+    // Shared by every bottom sheet on this page. Written once because the
+    // two fiddly parts — resolving the parked transform before the class
+    // lands, and releasing the scroll lock only after the slide finishes —
+    // are exactly the parts that were silently dropping the animation when
+    // the filter sheet had its own copy.
+    // `blocked` is consulted by close(), so every way out goes through it:
+    // the ✕, Escape, the backdrop, and any code that calls close() itself.
+    // The send sheet uses it to stay put while a broadcast is in flight —
+    // walking away mid-send leaves the owner with no idea whether several
+    // hundred people got the message.
+    function makeSheet(el, panel, opener, onOpen, onClosed, blocked) {
+      let timer = null;
+      function open() {
+        if (onOpen) onOpen();
+        clearTimeout(timer);
+        el.hidden = false;
+        el.setAttribute("aria-hidden", "false");
+        if (opener) opener.setAttribute("aria-expanded", "true");
+        // The panel is parked at translateY(100%) — or, for the add page,
+        // clipped to a zero-radius circle — and only travels if the browser
+        // has resolved that start value before the class lands. Reading the
+        // panel's OWN computed style forces exactly that; both properties
+        // are read because the element that moves is not always the one that
+        // transforms. rAF would do it too, except it is throttled to a
+        // standstill in a background tab, which opens the sheet with no
+        // animation at all.
+        const parked = getComputedStyle(panel);
+        void parked.transform; void parked.clipPath;
+        el.classList.add("is-open");
+        document.body.style.overflow = "hidden";
+        const first = el.querySelector(".sheet__close");
+        if (first) first.focus();
+      }
+      // `after` runs once the panel is actually gone. Apply uses it to hold
+      // the list rebuild back: redrawing fifty backdrop-filtered rows on the
+      // transition's first frame ate the closing animation.
+      function close(after) {
+        if (el.hidden) return;
+        if (blocked && blocked()) return;
+        el.classList.remove("is-open");
+        if (opener) opener.setAttribute("aria-expanded", "false");
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          el.hidden = true;
+          el.setAttribute("aria-hidden", "true");
+          // released here, not as the slide begins: restoring the scrollbar
+          // re-lays out the list underneath on the first frame
+          releaseScrollLock();
+          if (typeof after === "function") after();
+          // runs however the sheet was dismissed — button, backdrop, Escape
+          // or an action — which is what makes "return to where I came
+          // from" work without every exit having to remember to do it
+          if (onClosed) onClosed();
+        }, SHEET_MS);
+        if (opener) opener.focus();
+      }
+      // backdrop only — a tap inside the panel must not shut it
+      el.addEventListener("pointerdown", (e) => { if (e.target === el) close(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !el.hidden) close(); });
+      const closeBtn = el.querySelector(".sheet__close");
+      if (closeBtn) closeBtn.onclick = () => close();
+      return { open: open, close: close };
+    }
+
+    // The add-a-discount page. Same plumbing as the bottom sheets — scroll
+    // lock, focus, Escape, aria — and a different arrival: the circle it is
+    // revealed through is centred on the + that opened it.
+    //
+    // The origin is measured at open time, not once at startup: the + moves
+    // with the header, the page scrolls, and phones rotate.
+    const addPage = makeSheet($("addPage"), $("addPage"), $("addBtn"), () => {
+      const el = $("addPage"), r = $("addBtn").getBoundingClientRect();
+      const ox = r.left + r.width / 2, oy = r.top + r.height / 2;
+      // radius out to the furthest corner, so the circle finishes by
+      // covering the screen rather than stopping short of a corner
+      const reach = Math.max(
+        Math.hypot(ox, oy), Math.hypot(window.innerWidth - ox, oy),
+        Math.hypot(ox, window.innerHeight - oy), Math.hypot(window.innerWidth - ox, window.innerHeight - oy));
+      el.style.setProperty("--ox", ox.toFixed(1) + "px");
+      el.style.setProperty("--oy", oy.toFixed(1) + "px");
+      el.style.setProperty("--r", Math.ceil(reach) + "px");
+      $("addBtn").classList.add("is-open");
+      $("addBtn").setAttribute("aria-label", t("STAFF_BTN_CLOSE"));
+      updatePreview();
+    }, () => {
+      $("addBtn").classList.remove("is-open");
+      $("addBtn").setAttribute("aria-label", t("OWNER_ARIA_ADD_DISCOUNT"));
+    });
+    addPageClose = addPage.close;
+    $("addBtn").onclick = () => { addPage.open(); $("fDeal").focus(); };
+    $("cancelBtn").onclick = () => addPage.close();
+
     async function copyStaffCode() {
       const code = $("staffCode").textContent.trim();
       if (!code || code === "—") return;
