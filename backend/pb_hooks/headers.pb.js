@@ -43,7 +43,11 @@ routerUse(new Middleware((e) => {
       "default-src 'self'",
       "script-src 'self'",                // no 'unsafe-inline', no hashes
       "style-src 'self' 'unsafe-inline'", // see TRADEOFF above
-      "img-src 'self' data:",             // data: for the .grain background-image svg in styles.css
+      // data: for the .grain background-image svg in styles.css.
+      // trustseal.enamad.ir serves the Enamad badge in the /business footer —
+      // without it the badge is blocked and vanishes with no visible error,
+      // which reads to Enamad as a missing seal.
+      "img-src 'self' data: https://trustseal.enamad.ir",
       "font-src 'self'",                  // fonts/*.woff2
       "connect-src 'self'",               // the API shares this origin
       // sw.js, for staff push notifications. Same-origin workers would be

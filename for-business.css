@@ -2370,6 +2370,21 @@ section { position: relative; background: var(--bg); color: var(--fg); }
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px;
 }
 .foot__legal { margin: 0; font-size: 13px; line-height: 1.5; color: var(--fg-faint); }
+/* the Enamad trust seal sits between the legal line and "back to top". The white
+   plate is deliberate: Enamad's badge is drawn for light backgrounds and goes
+   muddy straight onto the dark footer. Scaled proportionally and never hidden —
+   both are conditions of keeping the seal. */
+.foot__seal { display: inline-flex; line-height: 0; }
+/* the white plate goes on the IMG, never on the link. Enamad's host refuses
+   connections from outside Iran, so for a visitor abroad this image always
+   fails — and a failed <img alt=""> collapses to 0x0, taking the plate with it.
+   Styling the link instead left an 8px white splinter in the footer for every
+   non-Iranian visitor. */
+.foot__seal img {
+  display: block; height: 62px; width: auto;
+  background: #fff; border-radius: 10px;
+}
+
 .foot__top {
   margin-inline-start: auto; display: inline-flex; align-items: center; gap: 8px;
   font-size: 13px; color: var(--fg-dim); text-decoration: none;
