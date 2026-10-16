@@ -45,8 +45,8 @@
   <link rel="alternate" hreflang="fa" href="https://reloy.ir/fa/business" />
   <link rel="alternate" hreflang="en" href="https://reloy.ir/en/business" />
   <link rel="alternate" hreflang="x-default" href="https://reloy.ir/fa/business" />
-  <link rel="stylesheet" href="/for-business.css?v=58" />
-  <script src="/for-business.js?v=57" defer></script>
+  <link rel="stylesheet" href="/for-business.css?v=60" />
+  <script src="/for-business.js?v=58" defer></script>
   <!-- Structured data. Lets Google and the AI answer engines state what Reloy is,
        what it costs and what it answers, without rendering the page or running its
        JavaScript. Three facts to keep true when editing:
@@ -931,6 +931,23 @@
 
     <div class="wrap foot__bar">
       <p class="foot__legal" data-i18n-html="FB_FOOT_LEGAL">© <span id="footYear">2026</span> Reloy. All rights reserved. Digital loyalty cards for cafés and restaurants.</p>
+      <!-- Enamad (نماد اعتماد الکترونیکی) trust seal. The id and Code are issued by Enamad for
+           reloy.ir specifically and come from their panel's copy button — never retype
+           them by hand. The <img> is left exactly as Enamad ships it: a seal that is
+           hidden, resized out of legibility or otherwise altered is grounds for revoking
+           it. Ours are only the wrapper class and the aria-label (the img keeps alt="",
+           so the link, not the image, carries the accessible name).
+           The badge loads from trustseal.enamad.ir, which is why that host is in the
+           img-src list in backend/pb_hooks/headers.pb.js — drop it there and the seal
+           silently disappears with nothing but a console entry to say so. -->
+      <a class="foot__seal" referrerpolicy="origin" target="_blank" rel="noopener noreferrer"
+         href="https://trustseal.enamad.ir/?id=7790877&amp;Code=mF1So33qXYaWl8yqGP0M0xB5ffZo47yk"
+         data-i18n-aria="FB_FOOT_ENAMAD">
+        <img referrerpolicy="origin" alt="" style="cursor:pointer"
+             src="https://trustseal.enamad.ir/logo.aspx?id=7790877&amp;Code=mF1So33qXYaWl8yqGP0M0xB5ffZo47yk"
+             code="mF1So33qXYaWl8yqGP0M0xB5ffZo47yk" />
+      </a>
+
       <a class="foot__top" href="#main">
         <span data-i18n="FB_BACK_TOP">Back to top</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
