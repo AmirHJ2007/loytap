@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=104" />
-  <script src="i18n.js?v=47"></script>
+  <link rel="stylesheet" href="styles.css?v=108" />
+  <script src="i18n.js?v=52"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -45,6 +45,56 @@
   </button>
 
   <button class="wallet-close" id="walletClose" type="button" aria-label="Back to wallet" hidden data-i18n-aria="WALLET_ARIA_BACK_TO_WALLET">✕</button>
+
+  <!-- A quiet nudge to add the wallet to the home screen, in the space the
+       retired corner buttons left free. Hidden until app.js decides it is worth
+       showing: never when already launched from the home screen, and never
+       again once dismissed. -->
+  <div class="install-tip" id="installTip" hidden>
+    <span class="install-tip__badge" aria-hidden="true">
+      <img class="install-tip__logo" src="reloy-icon-192.png" alt="" width="34" height="34" />
+    </span>
+    <span class="install-tip__text">
+      <b data-i18n="WALLET_INSTALL_TIP">For a better experience</b>
+      <i data-i18n="WALLET_INSTALL_TIP_SUB">Add Reloy to your home screen</i>
+    </span>
+    <button class="install-tip__cta" id="installTipAdd" type="button" data-i18n="WALLET_INSTALL_ADD">Add</button>
+    <button class="install-tip__x" id="installTipClose" type="button"
+            aria-label="Not now" data-i18n-aria="WALLET_INSTALL_DISMISS">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Add-to-home-screen walkthrough, opened by the bar's Add button. The
+       slides are built by app.js, not written here: the two platforms need
+       different shots AND a different number of them (six for iOS Safari,
+       five for Chrome on Android), so shipping both sets in the markup would
+       mean half of them are always dead weight. The track is forced
+       direction:ltr so slide N is always N steps along whatever the language. -->
+  <div class="iw" id="iw" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="iwTitle">
+    <div class="iw__panel">
+      <header class="iw__head">
+        <h2 class="iw__title" id="iwTitle" data-i18n="WALLET_IW_TITLE">Add Reloy to your home screen</h2>
+        <button class="iw__close" id="iwClose" type="button" aria-label="Close" data-i18n-aria="WALLET_IW_CLOSE">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </header>
+
+      <div class="iw__viewport" id="iwViewport">
+        <div class="iw__track" id="iwTrack"></div>
+      </div>
+
+      <p class="iw__cap" id="iwCap" aria-live="polite"></p>
+
+      <nav class="iw__nav" aria-label="Steps">
+        <button class="iw__arrow" id="iwPrev" type="button" data-i18n-aria="WALLET_IW_PREV" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="iw__dots" id="iwDots"></span>
+        <button class="iw__next" id="iwNext" type="button"><span id="iwNextLabel" data-i18n="WALLET_IW_NEXT">Next</span></button>
+      </nav>
+    </div>
+  </div>
 
   <main class="stage" id="stage">
     <p class="greeting" id="greeting"></p>
@@ -167,6 +217,20 @@
           </span>
         </span>
       </div>
+      <!-- Same walkthrough the top bar opens, kept reachable after the bar has
+           been dismissed. A whole-row button rather than a label-plus-pill:
+           "Home screen / Add" gave no clue what tapping it would do. Hidden by
+           app.js when the wallet already runs from the home screen. -->
+      <button class="srow srow--action" id="setInstallRow" type="button" hidden>
+        <span class="srow__ico" aria-hidden="true">
+          <img src="reloy-icon-192.png" alt="" width="26" height="26" />
+        </span>
+        <span class="srow__body">
+          <b data-i18n="WALLET_INSTALL_TIP">For a better experience</b>
+          <i data-i18n="WALLET_INSTALL_TIP_SUB">Add Reloy to your home screen</i>
+        </span>
+        <svg class="srow__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
     </div>
     <button class="sheet__signout" id="setSignout" type="button" data-i18n="WALLET_SIGNOUT">Sign out</button>
   </aside>
@@ -198,6 +262,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=85"></script>
+  <script src="app.js?v=90"></script>
 </body>
 </html>

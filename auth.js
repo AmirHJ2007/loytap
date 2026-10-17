@@ -306,6 +306,12 @@ $("verifyBtn").addEventListener("click", async () => {
     try {
       localStorage.setItem("loytap_token", data.token || "");
       localStorage.setItem("loytap_signed_in", "1");
+      // A new sign-in is a new session, so the add-to-home-screen bar gets
+      // another showing. Dismissing it is a "not now" for this session only —
+      // kept here rather than in app.js because this is the one moment a
+      // session actually begins, and it also resets the bar when a DIFFERENT
+      // customer signs in on a shared phone.
+      localStorage.removeItem("reloy_install_tip");
       if (signedUser) {
         localStorage.setItem("loytap_name", signedUser.name || "");
         localStorage.setItem("loytap_role", signedUser.role || "customer");

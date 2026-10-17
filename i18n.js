@@ -145,6 +145,32 @@ const STRINGS = {
     WALLET_SETTINGS_LANGUAGE: "Language",
     WALLET_TAB_DISCOUNTS: "Discounts",
     WALLET_TAB_WALLET: "Wallet",
+    // Add-to-home-screen hint. Deliberately not "download": the product's own
+    // promise, on /business, is that there is nothing to install.
+    WALLET_INSTALL_TIP: "For a better experience",
+    WALLET_INSTALL_TIP_SUB: "Add Reloy to your home screen",
+    WALLET_INSTALL_ADD: "Add",
+    WALLET_INSTALL_DISMISS: "Not now",
+    // Walkthrough opened by the Add button. The Latin names are the menu items
+    // iOS actually shows, so they stay in English and get LRI…PDI isolates in
+    // the Persian strings — the same bidi trap as the "13-16" slot ranges.
+    WALLET_IW_TITLE: "Add Reloy to your home screen",
+    WALLET_IW_STEP: "{n} of {total}",
+    WALLET_IW_PREV: "Back",
+    WALLET_IW_NEXT: "Next",
+    WALLET_IW_DONE: "Got it",
+    WALLET_IW_CLOSE: "Close",
+    WALLET_IW_C1: "Four steps, and Reloy opens like an app",
+    WALLET_IW_C2: "Tap the ••• button beside the address bar",
+    WALLET_IW_C3: "Choose Share from the menu",
+    WALLET_IW_C4: "Pick Add to Home Screen",
+    WALLET_IW_C5: "Tap Add, at the top of the screen",
+    WALLET_IW_C6: "Done — Reloy is on your home screen",
+    WALLET_IW_A1: "Three steps, and Reloy installs on your phone",
+    WALLET_IW_A2: "Tap the three-dot menu at the top",
+    WALLET_IW_A3: "Choose Add to home screen",
+    WALLET_IW_A4: "Tap Install in the dialog that opens",
+    WALLET_IW_A5: "Done — Reloy is on your phone",
     WALLET_POOL_NONE: "a surprise reward awaits",
     WALLET_POOL_LINE: "win {names}{more}",
     WALLET_POOL_AND_MORE: " & more",
@@ -615,6 +641,27 @@ const STRINGS = {
     WALLET_SETTINGS_LANGUAGE: "زبان",
     WALLET_TAB_DISCOUNTS: "تخفیف‌ها",
     WALLET_TAB_WALLET: "کیف پول",
+    WALLET_INSTALL_TIP: "برای تجربهٔ بهتر",
+    WALLET_INSTALL_TIP_SUB: "ریلوی را به صفحهٔ اصلی اضافه کنید",
+    WALLET_INSTALL_ADD: "افزودن",
+    WALLET_INSTALL_DISMISS: "فعلاً نه",
+    WALLET_IW_TITLE: "افزودن ریلوی به صفحهٔ اصلی",
+    WALLET_IW_STEP: "{n} از {total}",
+    WALLET_IW_PREV: "قبلی",
+    WALLET_IW_NEXT: "بعدی",
+    WALLET_IW_DONE: "متوجه شدم",
+    WALLET_IW_CLOSE: "بستن",
+    WALLET_IW_C1: "چهار قدم تا اینکه ریلوی مثل یک اپ باز شود",
+    WALLET_IW_C2: "روی دکمهٔ ••• کنار نوار آدرس بزنید",
+    WALLET_IW_C3: "از منو، \u2066Share\u2069 را انتخاب کنید",
+    WALLET_IW_C4: "گزینهٔ \u2066Add to Home Screen\u2069 را بزنید",
+    WALLET_IW_C5: "در آخر، روی \u2066Add\u2069 بالای صفحه بزنید",
+    WALLET_IW_C6: "تمام — ریلوی روی صفحهٔ اصلی شماست",
+    WALLET_IW_A1: "سه قدم تا نصب ریلوی روی گوشی",
+    WALLET_IW_A2: "روی دکمهٔ سه‌نقطه بالای صفحه بزنید",
+    WALLET_IW_A3: "گزینهٔ \u2066Add to home screen\u2069 را بزنید",
+    WALLET_IW_A4: "در پنجرهٔ باز شده، \u2066Install\u2069 را بزنید",
+    WALLET_IW_A5: "تمام — ریلوی روی گوشی شماست",
     WALLET_POOL_NONE: "یک جایزه شگفت‌انگیز در انتظار شماست",
     WALLET_POOL_LINE: "برنده {names} شوید{more}",
     WALLET_POOL_AND_MORE: " و موارد دیگر",
@@ -1118,6 +1165,7 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.getAttribute("data-i18n-placeholder")); });
   document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
   document.querySelectorAll("[data-i18n-title]").forEach((el) => { el.title = t(el.getAttribute("data-i18n-title")); });
+  document.querySelectorAll("[data-i18n-alt]").forEach((el) => { el.alt = t(el.getAttribute("data-i18n-alt")); });
 }
 // set lang/dir as early as possible (before first paint) to avoid an LTR->RTL flash
 (function () {
