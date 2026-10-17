@@ -802,17 +802,12 @@ function formatPhone(raw) {
   if (!/^9\d{9}$/.test(d)) return raw ? String(raw) : "—";
   return "0" + d.slice(0, 3) + " " + d.slice(3, 6) + " " + d.slice(6);
 }
+// Stand-in due date for a coupon whose payload carried none — the café-wide
+// default is 30 days. Both this and every other date on screen go through
+// formatDateLocal (i18n.js), which resolves them in Tehran time and in the
+// reader's calendar: Jalali on the Persian UI, Gregorian on the English one.
 function dueDateStr() {
-  const d = new Date(Date.now() + 30 * 864e5);
-  const z = (n) => String(n).padStart(2, "0");
-  return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
-}
-
-function formatDue(iso) {
-  const d = new Date(iso);
-  if (isNaN(d)) return "";
-  const z = (n) => String(n).padStart(2, "0");
-  return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
+  return formatDateLocal(Date.now() + 30 * 864e5);
 }
 
 // whole days left until the discount expires (negative = already expired)
@@ -831,7 +826,9 @@ function discountToRec(d) {
     desc: (d && d.description) || "",
     code: (d && d.code) || "",
     short: shortDiscount((d && d.deal) || ""),
-    due: (d && d.due) || dueDateStr(),
+    // prefer the raw instant (formatted here, in the reader's calendar); `d.due`
+    // is the server's pre-formatted Gregorian string, kept for older payloads
+    due: (d && d.due_date && formatDateLocal(d.due_date)) || (d && d.due) || dueDateStr(),
   };
 }
 
@@ -847,7 +844,7 @@ function mapDiscount(item) {
     desc: item.description || "",
     code: item.code || "",
     short: shortDiscount(item.deal || ""),
-    due: formatDue(item.due_date),
+    due: formatDateLocal(item.due_date),
     dueISO: item.due_date,
     days: days,
     status: item.status,

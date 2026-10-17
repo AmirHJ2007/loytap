@@ -993,6 +993,122 @@ function tWait(seconds) {
   return t(mins === 1 ? "WAIT_ONE_MIN" : "WAIT_MINS", { n: mins });
 }
 
+// ===================================================================
+// Dates. Every date a reader sees is resolved in Tehran time, never the
+// device's: a phone left on another timezone would otherwise show an expiry
+// a day off. Iran dropped DST in 2022, so the offset is a fixed +03:30 and
+// there is no seasonal case to carry.
+//
+// The Persian UI gets the Jalali calendar, the English one stays Gregorian.
+// Numerals stay Western in both, per this file's convention.
+// ===================================================================
+const TEHRAN_TZ = "Asia/Tehran";
+const FA_MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+                   "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+
+// Guard the Date constructor's sharp edges: new Date(null) and new Date(0) are
+// both the 1970 epoch rather than an error, so a record with a null or missing
+// date would otherwise render as a real-looking "1348 دی 11". Only a Date or a
+// non-empty string/finite timestamp is accepted; everything else is "no date".
+function toDate(input) {
+  if (input === null || input === undefined || input === "") return null;
+  if (typeof input !== "string" && typeof input !== "number" && !(input instanceof Date)) return null;
+  // a timestamp at or before the epoch is never a real date here — it is what a
+  // failed parse degrades to (see ms() in stats.pb.js), so treat it as missing
+  if (typeof input === "number" && !(isFinite(input) && input > 0)) return null;
+  // PocketBase serves datetimes as "2026-10-24 16:44:57.685Z" — a space, not a
+  // "T", which is outside ISO 8601 and so parses at each engine's discretion.
+  // V8 accepts it; a stricter engine yields NaN and the date silently renders
+  // as a dash. Normalised here for the same reason staff.js and stats.pb.js
+  // already do it at their own parse sites.
+  const str = typeof input === "string" ? input.replace(" ", "T") : input;
+  const d = str instanceof Date ? str : new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Jalali {y,m,d} for an instant as it falls in Tehran — or null if the input
+// isn't a date, or the engine has no Persian calendar (a very old WebView).
+// Callers treat null as "use the Gregorian form" rather than print something
+// wrong. The parts are read through the `en` locale on purpose: it pins the
+// numerals to Western digits whatever the engine's default for `fa` is.
+function jalaliParts(input) {
+  const d = toDate(input);
+  if (!d) return null;
+  try {
+    const p = {};
+    for (const x of new Intl.DateTimeFormat("en-u-ca-persian-nu-latn", {
+      timeZone: TEHRAN_TZ, year: "numeric", month: "numeric", day: "numeric",
+    }).formatToParts(d)) p[x.type] = x.value;
+    const y = +p.year, m = +p.month, day = +p.day;
+    if (!(y > 1000 && y < 2000 && m >= 1 && m <= 12 && day >= 1 && day <= 31)) return null;
+    return { y: y, m: m, d: day };
+  } catch (_) { return null; }
+}
+
+// Gregorian day/month/year in Tehran, same null contract as above.
+function gregorianParts(input) {
+  const d = toDate(input);
+  if (!d) return null;
+  try {
+    const p = {};
+    for (const x of new Intl.DateTimeFormat("en-GB", {
+      timeZone: TEHRAN_TZ, year: "numeric", month: "2-digit", day: "2-digit",
+    }).formatToParts(d)) p[x.type] = x.value;
+    return { y: +p.year, m: +p.month, d: +p.day };
+  } catch (_) {
+    return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() };
+  }
+}
+
+// Day, then month name, then year — the conventional Persian order, and the
+// one that puts the YEAR ON THE LEFT and the DAY ON THE RIGHT once the line is
+// laid out. In a right-to-left line the first token is the rightmost, so this
+// string renders on screen, left to right, as "1405 آبان 2".
+// Each number is its own bidi run with a word between them, so nothing
+// reorders the way a bare "13-16" range does.
+function faDateLong(input) {
+  const j = jalaliParts(input);
+  return j ? j.d + " " + FA_MONTHS[j.m - 1] + " " + j.y : "";
+}
+
+// "25.07.05" — the compact Gregorian form the English UI has always shown.
+function enDateShort(input) {
+  const g = gregorianParts(input);
+  if (!g) return "";
+  const z = (n) => (n < 10 ? "0" + n : "" + n);
+  return z(g.d) + "." + z(g.m) + "." + String(g.y).slice(2);
+}
+
+// The one entry point pages should call for a date a human reads. Returns ""
+// for an unusable input so a caller can fall back to its own placeholder.
+function formatDateLocal(input) {
+  if (getLang() === "fa") {
+    const fa = faDateLong(input);
+    if (fa) return fa;          // falls through to Gregorian if Intl has no Persian calendar
+  }
+  return enDateShort(input);
+}
+
+// "25 مهر" / "25 Oct" — the short form the analytics chart labels use, where
+// the year is already implied by the window being shown. Same day-first order
+// as faDateLong, so it lays out with the month to the left of the day.
+function formatDayMonthLocal(input) {
+  if (getLang() === "fa") {
+    const j = jalaliParts(input);
+    if (j) return j.d + " " + FA_MONTHS[j.m - 1];
+  }
+  const g = gregorianParts(input);
+  if (!g) return "";
+  const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return (g.d < 10 ? "0" + g.d : "" + g.d) + " " + EN_MONTHS[g.m - 1];
+}
+
+// Day-of-month alone, for the sparse tick labels under the activity bars.
+function formatDayNumLocal(input) {
+  const p = getLang() === "fa" ? (jalaliParts(input) || gregorianParts(input)) : gregorianParts(input);
+  return p ? (p.d < 10 ? "0" + p.d : "" + p.d) : "";
+}
+
 function applyI18n() {
   const lang = getLang();
   document.documentElement.lang = lang;

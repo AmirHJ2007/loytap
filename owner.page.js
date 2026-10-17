@@ -912,6 +912,33 @@
       const head = label.slice(0, sp);
       return DOW_KEYS[head] ? dow(head) + label.slice(sp) : label;
     };
+    // The backend's `label` is English and Gregorian ("Sat 17 Oct"), which is
+    // only a fallback now: every day row also carries its Iran-local `date`, so
+    // the label gets rebuilt here in the reader's own calendar (Jalali on the
+    // Persian UI) with the weekday translated. Rows without a date — the empty
+    // "—" placeholder — keep going through translateLabel.
+    // The trend charts (comeback rate, visit gap) carry the same pair as the day
+    // rows: an English Gregorian `label` and an Iran-local `date`. Rebuild from
+    // the date so they read in the viewer's calendar too, falling back to the
+    // server's label if a row ever arrives without one.
+    const seriesLabel = (x) => (x && x.date && formatDayMonthLocal(x.date)) || (x && x.label) || "";
+    // A date needs isolating so neighbouring text cannot reorder its parts — the
+    // same reason isolateLTR exists for "13-16" ranges. A Persian label's first
+    // strong character is its month name, so first-strong isolation (U+2068)
+    // keeps it RTL while the English form stays LTR.
+    //
+    // This also pins the chart labels. The chart containers are direction:ltr so
+    // the time axis runs left to right, which would otherwise lay a Persian date
+    // out day-first — the mirror image of the same date elsewhere in the app.
+    // Isolating fixes the run's own direction without touching text-anchor,
+    // which flipping the element's `direction` would have moved.
+    const isolateDate = (s) => (getLang() === "fa" ? "\u2068" : "\u2066") + s + "\u2069";
+    const dayLabel = (row) => {
+      if (!row) return "";
+      if (!row.date) return translateLabel(row.label);
+      const dm = formatDayMonthLocal(row.date);
+      return dm ? (row.dow ? dow(row.dow) + " " : "") + dm : translateLabel(row.label);
+    };
 
     // ---- SVG donut helper (single-value ring, monochrome) ----
     function ring(pct, sub) {
@@ -1262,11 +1289,11 @@
       const dots = pts.map((p, i) => {
         const last = i === n - 1;
         return `<circle class="cb-dot${last ? " cb-dot--last" : ""}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last ? 3.4 : 2}"/>`
-          + `<circle class="cb-hit" data-i="${i}" data-x="${p[0].toFixed(1)}" data-y="${p[1].toFixed(1)}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="11" fill="transparent"><title>${esc(series[i].label)}: ${series[i].rate}%</title></circle>`;
+          + `<circle class="cb-hit" data-i="${i}" data-x="${p[0].toFixed(1)}" data-y="${p[1].toFixed(1)}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="11" fill="transparent"><title>${isolateDate(esc(seriesLabel(series[i])))}: ${series[i].rate}%</title></circle>`;
       }).join("");
       const xi = [0, Math.floor((n - 1) / 2), n - 1];
       const xlab = xi.map((i) =>
-        `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" font-size="8.5" font-weight="700" fill="var(--faint)">${esc(series[i].label)}</text>`
+        `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" font-size="8.5" font-weight="700" fill="var(--faint)">${isolateDate(esc(seriesLabel(series[i])))}</text>`
       ).join("");
       return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Comeback rate, last 14 days">
         ${grid}
@@ -1302,7 +1329,7 @@
           x: +hit.dataset.x, y: +hit.dataset.y,
           value: x.rate, decimals: 0, suffix: "%",
           sub: t("AN_CB_RETURNERS", { returners: x.returners, newMembers: x.newMembers }),
-          cap: t("AN_CB_CAP_HTML", { days: cb.windowDays, label: isolateLTR(esc(x.label)), rate: x.rate, returners: x.returners, newMembers: x.newMembers }),
+          cap: t("AN_CB_CAP_HTML", { days: cb.windowDays, label: isolateDate(esc(seriesLabel(x))), rate: x.rate, returners: x.returners, newMembers: x.newMembers }),
         };
       });
       select(s.length - 1, false);  // today, parked without a transition
@@ -1321,7 +1348,10 @@
       const Y = (v) => padT + ih - (Math.max(0, Math.min(yMax, v)) / yMax) * ih;
       let path = "", pen = false;
       series.forEach((s, i) => { if (s.value == null) { pen = false; return; } path += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(s.value).toFixed(1) + " "; pen = true; });
-      const fmtY = (v) => (v % 1 ? v.toFixed(1) : v) + "d";
+      // "3 روز" / "3 days", never a bare English "d": this axis is read by a
+      // Persian owner, and the caption under the chart already says "روز".
+      const dayWord = (v) => plural1(v, "OWNER_UNIT_DAY", "OWNER_UNIT_DAYS");
+      const fmtY = (v) => { const n = v % 1 ? v.toFixed(1) : v; return n + " " + dayWord(v); };
       const grid = [0, yMax / 2, yMax].map((v) => {
         const y = Y(v).toFixed(1);
         return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(20,20,20,0.08)" stroke-width="1"/>`
@@ -1331,11 +1361,11 @@
         if (s.value == null) return "";
         const last = i === n - 1;
         return `<circle class="cb-dot${last ? " cb-dot--last" : ""}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="${last ? 3.4 : 2}"/>`
-          + `<circle class="vr-hit" data-i="${i}" data-x="${X(i).toFixed(1)}" data-y="${Y(s.value).toFixed(1)}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="11" fill="transparent"><title>${esc(s.label)}: ${s.value}d</title></circle>`;
+          + `<circle class="vr-hit" data-i="${i}" data-x="${X(i).toFixed(1)}" data-y="${Y(s.value).toFixed(1)}" cx="${X(i).toFixed(1)}" cy="${Y(s.value).toFixed(1)}" r="11" fill="transparent"><title>${isolateDate(esc(seriesLabel(s)))}: ${s.value} ${dayWord(s.value)}</title></circle>`;
       }).join("");
       const xi = [0, Math.floor((n - 1) / 2), n - 1];
       const xlab = xi.map((i) =>
-        `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" font-size="8.5" font-weight="700" fill="var(--faint)">${esc(series[i].label)}</text>`
+        `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" font-size="8.5" font-weight="700" fill="var(--faint)">${isolateDate(esc(seriesLabel(series[i])))}</text>`
       ).join("");
       return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visit rhythm, last 14 days">
         ${grid}
@@ -1380,8 +1410,8 @@
           unit: x.value == null ? "" : unit(x.value),
           sub: t("AN_VR_CUSTOMERS_MEASURED", { n: x.customers, customerWord: customerWord(x.customers) }),
           cap: x.value == null
-            ? t("AN_VR_CAP_EMPTY_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)) })
-            : t("AN_VR_CAP_HTML", { days: vr.windowDays, label: isolateLTR(esc(x.label)), value: x.value, unit: unit(x.value), n: x.customers, customerWord: customerWord(x.customers) }),
+            ? t("AN_VR_CAP_EMPTY_HTML", { days: vr.windowDays, label: isolateDate(esc(seriesLabel(x))) })
+            : t("AN_VR_CAP_HTML", { days: vr.windowDays, label: isolateDate(esc(seriesLabel(x))), value: x.value, unit: unit(x.value), n: x.customers, customerWord: customerWord(x.customers) }),
         };
       });
       select(s.length - 1, false);  // today, parked without a transition
@@ -1410,8 +1440,8 @@
       const max = Math.max(1, ...data.days.map((x) => x.stamps));
       const bars = data.days.map((x, i) => {
         const h = (x.stamps / max * 100).toFixed(1);
-        let lab = actPeriod === 7 ? dow(x.dow) : ((i % 5 === 0 || i === data.days.length - 1) ? x.date.slice(8) : "");
-        return `<button class="act-bar${x.date === actSel ? " is-sel" : ""}" data-date="${x.date}" data-i="${i}" title="${esc(translateLabel(x.label))}"><span class="act-bar__fill" style="height:${h}%"></span><span class="act-bar__lab">${esc(lab)}</span></button>`;
+        let lab = actPeriod === 7 ? dow(x.dow) : ((i % 5 === 0 || i === data.days.length - 1) ? formatDayNumLocal(x.date) : "");
+        return `<button class="act-bar${x.date === actSel ? " is-sel" : ""}" data-date="${x.date}" data-i="${i}" title="${isolateDate(esc(dayLabel(x)))}"><span class="act-bar__fill" style="height:${h}%"></span><span class="act-bar__lab">${esc(lab)}</span></button>`;
       }).join("");
       return `
         <h2 class="card__title">${t("AN_ACT_TITLE")} <button class="info-btn" type="button" aria-label="${t("AN_ARIA_INFO")}">i</button></h2>
@@ -1424,7 +1454,7 @@
           <button data-p="30" class="${actPeriod === 30 ? "is-on" : ""}">${t("AN_ACT_30DAYS")}</button>
         </div>
         <div class="act-sel">
-          <div class="act-sel__head"><span class="act-sel__dot"></span><b>${esc(translateLabel(sel.label))}</b><span class="act-sel__tag">${t("AN_ACT_SELECTED_DAY")}</span></div>
+          <div class="act-sel__head"><span class="act-sel__dot"></span><b>${esc(dayLabel(sel))}</b><span class="act-sel__tag">${t("AN_ACT_SELECTED_DAY")}</span></div>
           <div class="act-sel__stats">
             <div class="act-sel__stat act-sel__stat--hero"><b>${sel.stamps}</b><span>${plural1(sel.stamps, "AN_STAMP_ONE", "AN_STAMP_MANY")}</span><i class="i18n-rtl">${t("AN_30DAY_AVG", { n: mStamps })}</i></div>
             <div class="act-sel__stat"><b>${sel.members}</b><span>${plural1(sel.members, "AN_MEMBER_ONE", "AN_MEMBER_MANY")}</span><i class="i18n-rtl">${t("AN_30DAY_AVG", { n: mMembers })}</i></div>
@@ -1513,7 +1543,7 @@
 
       const head = card.querySelector(".act-sel__head b");
       if (head) {
-        head.textContent = translateLabel(sel.label);
+        head.textContent = dayLabel(sel);
         head.style.setProperty("--dir", dir);
         restartAnim(head, "is-swap");
       }
