@@ -143,8 +143,29 @@ const STRINGS = {
     WALLET_SETTINGS_PHONE: "Phone",
     WALLET_SETTINGS_VERSION: "Version",
     WALLET_SETTINGS_LANGUAGE: "Language",
+    WALLET_SETTINGS_BDAY: "Birthday",
+    WALLET_BDAY_NONE: "Not set",
+    WALLET_BDAY_TITLE: "When is your birthday?",
+    WALLET_BDAY_SUB: "So the cafés you visit can make a fuss of you",
+    WALLET_BDAY_SAVE: "Save",
+    WALLET_BDAY_REMOVE: "Remove",
+    WALLET_BDAY_ERR: "Could not save — try again",
+    WALLET_BDAY_CLOSE: "Close",
     WALLET_TAB_DISCOUNTS: "Discounts",
     WALLET_TAB_WALLET: "Wallet",
+    WALLET_TAB_SCAN: "Scan",
+    WALLET_SCAN_TITLE: "Scan and collect a stamp",
+    WALLET_SCAN_IDLE: "Find the Reloy code on the counter",
+    WALLET_SCAN_HINT: "Point the camera at the Reloy code on the counter",
+    WALLET_SCAN_START: "Start camera",
+    WALLET_SCAN_STOP: "Stop",
+    WALLET_SCAN_OPENING: "Starting the camera…",
+    WALLET_SCAN_LOOKING: "Looking for a code…",
+    WALLET_SCAN_BAD: "That is not a Reloy code",
+    WALLET_SCAN_ERR_HTTPS: "The camera needs a secure (https) connection",
+    WALLET_SCAN_ERR_NO_CAMERA: "This browser cannot open the camera",
+    WALLET_SCAN_ERR_DENIED: "Camera permission was declined",
+    WALLET_SCAN_ERR_FAILED: "The camera could not start",
     // Add-to-home-screen hint. Deliberately not "download": the product's own
     // promise, on /business, is that there is nothing to install.
     WALLET_INSTALL_TIP: "For a better experience",
@@ -639,8 +660,29 @@ const STRINGS = {
     WALLET_SETTINGS_PHONE: "شماره تلفن",
     WALLET_SETTINGS_VERSION: "نسخه",
     WALLET_SETTINGS_LANGUAGE: "زبان",
+    WALLET_SETTINGS_BDAY: "تولد",
+    WALLET_BDAY_NONE: "ثبت نشده",
+    WALLET_BDAY_TITLE: "تولدت کِی است؟",
+    WALLET_BDAY_SUB: "تا کافه‌هایی که می‌روی بتوانند برایت جشن بگیرند",
+    WALLET_BDAY_SAVE: "ذخیره",
+    WALLET_BDAY_REMOVE: "حذف",
+    WALLET_BDAY_ERR: "ذخیره نشد — دوباره تلاش کنید",
+    WALLET_BDAY_CLOSE: "بستن",
     WALLET_TAB_DISCOUNTS: "تخفیف‌ها",
     WALLET_TAB_WALLET: "کیف پول",
+    WALLET_TAB_SCAN: "اسکن",
+    WALLET_SCAN_TITLE: "اسکن کنید، مهر بگیرید",
+    WALLET_SCAN_IDLE: "کد ریلوی را روی پیشخوان پیدا کنید",
+    WALLET_SCAN_HINT: "دوربین را روی کد ریلوی روی پیشخوان بگیرید",
+    WALLET_SCAN_START: "روشن کردن دوربین",
+    WALLET_SCAN_STOP: "توقف",
+    WALLET_SCAN_OPENING: "دوربین در حال روشن شدن…",
+    WALLET_SCAN_LOOKING: "در جست‌وجوی کد…",
+    WALLET_SCAN_BAD: "این کد ریلوی نیست",
+    WALLET_SCAN_ERR_HTTPS: "دوربین به اتصال امن (https) نیاز دارد",
+    WALLET_SCAN_ERR_NO_CAMERA: "این مرورگر نمی‌تواند دوربین را باز کند",
+    WALLET_SCAN_ERR_DENIED: "اجازهٔ دسترسی به دوربین داده نشد",
+    WALLET_SCAN_ERR_FAILED: "دوربین روشن نشد",
     WALLET_INSTALL_TIP: "برای تجربهٔ بهتر",
     WALLET_INSTALL_TIP_SUB: "ریلوی را به صفحهٔ اصلی اضافه کنید",
     WALLET_INSTALL_ADD: "افزودن",
@@ -1148,6 +1190,45 @@ function formatDayMonthLocal(input) {
   if (!g) return "";
   const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return (g.d < 10 ? "0" + g.d : "" + g.d) + " " + EN_MONTHS[g.m - 1];
+}
+
+// The inverse of jalaliParts: a Jalali y/m/d back to the Gregorian day it is.
+// Intl only converts one way, so this binary-searches the day whose Tehran
+// Jalali parts match — exact by construction, and it inherits whatever
+// calendar rules the engine already uses, rather than re-implementing the
+// 33-year leap cycle and disagreeing with the formatter on edge years.
+//
+// Returns "YYYY-MM-DD" (Gregorian, the shape the API takes), or "" if the
+// date does not exist — Esfand 30 in a common year, say.
+function jalaliToISO(jy, jm, jd) {
+  jy = +jy; jm = +jm; jd = +jd;
+  if (!(jy > 1000 && jy < 2000 && jm >= 1 && jm <= 12 && jd >= 1 && jd <= 31)) return "";
+  const want = jy * 10000 + jm * 100 + jd;
+  // a Jalali year starts in the March of jy+621, so this brackets it widely
+  let lo = Date.UTC(jy + 620, 0, 1), hi = Date.UTC(jy + 622, 11, 31);
+  const DAY = 86400000, NOON = 12 * 3600000;   // midday: never near a tz edge
+  while (lo <= hi) {
+    const mid = lo + Math.floor((hi - lo) / 2 / DAY) * DAY;
+    const p = jalaliParts(new Date(mid + NOON));
+    if (!p) return "";
+    const got = p.y * 10000 + p.m * 100 + p.d;
+    if (got === want) {
+      const d = new Date(mid + NOON);
+      const z = (n) => (n < 10 ? "0" + n : "" + n);
+      return d.getUTCFullYear() + "-" + z(d.getUTCMonth() + 1) + "-" + z(d.getUTCDate());
+    }
+    if (got < want) lo = mid + DAY; else hi = mid - DAY;
+  }
+  return "";
+}
+
+// How many days a Jalali month has, asked rather than hard-coded: the 12th
+// month is 29 or 30 depending on the year, and the picker must not offer a
+// day that does not exist.
+function jalaliMonthLength(jy, jm) {
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return jalaliToISO(jy, 12, 30) ? 30 : 29;
 }
 
 // Day-of-month alone, for the sparse tick labels under the activity bars.

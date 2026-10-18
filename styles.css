@@ -1154,6 +1154,244 @@ html[dir="rtl"] .cafe-row { text-align: right; }
   .iw__cap.is-swap, .iw__next.is-done { animation: none; }
 }
 
+/* ---------------- Scan panel ---------------- */
+.scanfab {
+  position: absolute; top: calc(26px + env(safe-area-inset-top, 0px));
+  /* physical left, not inset-inline-start: this corner is asked for by where
+     it IS on screen, so it must not flip with the writing direction */
+  left: 16px; z-index: 5;
+  display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 10px 22px -12px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi);
+  color: var(--ink);
+  transition: transform 0.14s ease, box-shadow 0.25s ease;
+}
+.scanfab svg { width: 19px; height: 19px; }
+.scanfab:hover { box-shadow: 0 14px 28px -12px rgba(20,20,20,0.55), inset 0 1px 0 var(--glass-hi); }
+.scanfab:active { transform: translateY(1px) scale(0.97); }
+
+/* Same bottom-sheet language as .sheet (settings), including the scrim it
+   sits on, so the app has one way of presenting a panel rather than two. */
+.scansheet {
+  position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 130%); opacity: 0;
+  width: min(92vw, 400px); z-index: 215;
+  padding: 10px 20px 20px; border-radius: 24px; text-align: center;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  transition: transform 0.46s var(--ease-spring), opacity 0.3s ease;
+}
+.scansheet.open { transform: translate(-50%, 0); opacity: 1; }
+.scansheet[hidden] { display: none; }
+.scansheet__title {
+  font-family: var(--font-heading); font-size: 17px; font-weight: 800;
+  color: var(--ink); margin: 2px 0 14px; letter-spacing: -0.2px;
+}
+.scansheet__hint { font-size: 12px; color: var(--ink-dim); margin: 14px 0 0; line-height: 1.5; }
+.scansheet__note { min-height: 1.3em; margin: 6px 0 0; font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+.scansheet__note.is-err { color: #b3261e; }
+.scansheet__btn { margin-top: 12px; width: 100%; }
+
+.scanbox {
+  position: relative; width: min(100%, 268px); aspect-ratio: 1; margin: 0 auto;
+  border-radius: 28px; overflow: hidden;
+  background: linear-gradient(160deg, #23262b, #0e1013);
+  box-shadow: 0 30px 56px -26px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.scanbox__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.18s ease; }
+.scanbox.is-live .scanbox__video { opacity: 1; }
+
+/* Idle art, so the box looks alive before permission is granted. */
+.scanbox__idle {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: rgba(255,255,255,0.92);
+  transition: opacity 0.35s ease, transform 0.45s ease;
+}
+.scanbox.is-live .scanbox__idle { opacity: 0; transform: scale(1.1); }
+.scanbox__glyph { width: 76px; height: 76px; position: relative; z-index: 1; animation: glyphFloat 3.6s ease-in-out infinite; }
+@keyframes glyphFloat { 50% { transform: translateY(-7px); } }
+.scanbox__ring {
+  position: absolute; width: 108px; height: 108px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  animation: ringOut 2.8s ease-out infinite;
+}
+.scanbox__ring:nth-child(2) { animation-delay: 1.4s; }
+/* while waiting on getUserMedia: same art, visibly busier */
+.scanbox.is-waking .scanbox__ring { animation-duration: 1.1s; }
+.scanbox.is-waking .scanbox__glyph { animation: glyphPulse 1.1s ease-in-out infinite; }
+@keyframes glyphPulse { 50% { transform: scale(0.9); opacity: 0.6; } }
+@keyframes ringOut {
+  0%   { transform: scale(0.65); opacity: 0.85; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+
+/* four corner brackets, so the framing reads without covering the picture */
+.scanbox__frame { position: absolute; inset: 16px; pointer-events: none; }
+.scanbox__frame i { position: absolute; width: 26px; height: 26px; border: 3px solid rgba(255,255,255,0.9); }
+.scanbox__frame i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
+.scanbox__frame i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
+.scanbox__frame i:nth-child(3) { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
+.scanbox__frame i:nth-child(4) { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
+.scanbox:not(.is-live) .scanbox__frame { animation: frameBreathe 3.6s ease-in-out infinite; }
+@keyframes frameBreathe { 50% { inset: 13px; opacity: 0.75; } }
+
+/* the sweep only runs while the camera is actually live, so a still frame
+   never looks like it is scanning */
+.scanbox__beam {
+  position: absolute; left: 16px; right: 16px; height: 2px; top: 16px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
+  box-shadow: 0 0 14px rgba(255,255,255,0.65);
+  opacity: 0; pointer-events: none;
+}
+.scanbox.is-live .scanbox__beam { animation: scanBeam 2.4s ease-in-out infinite; }
+@keyframes scanBeam {
+  0%   { transform: translateY(0);     opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(calc(min(80vw, 268px) - 50px)); opacity: 0; }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .scanbox.is-live .scanbox__beam,
+  .scanbox__ring, .scanbox__glyph, .scanbox.is-waking .scanbox__glyph,
+  .scanbox:not(.is-live) .scanbox__frame { animation: none; }
+}
+
+/* ---------------- Birthday ---------------- */
+.bday-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: 11px; cursor: pointer;
+  border: 1px solid rgba(20,20,20,0.16); background: #fff;
+  font-family: var(--font-heading); font-size: 12.5px; font-weight: 800; color: var(--ink);
+  transition: border-color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
+}
+.bday-chip svg { width: 16px; height: 16px; color: var(--ink-dim); }
+.bday-chip:hover { border-color: rgba(20,20,20,0.34); box-shadow: 0 4px 10px -5px rgba(0,0,0,0.3); }
+.bday-chip:active { transform: scale(0.97); }
+/* once a date is set the chip stops looking like an empty slot */
+.bday-chip.is-set { background: var(--ink); border-color: var(--ink); color: #fff; }
+.bday-chip.is-set svg { color: #fff; }
+
+.bday {
+  position: fixed; inset: 0; z-index: 265;
+  display: grid; grid-template-rows: minmax(0, 1fr); place-items: center;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  /* darker than the other overlays on purpose: this panel is opaque, and a
+     weak scrim behind an opaque card just looks like fog */
+  background: rgba(16,16,16,0.62);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.bday.is-on { opacity: 1; }
+.bday[hidden] { display: none; }
+
+/* Solid, not glass. The wheels are the whole point of this sheet and they were
+   unreadable through a translucent panel sitting on a busy wallet. */
+.bday__panel {
+  position: relative; width: min(100%, 380px);
+  padding: 24px 20px 18px; border-radius: 26px; text-align: center;
+  background: #fcfcfc;
+  border: 1px solid rgba(20,20,20,0.08);
+  box-shadow: 0 40px 80px -30px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.12);
+  transform: translateY(18px) scale(0.96);
+  transition: transform 0.52s var(--ease-spring);
+}
+.bday.is-on .bday__panel { transform: none; }
+.bday__x {
+  position: absolute; top: 14px; inset-inline-start: 14px;
+  display: grid; place-items: center; width: 30px; height: 30px;
+  padding: 0; border: 0; border-radius: 50%;
+  background: rgba(20,20,20,0.06); color: var(--ink-dim); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.bday__x svg { width: 13px; height: 13px; }
+.bday__x:hover { background: rgba(20,20,20,0.14); color: var(--ink); }
+.bday__cake {
+  display: grid; place-items: center; margin: 2px auto 12px;
+  width: 58px; height: 58px; border-radius: 19px; color: #fff;
+  background: linear-gradient(150deg, #2e2e2e, #121212);
+  box-shadow: 0 14px 26px -10px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.26);
+}
+.bday__cake svg { width: 31px; height: 31px; }
+.bday.is-on .bday__cake { animation: cakePop 0.62s var(--ease-spring) 0.08s both; }
+@keyframes cakePop {
+  from { transform: scale(0.4) rotate(-14deg); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.bday__title { font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: #111; margin: 0 0 6px; letter-spacing: -0.2px; }
+.bday__sub { font-size: 12.5px; color: #6a6a6a; margin: 0 0 16px; line-height: 1.5; }
+
+/* The wheels sit in their own sunken well, so they read as a control rather
+   than as text floating on the card. */
+.bday__wheels {
+  position: relative; direction: ltr;
+  display: grid; grid-template-columns: 1.15fr 1.5fr 1fr; gap: 0;
+  height: 176px; margin-bottom: 14px;
+  border-radius: 16px; background: #f1f1f1;
+  border: 1px solid rgba(20,20,20,0.09);
+  overflow: hidden;
+}
+/* The selected row is a solid dark bar with white text — the previous white
+   band on a light panel was effectively invisible. */
+.bday__band {
+  position: absolute; left: 6px; right: 6px; top: 50%; height: 42px;
+  transform: translateY(-50%); border-radius: 12px;
+  background: linear-gradient(150deg, #2e2e2e, #141414);
+  box-shadow: 0 8px 18px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18);
+  pointer-events: none;
+}
+.bday__col {
+  position: relative; z-index: 1;
+  overflow-y: auto; scroll-snap-type: y mandatory;
+  scrollbar-width: none; -ms-overflow-style: none;
+  padding: 67px 0;            /* so the first and last item can sit centred */
+  /* fade only the far ends, and gently — the old mask washed out the rows
+     either side of the selection, which are the ones you aim with */
+  -webkit-mask-image: linear-gradient(transparent 2%, #000 26%, #000 74%, transparent 98%);
+  mask-image: linear-gradient(transparent 2%, #000 26%, #000 74%, transparent 98%);
+}
+.bday__col::-webkit-scrollbar { display: none; }
+.bday__opt {
+  scroll-snap-align: center;
+  height: 42px; display: grid; place-items: center;
+  font-family: var(--font-heading); font-size: 15px; font-weight: 700;
+  color: rgba(20,20,20,0.42); cursor: pointer;
+  transition: color 0.18s ease, transform 0.25s var(--ease-spring);
+}
+.bday__opt.is-sel { color: #fff; font-size: 17px; font-weight: 800; transform: scale(1.04); }
+
+.bday__acts { display: flex; gap: 8px; margin-top: 4px; }
+.bday__save {
+  flex: 1; border: 0; cursor: pointer; padding: 14px 18px; border-radius: 14px;
+  font-family: var(--font-heading); font-size: 14.5px; font-weight: 800;
+  color: #fff; background: linear-gradient(150deg, #2e2e2e, #121212);
+  box-shadow: 0 10px 20px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22);
+  transition: transform 0.14s ease, opacity 0.2s ease;
+}
+.bday__save:active { transform: translateY(1px) scale(0.985); }
+.bday__save:disabled { opacity: 0.5; cursor: default; }
+.bday__remove {
+  flex: none; border: 1px solid rgba(20,20,20,0.18); cursor: pointer;
+  padding: 14px 16px; border-radius: 14px; background: #fff;
+  font-family: var(--font-heading); font-size: 13px; font-weight: 700; color: #6a6a6a;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.bday__remove:hover { color: #b3261e; border-color: rgba(179,38,30,0.45); background: #fff5f5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bday, .bday__panel { transition-duration: 0.01ms; }
+  .bday.is-on .bday__cake { animation: none; }
+  .bday__opt { transition: none; }
+}
+
 /* ================= Glassy bottom navigation ================= */
 /* discounts now live in the tab bar; retire the top-corner buttons */
 .pocket-btn { display: none; }
@@ -1183,9 +1421,12 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 
 .tabbar__ind {
   position: absolute; top: 7px; left: 7px;
-  width: 84px; height: calc(100% - 14px);
+  /* sized from the bar rather than a fixed 84px: the number of tabs has
+     changed once already, and a hard-coded step silently misaligns when it
+     does. translateX percentages resolve against the element's own width. */
+  width: calc((100% - 14px) / 3); height: calc(100% - 14px);
   border-radius: 16px; background: #171717;
-  transform: translateX(calc(var(--ti, 1) * 84px));
+  transform: translateX(calc(var(--ti, 1) * 100%));
   transition: transform 0.44s var(--ease-spring);
   z-index: 0;
 }

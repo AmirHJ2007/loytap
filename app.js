@@ -984,6 +984,9 @@ const tabBtns = {
   wallet: document.getElementById("tabWallet"),
   settings: document.getElementById("tabSettings"),
 };
+// Indices follow DOM order, which the bar mirrors in Persian — index 0 is the
+// first child and therefore the RIGHTMOST tab. Left to right the bar reads
+// Settings · Wallet · Discounts.
 const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 
 // Wallet and Discounts are real, mutually-exclusive full panels (#stage /
@@ -994,6 +997,9 @@ const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 function showPanel(name) {
   stage.hidden = name !== "wallet";
   drawer.hidden = name !== "discounts";
+  // the camera must never outlive the sheet that owns it — switching tabs
+  // behind it would leave the lens and the privacy light on
+  closeScanSheet();
   if (name === "discounts") {
     drawerCafeId = null; // always start at the café list
     renderDrawer();
@@ -1065,7 +1071,11 @@ function doSignout() {
 
 pocketBtn.addEventListener("click", () => goToTab("discounts"));
 if (drawerBack) drawerBack.addEventListener("click", () => { drawerCafeId = null; renderDrawer(); });
-scrim.addEventListener("click", () => closeSettings());
+scrim.addEventListener("click", () => {
+  const sc = document.getElementById("scanSheet");
+  if (sc && !sc.hidden) { closeScanSheet(); return; }
+  closeSettings();
+});
 if (settingsSheet) settingsSheet.addEventListener("click", (e) => { if (e.target === settingsSheet) closeSettings(); });
 
 if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => goToTab("discounts"));
@@ -1380,6 +1390,324 @@ function renderWalletEmpty() {
     </div>`;
 }
 
+// ---- scan ---------------------------------------------------------------
+// A café without an NFC tag — or a customer whose phone has none — can collect
+// a stamp from a printed code instead. This only reads the tag code out of the
+// QR; everything after that is the ordinary tap flow, so a scan still has to be
+// confirmed by staff in person and is still subject to the café's cooldown.
+// Nothing here can grant a stamp on its own.
+let scanStream = null, scanRaf = null, scanOn = false;
+
+// Tags encode reloy.ir/?t=<code>, so a printed QR usually holds the whole URL.
+// Accept a bare code too — a café may well print just the code.
+function scanCodeFrom(raw) {
+  const text = String(raw || "").trim();
+  if (!text) return "";
+  const m = /[?&]t=([^&\s]+)/.exec(text);
+  if (m) return decodeURIComponent(m[1]);
+  if (/^https?:\/\//i.test(text)) return "";        // some other site's QR
+  return /^[A-Za-z0-9_-]{4,64}$/.test(text) ? text : "";
+}
+
+function scanNote(msg, bad) {
+  const el = document.getElementById("scanNote");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("is-err", !!bad);
+}
+
+function scanStop() {
+  scanOn = false;
+  if (scanRaf) cancelAnimationFrame(scanRaf);
+  scanRaf = null;
+  if (scanStream) scanStream.getTracks().forEach((tr) => tr.stop());
+  scanStream = null;
+  const box = document.getElementById("scanBox");
+  const btn = document.getElementById("scanBtn");
+  if (box) box.classList.remove("is-live", "is-waking");
+  if (btn) { const l = btn.querySelector(".btn__label"); (l || btn).textContent = t("WALLET_SCAN_START"); }
+  scanNote("");
+}
+
+async function scanStart() {
+  if (scanOn) { scanStop(); return; }
+  if (!window.isSecureContext) { scanNote(t("WALLET_SCAN_ERR_HTTPS"), true); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    scanNote(t("WALLET_SCAN_ERR_NO_CAMERA"), true); return;
+  }
+  const video = document.getElementById("scanVideo");
+  const box = document.getElementById("scanBox");
+  const btn = document.getElementById("scanBtn");
+  // Say something BEFORE the await. Handing over the camera takes the best
+  // part of a second on a phone and none of it is ours to speed up, so the
+  // least we can do is not look frozen while it happens.
+  box.classList.add("is-waking");
+  scanNote(t("WALLET_SCAN_OPENING"));
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    video.srcObject = scanStream;
+    await video.play();
+    scanOn = true;
+    box.classList.remove("is-waking");
+    box.classList.add("is-live");
+    if (btn) { const l = btn.querySelector(".btn__label"); (l || btn).textContent = t("WALLET_SCAN_STOP"); }
+    scanNote(t("WALLET_SCAN_LOOKING"));
+    scanRaf = requestAnimationFrame(scanLoop);
+  } catch (err) {
+    // tear down FIRST: scanStop clears the note, so setting the message before
+    // it would wipe the very thing the person needs to read
+    scanStop();
+    scanNote(err && err.name === "NotAllowedError"
+      ? t("WALLET_SCAN_ERR_DENIED") : t("WALLET_SCAN_ERR_FAILED"), true);
+  }
+}
+
+function scanLoop() {
+  if (!scanOn) return;
+  const v = document.getElementById("scanVideo");
+  if (v && v.readyState === v.HAVE_ENOUGH_DATA && typeof jsQR === "function") {
+    const w = v.videoWidth, h = v.videoHeight;
+    if (w && h) {
+      const c = scanLoop._c || (scanLoop._c = document.createElement("canvas"));
+      const ctx = scanLoop._x || (scanLoop._x = c.getContext("2d", { willReadFrequently: true }));
+      c.width = w; c.height = h;
+      ctx.drawImage(v, 0, 0, w, h);
+      const found = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" });
+      if (found && found.data) {
+        const code = scanCodeFrom(found.data);
+        if (code) {
+          closeScanSheet();           // the stamp lands on the card behind it
+          handleTap(code);
+          return;
+        }
+        scanNote(t("WALLET_SCAN_BAD"), true);   // keep looking; wrong QR
+      }
+    }
+  }
+  scanRaf = requestAnimationFrame(scanLoop);
+}
+
+function openScanSheet() {
+  const sheet = document.getElementById("scanSheet");
+  if (!sheet) return;
+  sheet.hidden = false;
+  sheet.setAttribute("aria-hidden", "false");
+  showScrim();
+  requestAnimationFrame(() => sheet.classList.add("open"));
+  scanNote("");
+  scanStart();            // opening the sheet IS the gesture; no second tap
+  document.addEventListener("keydown", scanKeys);
+}
+
+function closeScanSheet() {
+  const sheet = document.getElementById("scanSheet");
+  if (!sheet || sheet.hidden) return;
+  scanStop();
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  hideScrim();
+  setTimeout(() => { sheet.hidden = true; }, 320);
+  document.removeEventListener("keydown", scanKeys);
+}
+
+function scanKeys(e) { if (e.key === "Escape") closeScanSheet(); }
+
+function setupScan() {
+  const open = document.getElementById("scanOpen");
+  if (open) open.addEventListener("click", openScanSheet);
+  const btn = document.getElementById("scanBtn");
+  if (btn) btn.addEventListener("click", scanStart);
+  // a backgrounded tab must not keep the camera
+  document.addEventListener("visibilitychange", () => { if (document.hidden) scanStop(); });
+}
+
+// ---- birthday ---------------------------------------------------------
+// Three Jalali wheels, not <input type="date">: that control renders a
+// Gregorian calendar on every platform, which is the wrong calendar for the
+// people using this. Wheels also stop the classic birthday-form problem of
+// scrolling a year picker from 2026 back forty years one tap at a time —
+// these open already parked on a plausible year.
+//
+// The wire format is Gregorian "YYYY-MM-DD" (see profile.pb.js); the Jalali
+// values are converted by jalaliToISO in i18n.js, which is also what decides
+// whether a date such as Esfand 30 exists at all.
+let bdayISO = "";                     // what the server currently holds
+let bdaySel = { y: 0, m: 1, d: 1 };   // what the wheels are showing
+
+function bdayLatestYear() {
+  const p = jalaliParts(new Date());
+  return p ? p.y : 1404;
+}
+
+// Build one wheel. `fmt` lets the month column show names while the number
+// columns stay numeric.
+function bdayCol(el, from, to, cur, fmt, onPick) {
+  // Drop the previous wheel's listeners first. This column is rebuilt every
+  // time the month or year changes, and without this each rebuild stacked
+  // another scroll handler on the same element — several debounced writers
+  // then fought over the value, and the highlight ended up on a different row
+  // than the one sitting under the band.
+  if (el._bdayOff) el._bdayOff();
+
+  el.innerHTML = "";
+  for (let v = from; v <= to; v++) {
+    const o = document.createElement("div");
+    o.className = "bday__opt";
+    o.dataset.v = v;
+    o.setAttribute("role", "option");
+    o.textContent = fmt ? fmt(v) : v;
+    el.appendChild(o);
+  }
+
+  const center = () => {
+    const opts = [...el.children];
+    const mid = el.scrollTop + el.clientHeight / 2;
+    let best = null, bestD = Infinity;
+    opts.forEach((o) => {
+      const c = o.offsetTop + o.offsetHeight / 2;
+      const dist = Math.abs(c - mid);
+      if (dist < bestD) { bestD = dist; best = o; }
+      o.classList.remove("is-sel");
+    });
+    if (best) { best.classList.add("is-sel"); return +best.dataset.v; }
+    return null;
+  };
+
+  let t = null;
+  const onScroll = () => {
+    center();                                  // highlight follows the finger
+    clearTimeout(t);
+    t = setTimeout(() => { const v = center(); if (v != null) onPick(v); }, 90);
+  };
+  // tapping an option is faster than scrolling to it
+  const onClick = (e) => {
+    const o = e.target.closest(".bday__opt");
+    if (o) bdayScrollTo(el, +o.dataset.v);
+  };
+  el.addEventListener("scroll", onScroll, { passive: true });
+  el.addEventListener("click", onClick);
+  el._bdayOff = () => {
+    clearTimeout(t);
+    el.removeEventListener("scroll", onScroll);
+    el.removeEventListener("click", onClick);
+  };
+
+  bdayScrollTo(el, cur, false);
+  center();   // synchronous, so the band never shows an unhighlighted row
+}
+
+function bdayScrollTo(el, v, smooth) {
+  const o = [...el.children].find((c) => +c.dataset.v === v) || el.children[0];
+  if (!o) return;
+  const top = o.offsetTop - (el.clientHeight - o.offsetHeight) / 2;
+  // On a rebuild this must land before the highlight is computed, so set
+  // scrollTop directly — scrollTo() settles a frame later even with
+  // behavior:"auto", which is exactly the race that mismatched the two.
+  if (smooth === false) el.scrollTop = top;
+  else el.scrollTo({ top: top, behavior: "smooth" });
+}
+
+// The day column is rebuilt whenever the year or month changes, because the
+// 12th Jalali month is 29 days in a common year and 30 in a leap one.
+function bdayDays() {
+  const len = jalaliMonthLength(bdaySel.y, bdaySel.m);
+  if (bdaySel.d > len) bdaySel.d = len;
+  bdayCol(document.getElementById("bdayDay"), 1, len, bdaySel.d, null, (v) => { bdaySel.d = v; });
+}
+
+function bdayOpen() {
+  const box = document.getElementById("bday");
+  if (!box) return;
+  const now = bdayLatestYear();
+  const cur = bdayISO ? jalaliParts(bdayISO + "T12:00:00Z") : null;
+  // an unset wheel opens around 30, which is far closer to most customers
+  // than either end of the range
+  bdaySel = cur ? { y: cur.y, m: cur.m, d: cur.d } : { y: now - 30, m: 1, d: 1 };
+
+  box.hidden = false;
+  box.setAttribute("aria-hidden", "false");
+  document.getElementById("bdayRemove").hidden = !bdayISO;
+
+  // built after the box is visible: offsetTop is 0 while display is none,
+  // so every wheel would scroll to the top instead of to its value
+  bdayCol(document.getElementById("bdayYear"), now - 110, now, bdaySel.y, null, (v) => { bdaySel.y = v; bdayDays(); });
+  bdayCol(document.getElementById("bdayMonth"), 1, 12, bdaySel.m,
+          (v) => (getLang() === "fa" ? FA_MONTHS[v - 1] : v), (v) => { bdaySel.m = v; bdayDays(); });
+  bdayDays();
+
+  requestAnimationFrame(() => box.classList.add("is-on"));
+  document.addEventListener("keydown", bdayKeys);
+}
+
+function bdayClose() {
+  const box = document.getElementById("bday");
+  if (!box || box.hidden) return;
+  box.classList.remove("is-on");
+  box.setAttribute("aria-hidden", "true");
+  setTimeout(() => { box.hidden = true; }, 300);
+  document.removeEventListener("keydown", bdayKeys);
+}
+
+function bdayKeys(e) { if (e.key === "Escape") bdayClose(); }
+
+function bdayPaint() {
+  const btn = document.getElementById("setBdayBtn");
+  const val = document.getElementById("setBdayVal");
+  if (!btn || !val) return;
+  val.textContent = bdayISO ? formatDateLocal(bdayISO + "T12:00:00Z") : t("WALLET_BDAY_NONE");
+  btn.classList.toggle("is-set", !!bdayISO);
+}
+
+// Optimistic on purpose. The sheet closes on the tap and the chip updates at
+// once, with the request going out behind it: a birthday is not worth making
+// anyone watch a spinner, and there is no decision waiting on the answer. The
+// only realistic failure is a dead network, and that puts the old value back
+// and says so — rather than freezing the sheet open while the phone decides
+// whether it has signal, which is the common case in a café.
+function bdaySend(iso) {
+  const prev = bdayISO;
+  bdayISO = iso;
+  bdayPaint();
+  bdayClose();
+
+  if (iso && !REDUCED) {
+    const chip = document.getElementById("setBdayBtn");
+    const b = chip ? chip.getBoundingClientRect() : { left: innerWidth / 2, width: 0, top: innerHeight / 2 };
+    spawnParticles(b.left + b.width / 2, b.top, 70,
+      { spread: Math.max(window.innerWidth, 420), size: [4, 8], life: 1600, gravity: 0.17, confetti: true });
+  }
+
+  fetch(API + "/me/birthday", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: token },
+    body: JSON.stringify({ birthday: iso }),
+  }).then(async (r) => {
+    if (!r.ok) throw await r.json().catch(() => ({}));
+  }).catch((err) => {
+    bdayISO = prev;                 // the server never took it
+    bdayPaint();
+    toast(tErr(err, "WALLET_BDAY_ERR"));
+  });
+}
+
+function setupBirthday() {
+  const btn = document.getElementById("setBdayBtn");
+  if (!btn) return;
+  btn.addEventListener("click", bdayOpen);
+  document.getElementById("bdayClose").addEventListener("click", bdayClose);
+  document.getElementById("bday").addEventListener("click", (e) => {
+    if (e.target.id === "bday") bdayClose();
+  });
+  document.getElementById("bdaySave").addEventListener("click", () => {
+    const iso = jalaliToISO(bdaySel.y, bdaySel.m, bdaySel.d);
+    // the wheels only ever offer days that exist, so this is belt and braces
+    if (!iso) { toast(t("WALLET_BDAY_ERR")); return; }
+    bdaySend(iso);
+  });
+  document.getElementById("bdayRemove").addEventListener("click", () => bdaySend(""));
+  bdayPaint();
+}
+
 // ---- add-to-home-screen hint ----------------------------------------------
 // A one-line bar at the top. Not a native install prompt: on iOS no such
 // prompt exists at all, and the product's promise is that there is nothing to
@@ -1598,6 +1926,15 @@ async function init() {
   myUserId = user.id;
   try { if (user.phone) localStorage.setItem("loytap_phone", user.phone); } catch (_) {}
 
+  // The stored birthday is a full timestamp at Tehran midnight; reduce it to
+  // the plain day, read in Tehran, which is the only part that means anything.
+  try {
+    const raw = String(user.birthday || "").trim();
+    const g = raw ? gregorianParts(raw) : null;
+    if (g) { const z = (n) => (n < 10 ? "0" + n : "" + n); bdayISO = g.y + "-" + z(g.m) + "-" + z(g.d); }
+  } catch (_) {}
+  setupBirthday();
+
   const g = document.getElementById("greeting");
   if (g) g.textContent = t("WALLET_GREETING", { name: (user.name || t("AUTH_THERE")).trim() });
 
@@ -1636,6 +1973,7 @@ async function init() {
   // last, and only once the wallet is on screen — a hint that beats the cards
   // to the paint reads as an interstitial
   setupInstallTip();
+  setupScan();
 
   if (params.get("debugopen") === "discounts") {
     setTimeout(() => {

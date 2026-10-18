@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=108" />
-  <script src="i18n.js?v=52"></script>
+  <link rel="stylesheet" href="styles.css?v=117" />
+  <script src="i18n.js?v=58"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -97,6 +97,10 @@
   </div>
 
   <main class="stage" id="stage">
+    <!-- top of the wallet, where the retired sign-out button used to sit -->
+    <button class="scanfab" id="scanOpen" type="button" data-i18n-aria="WALLET_TAB_SCAN" aria-label="Scan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8"/><path d="M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8"/><path d="M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16"/><path d="M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><path d="M3.5 12h17"/></svg>
+    </button>
     <p class="greeting" id="greeting"></p>
     <div class="wallet" id="wallet"></div>
   </main>
@@ -200,6 +204,37 @@
     </div>
   </div>
 
+
+  <!-- Scan sheet. Opened by the button at the top of the wallet, not a tab:
+       scanning is an occasional action, not a place you live in. Same
+       bottom-sheet treatment as Settings, and it shares the same scrim. -->
+  <aside class="scansheet" id="scanSheet" hidden aria-hidden="true" aria-label="Scan">
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <h2 class="scansheet__title" data-i18n="WALLET_SCAN_TITLE">Collect a stamp from</h2>
+
+    <div class="scanbox" id="scanBox">
+      <!-- shown until the camera is live, so the box is never a dead black
+           square waiting for permission -->
+      <span class="scanbox__idle" aria-hidden="true">
+        <span class="scanbox__ring"></span>
+        <span class="scanbox__ring"></span>
+        <svg class="scanbox__glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="7" y="7" width="13" height="13" rx="3"/>
+          <rect x="28" y="7" width="13" height="13" rx="3"/>
+          <rect x="7" y="28" width="13" height="13" rx="3"/>
+          <path d="M28 28h5v5h-5zM36 28h5M41 33v5M28 38h5v3M36 41h5"/>
+        </svg>
+      </span>
+      <video class="scanbox__video" id="scanVideo" playsinline muted></video>
+      <span class="scanbox__frame" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="scanbox__beam" aria-hidden="true"></span>
+    </div>
+
+    <p class="scansheet__hint" data-i18n="WALLET_SCAN_IDLE">Point your camera at the Reloy code on the counter and the stamp lands on your card.</p>
+    <p class="scansheet__note" id="scanNote" role="status" aria-live="polite"></p>
+    <button class="btn btn--primary scansheet__btn" id="scanBtn" type="button"><span class="btn__label" data-i18n="WALLET_SCAN_START">Start camera</span></button>
+    </aside>
+
   <!-- Settings bottom sheet -->
   <aside class="sheet" id="settings" aria-hidden="true" aria-label="Settings">
     <div class="sheet__grip" aria-hidden="true"></div>
@@ -207,7 +242,6 @@
     <div class="sheet__rows">
       <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_NAME">Name</span><span class="srow__v" id="setName">—</span></div>
       <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_PHONE">Phone</span><span class="srow__v" id="setPhone">—</span></div>
-      <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_VERSION">Version</span><span class="srow__v">Reloy 1.0</span></div>
       <div class="srow">
         <span class="srow__k" data-i18n="WALLET_SETTINGS_LANGUAGE">Language</span>
         <span class="srow__v">
@@ -217,6 +251,16 @@
           </span>
         </span>
       </div>
+      <div class="srow">
+        <span class="srow__k" data-i18n="WALLET_SETTINGS_BDAY">Birthday</span>
+        <span class="srow__v">
+          <button class="bday-chip" id="setBdayBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.1 1.2 1.7 2.1 1.7 2.9a1.7 1.7 0 1 1-3.4 0C10.3 4.1 10.9 3.2 12 2Z" fill="currentColor" stroke="none"/><path d="M12 6.7V10"/><path d="M4.6 20.4v-5c0-1.5 1.2-2.7 2.7-2.7h9.4c1.5 0 2.7 1.2 2.7 2.7v5"/><path d="M3 20.4h18"/><path d="M4.6 15.7c1.3 0 1.3 1.6 2.6 1.6s1.3-1.6 2.6-1.6 1.3 1.6 2.6 1.6 1.3-1.6 2.6-1.6 1.3 1.6 2.6 1.6 1.3-1.6 2.6-1.6"/></svg>
+            <span id="setBdayVal" data-i18n="WALLET_BDAY_NONE">Not set</span>
+          </button>
+        </span>
+      </div>
+      <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_VERSION">Version</span><span class="srow__v">Reloy 1.0</span></div>
       <!-- Same walkthrough the top bar opens, kept reachable after the bar has
            been dismissed. A whole-row button rather than a label-plus-pill:
            "Home screen / Add" gave no clue what tapping it would do. Hidden by
@@ -236,13 +280,18 @@
   </aside>
 
   <!-- Glassy bottom navigation -->
+  <!-- DOM order is reversed on screen in Persian: the first child sits on the
+       RIGHT. Written wallet-first so the bar reads, left to right,
+       Settings · Discounts · Wallet. -->
+  <!-- DOM order is reversed on screen in Persian: the first child sits on the
+       RIGHT. Written discounts-first so the bar reads, left to right,
+       Settings · Wallet · Discounts. -->
   <nav class="tabbar" id="tabbar" style="--ti:1" aria-label="Primary">
     <span class="tabbar__ind" aria-hidden="true"></span>
     <button class="tab" id="tabDiscounts" type="button" aria-label="Discounts" data-i18n-aria="WALLET_TAB_DISCOUNTS">
       <span class="tab__ico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-8-8V3.6a1 1 0 0 1 1-1H12l8.6 8.6a2 2 0 0 1 0 2.2z"/><circle cx="7.6" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg>
         <span class="tab__badge" id="tabBadge" hidden>0</span>
-      </span>
       <span class="tab__label" data-i18n="WALLET_TAB_DISCOUNTS">Discounts</span>
     </button>
     <button class="tab is-active" id="tabWallet" type="button" aria-label="Wallet" data-i18n-aria="WALLET_TAB_WALLET">
@@ -259,9 +308,39 @@
     </button>
   </nav>
 
+  <!-- Birthday picker. Three Jalali wheels rather than a native <input
+       type="date">: that control is Gregorian everywhere, which is the wrong
+       calendar for the people using this. The wheels run year / month / day
+       left to right, the same order as every other date in the app. -->
+  <aside class="bday" id="bday" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="bdayTitle">
+    <div class="bday__panel">
+      <button class="bday__x" id="bdayClose" type="button" aria-label="Close" data-i18n-aria="WALLET_BDAY_CLOSE">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <span class="bday__cake" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.1 1.2 1.7 2.1 1.7 2.9a1.7 1.7 0 1 1-3.4 0C10.3 4.1 10.9 3.2 12 2Z" fill="currentColor" stroke="none"/><path d="M12 6.7V10"/><path d="M4.6 20.4v-5c0-1.5 1.2-2.7 2.7-2.7h9.4c1.5 0 2.7 1.2 2.7 2.7v5"/><path d="M3 20.4h18"/><path d="M4.6 15.7c1.3 0 1.3 1.6 2.6 1.6s1.3-1.6 2.6-1.6 1.3 1.6 2.6 1.6 1.3-1.6 2.6-1.6 1.3 1.6 2.6 1.6 1.3-1.6 2.6-1.6"/></svg>
+      </span>
+      <h2 class="bday__title" id="bdayTitle" data-i18n="WALLET_BDAY_TITLE">When is your birthday?</h2>
+      <p class="bday__sub" data-i18n="WALLET_BDAY_SUB">So the cafés you visit can make a fuss of you</p>
+
+      <div class="bday__wheels" id="bdayWheels">
+        <div class="bday__band" aria-hidden="true"></div>
+        <div class="bday__col" id="bdayYear" role="listbox" aria-label="Year"></div>
+        <div class="bday__col" id="bdayMonth" role="listbox" aria-label="Month"></div>
+        <div class="bday__col" id="bdayDay" role="listbox" aria-label="Day"></div>
+      </div>
+
+      <div class="bday__acts">
+        <button class="bday__remove" id="bdayRemove" type="button" hidden data-i18n="WALLET_BDAY_REMOVE">Remove</button>
+        <button class="bday__save" id="bdaySave" type="button" data-i18n="WALLET_BDAY_SAVE">Save</button>
+      </div>
+    </div>
+  </aside>
+
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=90"></script>
+  <script src="jsQR.js"></script>
+  <script src="app.js?v=101"></script>
 </body>
 </html>
