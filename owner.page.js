@@ -60,6 +60,7 @@
           $("setOwnerPhone").textContent = d.phone || "—";
           $("setOwnerEmail").textContent = d.email || "—";
           $("setCafeName").textContent = d.cafe_name || t("OWNER_CAFE_FALLBACK");
+          paintSubscription(d.subscription);
           stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
           refreshOwnPreviewMin(d.min_purchase);
@@ -450,6 +451,105 @@
       $("addBtn").classList.remove("is-open");
       $("addBtn").setAttribute("aria-label", t("OWNER_ARIA_ADD_DISCOUNT"));
     });
+    // ---- buy page ----------------------------------------------------
+    // Prices live here as constants for now, mirroring for-business.js. They
+    // belong on the server before any money moves — a price the client can
+    // edit is not a price — but this page only has to show the offer.
+    const BUY_PRICE = { monthly: 3000000, yearly: 30000000 };   // Toman
+    let buyPlan = "monthly";
+    let buySub = null;                       // the café's current subscription
+
+    const money = (n) => Number(n).toLocaleString("en-US");
+
+    function paintBuy() {
+      const yearly = buyPlan === "yearly";
+      $("buyAmount").textContent = money(BUY_PRICE[buyPlan]);
+      $("buyPer").textContent = t(yearly ? "OWNER_BUY_PER_YEAR" : "OWNER_BUY_PER_MONTH");
+      // the struck-through figure is what twelve months would have cost, which
+      // is the only honest way to show what "2 months free" is measured against
+      const was = $("buyWas");
+      was.hidden = !yearly;
+      if (yearly) was.textContent = money(BUY_PRICE.monthly * 12);
+
+      $("buySeg").classList.toggle("is-yearly", yearly);
+      document.querySelectorAll(".buy-seg__btn").forEach((b) => {
+        const on = b.dataset.plan === buyPlan;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      $("buyPayLabel").textContent = t("OWNER_BUY_PAY", { amount: money(BUY_PRICE[buyPlan]) });
+
+      // replay the entrance on the figure — a price that changes silently
+      // under a toggle reads as a rendering glitch rather than a choice
+      const box = $("buyPriceBox");
+      box.classList.remove("is-swap"); void box.offsetWidth; box.classList.add("is-swap");
+
+      // When the café still has time left — paid or trial — buying must not
+      // throw that time away, and the owner needs telling so before they pay.
+      const live = buySub && (buySub.status === "trialing" || buySub.status === "active");
+      const until = live && buySub.until ? subDate(buySub.until) : "";
+      $("buyStarts").textContent = until
+        ? t(buySub.status === "trialing" ? "OWNER_BUY_STARTS_TRIAL" : "OWNER_BUY_STARTS", { date: until })
+        : t("OWNER_BUY_STARTS_NOW");
+    }
+
+    // Leaves the app for ZarinPal's gateway. The amount is NOT sent: the
+    // server prices the plan itself, so there is nothing here worth forging.
+    let paySending = false;
+    async function startPayment() {
+      if (paySending) return;
+      paySending = true;
+      const btn = $("buyPay"), label = $("buyPayLabel"), was = label.textContent;
+      btn.disabled = true;
+      label.textContent = t("OWNER_BUY_SENDING");
+      try {
+        const r = await fetch(API + "/subscription/pay", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: token },
+          body: JSON.stringify({ plan: buyPlan }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.url) throw d;
+        // assign, not replace: the owner must be able to come back with the
+        // browser's own Back button if they change their mind at the gateway
+        window.location.assign(d.url);
+      } catch (err) {
+        paySending = false;
+        btn.disabled = false;
+        label.textContent = was;
+        toast(tErr(err, "OWNER_PAY_ERROR"));
+      }
+    }
+
+    // The gateway sends the browser back to /owner?pay=… — say what happened
+    // and clear the parameter so a refresh does not repeat the message.
+    (function payResult() {
+      const r = new URLSearchParams(location.search).get("pay");
+      if (!r) return;
+      const key = { ok: "OWNER_PAY_OK", failed: "OWNER_PAY_FAILED",
+                    pending: "OWNER_PAY_PENDING", error: "OWNER_PAY_ERROR" }[r];
+      if (key) setTimeout(() => toast(t(key)), 600);
+      try { history.replaceState(null, "", location.pathname); } catch (_) {}
+    })();
+
+    const buyPage = makeSheet($("buyPage"), $("buyPage"), $("subBuy"), () => {
+      const el = $("buyPage"), r = $("subBuy").getBoundingClientRect();
+      const ox = r.left + r.width / 2, oy = r.top + r.height / 2;
+      const reach = Math.max(
+        Math.hypot(ox, oy), Math.hypot(window.innerWidth - ox, oy),
+        Math.hypot(ox, window.innerHeight - oy), Math.hypot(window.innerWidth - ox, window.innerHeight - oy));
+      el.style.setProperty("--ox", ox.toFixed(1) + "px");
+      el.style.setProperty("--oy", oy.toFixed(1) + "px");
+      el.style.setProperty("--r", Math.ceil(reach) + "px");
+      paintBuy();
+    });
+    $("subBuy").onclick = () => buyPage.open();
+    $("buyPay").onclick = startPayment;
+    $("buyPage").querySelector(".buypage__back").onclick = () => buyPage.close();
+    document.querySelectorAll(".buy-seg__btn").forEach((b) => {
+      b.onclick = () => { buyPlan = b.dataset.plan; paintBuy(); };
+    });
+
     addPageClose = addPage.close;
     $("addBtn").onclick = () => { addPage.open(); $("fDeal").focus(); };
     $("cancelBtn").onclick = () => addPage.close();
@@ -897,6 +997,70 @@
     // they are — so it opens straight into the deck. It fetches /owner/stats
     // lazily, the first time this tab is opened (see loadAnalytics()/
     // setOwnerTab below), not on every dashboard load.
+    // The subscription row in Settings. Null means the café has no row yet —
+    // said plainly rather than guessed at, because whether a café that
+    // pre-dates billing counts as trialing or grandfathered is a commercial
+    // decision, not something a dashboard should assert.
+    // formatDateLocal (Jalali, resolved in Tehran) lives on the persian-dates
+    // branch, which has not merged yet. Prefer it when it is there so this row
+    // picks up the right calendar the moment it lands, and fall back to a
+    // plain date until then rather than throwing on a branch that lacks it.
+    // DELETE the fallback once persian-dates is on main.
+    function subDate(iso) {
+      if (typeof formatDateLocal === "function") return formatDateLocal(iso);
+      const d = new Date(String(iso).replace(" ", "T"));
+      if (isNaN(d.getTime())) return "";
+      const z = (n) => (n < 10 ? "0" + n : "" + n);
+      return z(d.getDate()) + "." + z(d.getMonth() + 1) + "." + String(d.getFullYear()).slice(2);
+    }
+
+    const SUB_STATE = {
+      trialing: "OWNER_SUB_TRIAL",
+      past_due: "OWNER_SUB_PAST_DUE",
+      cancelled: "OWNER_SUB_CANCELLED",
+      expired: "OWNER_SUB_EXPIRED",
+    };
+    // The same button says different things depending on where the café is:
+    // a trial has never paid, a lapsed one is being asked to come back, and a
+    // café already paid up is only being offered more time — so that last one
+    // steps back to an outline instead of selling at someone who already bought.
+    function paintSubCta(sub) {
+      const btn = $("subBuy"), label = $("subBuyLabel");
+      if (!btn || !label) return;
+      const status = (sub && sub.status) || "none";
+      const key = status === "active" ? "OWNER_SUB_EXTEND"
+        : (status === "past_due" || status === "expired" || status === "cancelled") ? "OWNER_SUB_RENEW"
+        : "OWNER_SUB_BUY";
+      label.textContent = t(key);
+      btn.classList.toggle("is-quiet", status === "active");
+    }
+
+    function paintSubscription(sub) {
+      const stateEl = $("setSubState"), untilEl = $("setSubUntil");
+      if (!stateEl || !untilEl) return;
+      if (!sub || !sub.status) {
+        stateEl.textContent = t("OWNER_SUB_NONE");
+        untilEl.textContent = "";
+        stateEl.className = "sub-v__state is-none";
+        paintSubCta(null);
+        buySub = null;
+        return;
+      }
+      const key = sub.status === "active"
+        ? (sub.plan === "yearly" ? "OWNER_SUB_ACTIVE_YEARLY" : "OWNER_SUB_ACTIVE")
+        : (SUB_STATE[sub.status] || "OWNER_SUB_NONE");
+      stateEl.textContent = t(key);
+      stateEl.className = "sub-v__state is-" + sub.status;
+      // the server already picked the date that matters for this status; a
+      // finished subscription reads "ended", a live one "until"
+      paintSubCta(sub);
+      buySub = sub;
+      const over = sub.status === "expired" || sub.status === "cancelled";
+      untilEl.textContent = sub.until
+        ? t(over ? "OWNER_SUB_ENDED" : "OWNER_SUB_UNTIL", { date: subDate(sub.until) })
+        : "";
+    }
+
     const plural1 = (n, one, many) => t(n === 1 ? one : many);
     const stampWord = (n) => plural1(n, "AN_STAMP_LC_ONE", "AN_STAMP_LC_MANY");
     // a "13-16" time-slot range reorders to "16-13" when embedded in Persian text —

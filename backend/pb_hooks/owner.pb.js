@@ -1085,6 +1085,28 @@ routerAdd("GET", "/owner/cafe", (e) => {
     if (sc) staffCode = sc.getString("code");
   } catch (err) {}
 
+  // Subscription, for the Settings row. Sent as null when the café has no row
+  // yet rather than invented here: whether a café that pre-dates billing is
+  // trialing or grandfathered is a commercial decision, and guessing it in a
+  // read endpoint would make the dashboard assert something nobody decided.
+  // The date that matters is whichever period the café is actually inside, so
+  // the client is told plainly instead of having to pick between two fields.
+  let sub = null;
+  try {
+    const sr = $app.findFirstRecordByFilter("subscriptions", "cafe = {:c}", { c: card.id });
+    if (sr) {
+      const status = sr.getString("status");
+      const until = status === "trialing" ? sr.get("trial_ends") : sr.get("current_period_end");
+      sub = {
+        status: status,
+        plan: sr.getString("plan"),
+        // ISO through, Jalali only at the edge — same rule as every other date
+        until: until ? String(until) : "",
+        amount: sr.getInt("amount"),
+      };
+    }
+  } catch (err) { sub = null; }
+
   return e.json(200, {
     id: card.id,
     cafe_name: card.getString("cafe_name"),
@@ -1102,6 +1124,7 @@ routerAdd("GET", "/owner/cafe", (e) => {
     name: u.getString("name"),
     phone: u.getString("phone"),
     email: u.getString("email"),
+    subscription: sub,
   });
 }, $apis.requireAuth());
 

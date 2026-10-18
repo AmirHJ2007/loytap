@@ -39,6 +39,16 @@ if [ -f "$ROOT/vapid.env.local" ]; then
   set +a
 fi
 
+# ZarinPal credentials, same arrangement: gitignored, sourced here, read by the
+# hooks through $os.getenv. Without the file the payment endpoints answer "not
+# configured" and the rest of the app is unaffected — see zarinpal.pb.js.
+if [ -f "$ROOT/zarinpal.env.local" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$ROOT/zarinpal.env.local"
+  set +a
+fi
+
 # --publicDir points at the repo root so the frontend is served from the real
 # files. backend/pb_public/ is a symlink farm that silently goes stale whenever
 # a new page or script is added.

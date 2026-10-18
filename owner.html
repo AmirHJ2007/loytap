@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=46"></script>
+  <script src="i18n.js?v=50"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -609,6 +609,137 @@
     .sheet__rows { display: flex; flex-direction: column; margin-top: 10px; }
     .srow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 2px; border-bottom: 1px solid rgba(20,20,20,0.08); }
     .srow:last-child { border-bottom: 0; }
+    /* subscription row: state on top, the date it runs to underneath */
+    .sub-v { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; line-height: 1.3; }
+    .sub-v__state { font-size: 13.5px; font-weight: 800; color: #171717; }
+    /* the two states needing the owner to DO something are the only coloured
+       ones, so colour here means "act", not merely "status" */
+    .sub-v__state.is-past_due, .sub-v__state.is-expired { color: #b3261e; }
+    .sub-v__state.is-trialing { color: #1f7a4d; }
+    .sub-v__state.is-none { color: #9a9a9a; font-weight: 700; }
+    .sub-v__until { font-style: normal; font-size: 11px; font-weight: 700; color: #565656; }
+    /* The buy CTA. Dark and solid rather than the glass used elsewhere on this
+       panel: it is the only thing here that takes money, and it should not
+       read as another row. */
+    .sub-cta {
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      width: 100%; margin-top: 14px; padding: 14px 20px; border-radius: 15px;
+      border: 0; cursor: pointer;
+      font-family: var(--font-heading); font-weight: 800; font-size: 14.5px;
+      color: #fff; background: linear-gradient(150deg, #2e2e2e, #121212);
+      box-shadow: 0 12px 24px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.22);
+      transition: transform 0.14s ease, box-shadow 0.3s ease;
+    }
+    .sub-cta svg { width: 18px; height: 18px; }
+    .sub-cta:hover { box-shadow: 0 16px 30px -12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.22); }
+    .sub-cta:active { transform: translateY(1px) scale(0.99); }
+    /* a café that is paid up and not near renewal does not need a sales button
+       shouting at it, so it steps back to an outline */
+    .sub-cta.is-quiet {
+      background: transparent; color: #565656;
+      border: 1px solid rgba(20,20,20,0.16); box-shadow: none;
+    }
+    .sub-cta.is-quiet:hover { color: #171717; border-color: rgba(20,20,20,0.3); box-shadow: none; }
+
+    /* ---- buy page ---- */
+    /* The back arrow sits on the PHYSICAL left, asked for by where it is on
+       screen, so it is pinned rather than ordered — flex order would flip it
+       to the right in Persian. The heading is padded clear of it on both
+       sides so a long title never runs underneath. */
+    .buypage__head { position: relative; padding-inline: 44px; text-align: center; }
+    .buypage__back {
+      position: absolute; left: 0; top: 0;
+      display: grid; place-items: center; width: 36px; height: 36px;
+    }
+    .buypage__back svg { width: 18px; height: 18px; }
+    .buypage__body { padding-bottom: 8px; }
+
+    /* ---- the dark slab: everything you choose between ---- */
+    .buy-hero {
+      position: relative; overflow: hidden;
+      margin: 4px 0 18px; padding: 14px 14px 14px; border-radius: 24px;
+      background: linear-gradient(165deg, #2b2f35, #0e1013);
+      box-shadow: 0 26px 48px -24px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.14);
+    }
+    /* one soft highlight so the slab is not a flat rectangle */
+    .buy-hero__spot {
+      position: absolute; top: -60%; inset-inline-start: -20%;
+      width: 70%; height: 170%; border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(255,255,255,0.13), transparent);
+      pointer-events: none;
+    }
+
+    .buy-seg {
+      position: relative; display: grid; grid-template-columns: 1fr 1fr;
+      padding: 4px; border-radius: 14px; margin-bottom: 16px;
+      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .buy-seg__glider {
+      position: absolute; top: 4px; bottom: 4px; width: calc(50% - 4px);
+      inset-inline-start: 4px; border-radius: 11px; background: #fff;
+      box-shadow: 0 6px 14px -6px rgba(0,0,0,0.6);
+      transition: transform 0.42s var(--ease-spring);
+    }
+    /* moves with the writing direction, so it never slides the wrong way */
+    .buy-seg.is-yearly .buy-seg__glider { transform: translateX(100%); }
+    html[dir="rtl"] .buy-seg.is-yearly .buy-seg__glider { transform: translateX(-100%); }
+    .buy-seg__btn {
+      position: relative; z-index: 1; border: 0; background: transparent; cursor: pointer;
+      padding: 9px 6px; border-radius: 11px;
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+      font-family: var(--font-heading); font-size: 13px; font-weight: 800;
+      color: rgba(255,255,255,0.72); transition: color 0.3s ease;
+    }
+    .buy-seg__btn.is-on { color: #141414; }
+    .buy-seg__save { font-size: 9.5px; font-weight: 800; opacity: 0.8; }
+    .buy-seg__btn.is-on .buy-seg__save { color: #1f7a4d; opacity: 1; }
+
+    .buy-price { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .buy-price__was { font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.45); text-decoration: line-through; }
+    .buy-price__fig { display: flex; align-items: baseline; gap: 6px; font-family: var(--font-heading); }
+    .buy-price__fig b { font-size: 34px; font-weight: 800; color: #fff; letter-spacing: -0.8px; line-height: 1.15; }
+    .buy-price__fig span { font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.6); }
+    .buy-price__per { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.5); }
+    /* the figure is re-read every time the toggle moves, so it is worth
+       animating — a number that changes silently reads as a glitch */
+    .buy-price.is-swap { animation: buySwap 0.4s var(--ease-spring); }
+    @keyframes buySwap { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+
+    .buy-starts {
+      margin: 14px 0 0; padding: 10px 12px; border-radius: 13px;
+      background: rgba(94,219,154,0.12); border: 1px solid rgba(94,219,154,0.22);
+      font-size: 11.5px; font-weight: 700; color: #9ff0c4; line-height: 1.55; text-align: center;
+    }
+
+    /* three across, so they never wrap into a ragged 2 + 1 */
+    .buy-trust { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .buy-trust li {
+      display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+      padding: 10px 6px; border-radius: 13px;
+      background: rgba(20,20,20,0.04); border: 1px solid rgba(20,20,20,0.07);
+      font-size: 10.5px; font-weight: 700; color: #565656; line-height: 1.35;
+    }
+    .buy-trust svg { width: 13px; height: 13px; color: #1f7a4d; }
+
+    .buy-inc__h { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #171717; margin: 0 0 4px; }
+    .buy-inc__sub { font-size: 11.5px; color: #565656; margin: 0 0 13px; line-height: 1.5; }
+    .buy-inc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .buy-inc li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 10px; border-radius: 12px;
+      font-size: 12.5px; color: #171717; line-height: 1.5;
+      background: rgba(20,20,20,0.025);
+    }
+    .buy-inc svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: #1f7a4d; }
+    /* staggered in, so the list arrives rather than appearing all at once */
+    .buypage.is-open .buy-inc li { animation: fadeUp 0.5s var(--ease-spring) both; animation-delay: calc(0.26s + var(--i) * 0.035s); }
+    .buypage__foot .sub-cta { margin-top: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .buypage.is-open .buy-inc li { animation: none; }
+      .buy-price.is-swap { animation: none; }
+      .buy-seg__glider { transition: none; }
+    }
     .srow__k { font-size: 13px; font-weight: 700; color: var(--dim); flex: 0 0 auto; }
     .srow__v { font-size: 14px; font-weight: 700; color: var(--ink); min-width: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* a phone number reads the same way regardless of UI language */
@@ -1418,7 +1549,23 @@
         <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_PHONE">Phone</span><span class="srow__v" id="setOwnerPhone">—</span></div>
         <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_EMAIL">Email</span><span class="srow__v" id="setOwnerEmail">—</span></div>
         <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</span><span class="srow__v" id="setCafeName">—</span></div>
+        <div class="srow">
+          <span class="srow__k" data-i18n="OWNER_SUB">Subscription</span>
+          <span class="srow__v sub-v">
+            <b class="sub-v__state" id="setSubState">—</b>
+            <i class="sub-v__until" id="setSubUntil"></i>
+          </span>
+        </div>
       </div>
+      <!-- Label changes with the state (buy / renew / extend): the same button
+           means something different to a café on a trial and one that lapsed
+           last week. Wired to nothing yet — payment is the next step. -->
+      <button class="sub-cta" id="subBuy" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M2.5 10h19"/><path d="M6.5 15h3"/>
+        </svg>
+        <span id="subBuyLabel" data-i18n="OWNER_SUB_BUY">Buy a subscription</span>
+      </button>
     </section>
 
     <div class="code-bar" id="codeTile" role="button" tabindex="0" title="Tap to copy" data-i18n-title="OWNER_TAP_TO_COPY">
@@ -1483,6 +1630,60 @@
 
        Same makeSheet() plumbing the bottom sheets use (scroll lock, focus,
        Escape, aria) — only the way it arrives is different. -->
+  <!-- Buy page. Reuses .addpage so it inherits that panel's open/close
+       animation and scroll lock rather than growing a second one. A back
+       arrow, not a close cross: this is a step forward out of Settings that
+       you come back from, not a dialog you dismiss. -->
+  <div class="addpage buypage" id="buyPage" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="buyTitle">
+    <div class="addpage__inner">
+      <header class="addpage__head buypage__head">
+        <button class="sheet__close buypage__back" type="button" aria-label="Back" data-i18n-aria="OWNER_BUY_BACK">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="addpage__id">
+          <h2 class="addpage__title" id="buyTitle" data-i18n="OWNER_BUY_TITLE">Everything in one subscription</h2>
+          <p class="addpage__lead" data-i18n="OWNER_BUY_LEDE">Unlimited customers, unlimited stamps, no commission.</p>
+        </span>
+      </header>
+
+      <div class="addpage__body buypage__body">
+        <!-- Everything you decide between lives on one dark slab: the toggle,
+             the number it changes, and when it starts. The pale list below is
+             what you get, which is read once rather than compared. -->
+        <div class="buy-hero">
+          <span class="buy-hero__spot" aria-hidden="true"></span>
+          <div class="buy-seg" id="buySeg" role="group" aria-label="Billing period">
+            <span class="buy-seg__glider" aria-hidden="true"></span>
+            <button type="button" class="buy-seg__btn is-on" data-plan="monthly" aria-pressed="true" data-i18n="OWNER_BUY_PER_MONTH">Monthly</button>
+            <button type="button" class="buy-seg__btn" data-plan="yearly" aria-pressed="false">
+              <span data-i18n="OWNER_BUY_PER_YEAR">Yearly</span>
+              <span class="buy-seg__save" data-i18n="OWNER_BUY_SAVE">2 months free</span>
+            </button>
+          </div>
+
+          <div class="buy-price" id="buyPriceBox">
+            <span class="buy-price__was" id="buyWas" hidden></span>
+            <span class="buy-price__fig"><b id="buyAmount">3,000,000</b><span data-i18n="OWNER_TOMAN">Toman</span></span>
+            <span class="buy-price__per" id="buyPer" data-i18n="OWNER_BUY_PER_MONTH">per month</span>
+          </div>
+
+          <!-- the reassurance the owner actually needs before paying early -->
+          <p class="buy-starts" id="buyStarts"></p>
+        </div>
+
+        <ul class="buy-trust"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T1">No setup fee</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T2">Cancel any time</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T3">No commission</span></li></ul>
+
+        <h3 class="buy-inc__h" data-i18n="OWNER_BUY_INCLUDES">What this package includes</h3>
+        <p class="buy-inc__sub" data-i18n="OWNER_BUY_INCLUDES_SUB">Everything below is in the one price.</p>
+        <ul class="buy-inc"><li style="--i:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F1">Feature</span></li><li style="--i:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F2">Feature</span></li><li style="--i:3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F3">Feature</span></li><li style="--i:4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F4">Feature</span></li><li style="--i:5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F5">Feature</span></li><li style="--i:6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F6">Feature</span></li><li style="--i:7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F7">Feature</span></li></ul>
+      </div>
+
+      <div class="addpage__foot buypage__foot">
+        <button class="sub-cta" id="buyPay" type="button"><span id="buyPayLabel">Pay</span></button>
+      </div>
+    </div>
+  </div>
+
   <div class="addpage" id="addPage" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="addPageTitle">
     <div class="addpage__inner" id="addPageInner">
       <header class="addpage__head">
@@ -1587,6 +1788,6 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=40"></script>
+  <script src="owner.page.js?v=45"></script>
 </body>
 </html>
