@@ -40,6 +40,29 @@
     })();
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+    // Transient message. The wallet's copy lives in app.js with its CSS in
+    // styles.css, and this page loads neither — so the two calls below
+    // (payment failed, and the result of coming back from the gateway) were
+    // throwing a ReferenceError, which meant an owner who had just paid was
+    // returned to a dashboard that said nothing at all about it. The .toast
+    // rule is reproduced in owner.html's own <style>.
+    let toastTimer = null;
+    function toast(msg) {
+      let el = document.getElementById("toast");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "toast";
+        el.className = "toast";
+        el.setAttribute("role", "status");
+        el.setAttribute("aria-live", "polite");
+        document.body.appendChild(el);
+      }
+      el.textContent = msg;
+      el.classList.add("is-on");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("is-on"), 3600);
+    }
+
     function unitWord(unit, amt) {
       const key = { day: amt > 1 ? "OWNER_UNIT_DAYS" : "OWNER_UNIT_DAY",
         week: amt > 1 ? "OWNER_UNIT_WEEKS" : "OWNER_UNIT_WEEK",
@@ -988,7 +1011,21 @@
       finally { box.classList.remove("is-busy"); }
     };
 
-    $("signout").onclick = () => { ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} }); location.replace("/business/signin"); };
+    // AWAITED, and before localStorage is touched: ownerPushSignout (in
+    // owner.push.js) unsubscribes this phone from subscription reminders, and
+    // that request authenticates with the token the next line deletes.
+    // Without it, a signed-out phone keeps being told when a café it no
+    // longer administers is about to lapse — and the switch that would turn
+    // that off is now behind someone else's sign-in.
+    //
+    // Guarded on existence rather than assumed: owner.push.js returns early
+    // on a browser with no push support, so the export may legitimately not
+    // be there. Sign-out must never depend on it.
+    $("signout").onclick = async () => {
+      try { if (typeof window.ownerPushSignout === "function") await window.ownerPushSignout(); } catch (e) {}
+      ["loytap_token", "loytap_owner", "loytap_role", "loytap_staff", "loytap_signed_in", "loytap_name", "loytap_cafe"].forEach((k) => { try { localStorage.removeItem(k); } catch (e) {} });
+      location.replace("/business/signin");
+    };
 
     // ---------------- analytics tab ----------------
     // Ported from the old standalone analytics.page.js (analytics.html is now

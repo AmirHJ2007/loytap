@@ -340,6 +340,21 @@ const STRINGS = {
     OWNER_PAY_FAILED: "The payment did not go through. Nothing was charged.",
     OWNER_PAY_PENDING: "We could not confirm the payment yet. If money left your account it will be sorted \u2014 do not pay twice.",
     OWNER_PAY_ERROR: "Something went wrong with the payment.",
+    // The reminders switch in Settings (owner.push.js). Separate from the
+    // STAFF_NOTIFY_* keys above and not shared with them: the till's switch
+    // is about customers waiting at the counter, this one is about a billing
+    // date, and "notifications are on" would be the same four words meaning
+    // two different things.
+    OWNER_NOTIFY_LABEL: "Subscription reminders",
+    OWNER_NOTIFY_OFF_NOTE: "Get a notification on this phone before your plan ends.",
+    OWNER_NOTIFY_ON_NOTE: "This phone will be notified before your plan ends.",
+    OWNER_NOTIFY_ENABLED: "Reminders are on for this phone.",
+    // The common case on iPhone, not an edge case: Safari delivers web push
+    // only to a page added to the Home Screen, and in a normal tab will not
+    // even offer the permission prompt.
+    OWNER_NOTIFY_NEEDS_INSTALL: "Add this page to your Home Screen first, then turn reminders on.",
+    OWNER_NOTIFY_BLOCKED: "Notifications are blocked in this browser's settings.",
+    OWNER_NOTIFY_FAILED: "Could not turn reminders on. Try again.",
     ERR_PAY_NOT_CONFIGURED: "Payments are not set up yet.",
     ERR_PAY_GATEWAY_DOWN: "Could not reach the payment gateway. Try again in a moment.",
     ERR_PAY_REQUEST_REFUSED: "The payment gateway refused the request.",
@@ -879,6 +894,13 @@ const STRINGS = {
     OWNER_PAY_FAILED: "پرداخت انجام نشد. مبلغی کسر نشده است.",
     OWNER_PAY_PENDING: "هنوز نتوانستیم پرداخت را تأیید کنیم. اگر مبلغی از حسابتان کم شده پیگیری می‌شود — دوباره پرداخت نکنید.",
     OWNER_PAY_ERROR: "در فرایند پرداخت مشکلی پیش آمد.",
+    OWNER_NOTIFY_LABEL: "یادآوری اشتراک",
+    OWNER_NOTIFY_OFF_NOTE: "قبل از پایان اشتراک، روی همین گوشی به شما اطلاع می‌دهیم.",
+    OWNER_NOTIFY_ON_NOTE: "قبل از پایان اشتراک، روی همین گوشی اطلاع داده می‌شود.",
+    OWNER_NOTIFY_ENABLED: "یادآوری‌ها برای این گوشی روشن شد.",
+    OWNER_NOTIFY_NEEDS_INSTALL: "اول این صفحه را به صفحهٔ اصلی اضافه کنید، بعد یادآوری را روشن کنید.",
+    OWNER_NOTIFY_BLOCKED: "اعلان‌ها در تنظیمات مرورگر مسدود شده است.",
+    OWNER_NOTIFY_FAILED: "روشن کردن یادآوری ممکن نشد. دوباره تلاش کنید.",
     ERR_PAY_NOT_CONFIGURED: "پرداخت هنوز راه‌اندازی نشده است.",
     ERR_PAY_GATEWAY_DOWN: "درگاه پرداخت در دسترس نیست. کمی بعد دوباره تلاش کنید.",
     ERR_PAY_REQUEST_REFUSED: "درگاه پرداخت درخواست را نپذیرفت.",

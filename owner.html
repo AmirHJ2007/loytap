@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=57"></script>
+  <script src="i18n.js?v=58"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -656,6 +656,72 @@
     .subrow.is-off .subrow__date { color: #b02020; }
     .subrow.is-none  { --sub-accent: #c2c2c2; --sub-tint: rgba(20,20,20,0.03); }
     .subrow.is-none .subrow__date { font-size: 14px; color: #9a9a9a; }
+
+    /* ---- subscription reminders on this phone ----
+       Sits directly under the subscription row because it is about that date
+       and nothing else. A floating bell in a corner — which is how the staff
+       panel does it — would be a control with no stated subject, and the
+       owner would have to guess what it notifies them about. */
+    .notifyrow { align-items: center; gap: 14px; }
+    .notifyrow__main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    /* The note is load-bearing, not decoration: on an iPhone in a normal tab
+       the switch cannot work at all, and this line is the only place that can
+       say "add this page to your Home Screen first". */
+    .notifyrow__note { font-size: 11.5px; font-weight: 600; color: var(--faint); line-height: 1.5; }
+    .notifyrow__note[hidden] { display: none; }
+
+    .nswitch {
+      flex: 0 0 auto; position: relative; width: 46px; height: 28px; padding: 0;
+      border: 1px solid rgba(20,20,20,0.14); border-radius: 99px; cursor: pointer;
+      background: rgba(20,20,20,0.09);
+      transition: background-color 0.24s ease, border-color 0.24s ease;
+    }
+    /* MIRRORED IN RTL, on purpose. iOS and Android both flip a switch in a
+       right-to-left interface: the knob rests at the right and travels left
+       to turn on. A thumb that has used a Persian phone expects that, so the
+       knob is pinned to the inline START edge and the travel is signed per
+       direction — not held to one side with `direction: ltr`, which is what
+       this did first and which reads as backwards on an Iranian phone. */
+    .nswitch__knob {
+      position: absolute; top: 2px; inset-inline-start: 2px; width: 22px; height: 22px; border-radius: 50%;
+      background: #fff; box-shadow: 0 2px 5px -1px rgba(20,20,20,0.4);
+      transition: transform 0.24s var(--ease-spring);
+    }
+    .nswitch[data-state="on"] { background: #1f7a4d; border-color: rgba(31,122,77,0.5); }
+    .nswitch[data-state="on"] .nswitch__knob { transform: translateX(18px); }
+    html[dir="rtl"] .nswitch[data-state="on"] .nswitch__knob { transform: translateX(-18px); }
+    /* An iPhone that has not been installed cannot grant the permission, so
+       the switch is shown as unavailable rather than hidden — hiding it would
+       lose the one line explaining how to make it available. */
+    .nswitch[data-state="needs-install"] { opacity: 0.4; }
+    .nswitch.is-busy { opacity: 0.55; pointer-events: none; }
+    .nswitch:active .nswitch__knob { transform: scale(0.92); }
+    .nswitch[data-state="on"]:active .nswitch__knob { transform: translateX(18px) scale(0.92); }
+    html[dir="rtl"] .nswitch[data-state="on"]:active .nswitch__knob { transform: translateX(-18px) scale(0.92); }
+    .nswitch:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) {
+      .nswitch, .nswitch__knob { transition: none; }
+    }
+
+    /* ---- transient message ----
+       The wallet has this in styles.css and app.js, neither of which this
+       page loads — which is why owner.page.js's toast() calls were throwing a
+       ReferenceError and the "payment received" message after returning from
+       the gateway was never seen by anyone. Reproduced here rather than
+       pulling in the wallet stylesheet, same as .tabbar above. */
+    .toast {
+      position: fixed; left: 50%; bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+      transform: translate(-50%, 12px); z-index: 300;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 12px 18px; border-radius: 14px;
+      font-family: var(--font-heading); font-weight: 700; font-size: 13.5px; line-height: 1.5;
+      text-align: center; color: #fff; background: rgba(20,20,20,0.92);
+      box-shadow: 0 16px 34px -14px rgba(0,0,0,0.5);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.26s ease, transform 0.26s var(--ease-spring);
+    }
+    .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+    @media (prefers-reduced-motion: reduce) { .toast { transition: opacity 0.26s ease; } }
 
     .sub-cta {
       display: flex; align-items: center; justify-content: center; gap: 9px;
@@ -1599,6 +1665,21 @@
           </span>
           <span class="subrow__pill" id="setSubPill" hidden></span>
         </div>
+        <!-- Hidden until owner.push.js decides this device can actually
+             receive a push. A browser without PushManager gets no row at all
+             rather than a switch that silently does nothing; an iPhone in a
+             normal tab keeps the row, because the note beside it is the only
+             thing that can explain why the switch is greyed out. -->
+        <div class="srow notifyrow" id="setNotifyRow" hidden>
+          <span class="notifyrow__main">
+            <span class="srow__k" id="notifyLabel" data-i18n="OWNER_NOTIFY_LABEL">Subscription reminders</span>
+            <span class="notifyrow__note" id="notifyNote" hidden></span>
+          </span>
+          <button class="nswitch" id="notifySwitch" type="button" role="switch"
+                  aria-checked="false" data-state="off" aria-labelledby="notifyLabel">
+            <span class="nswitch__knob" aria-hidden="true"></span>
+          </button>
+        </div>
       </div>
       <!-- Label changes with the state (buy / renew / extend): the same button
            means something different to a café on a trial and one that lapsed
@@ -1831,6 +1912,7 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=51"></script>
+  <script src="owner.page.js?v=52"></script>
+  <script src="owner.push.js?v=2"></script>
 </body>
 </html>

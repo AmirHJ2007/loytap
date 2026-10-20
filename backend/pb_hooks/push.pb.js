@@ -102,6 +102,12 @@ routerAdd("POST", "/staff/push/subscribe", (e) => {
   row.set("auth", auth);
   row.set("label", label);
   row.set("lang", lang);
+  // Written explicitly rather than left to the field default, and written on
+  // every upsert: this is also the path that RE-CLAIMS an endpoint. An owner
+  // who turns subscription reminders off and then sets the same phone up as a
+  // till must end up with a till row, not an owner row wearing a till's
+  // label — the endpoint is unique, so this save lands on the existing row.
+  row.set("scope", "till");
   $app.save(row);
 
   return e.json(200, { ok: true });
@@ -120,6 +126,129 @@ routerAdd("POST", "/staff/push/unsubscribe", (e) => {
   const role = u ? u.getString("role") : "";
   if (role !== "staff" && role !== "admin") {
     return e.json(403, { error: "Staff access only", code: "STAFF_ONLY" });
+  }
+  const endpoint = String((e.requestInfo().body || {}).endpoint || "").trim();
+  if (!endpoint) return e.json(400, { error: "Missing endpoint", code: "MISSING_FIELDS" });
+
+  try {
+    const row = $app.findFirstRecordByFilter("push_subs", "endpoint = {:ep}", { ep: endpoint });
+    if (row) $app.delete(row);
+  } catch (err) { /* already gone — the caller wanted it gone, so that is a success */ }
+
+  return e.json(200, { ok: true });
+});
+
+// ===========================================================================
+// the owner's own phone
+// ===========================================================================
+// Three routes mirroring the staff ones above, for a different audience and a
+// different message: subscription deadlines, sent by the daily sweep in
+// subscriptions.pb.js, with the text in subpush.js.
+//
+// WHY SEPARATE ROUTES AT ALL, when an owner is role "admin" and the staff
+// routes already let one through. Two reasons, both about not having to be
+// careful later:
+//
+//   the scope field  a device registered here is scope "owner" and a device
+//                    registered there is scope "till". That distinction is
+//                    the only thing keeping billing text off a barista's
+//                    lock screen, so it belongs in the route, not in a flag
+//                    the caller passes and could get wrong.
+//   the role check   the staff routes accept "admin" because an owner
+//                    standing at their own counter is a legitimate till. If
+//                    that is ever tightened to staff-only, the owner's bell
+//                    must not break with it.
+//
+// No label is taken. A till's label exists so the owner can tell two counters
+// apart in a list; an owner's own phone is not in any list, and a free-text
+// field nothing reads is a field that can only ever leak a user agent.
+
+// The VAPID public key. Same key the tills get — it identifies this server to
+// the push services, not the device — and not a secret, but behind auth
+// anyway because only a signed-in owner has any use for it.
+routerAdd("GET", "/owner/push/key", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") {
+    return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
+  }
+  const W = require(`${__hooks}/webpush.js`);
+  const cfg = W.vapidConfig();
+  if (!cfg) return e.json(503, { error: "Push is not configured on this server", code: "PUSH_NOT_CONFIGURED" });
+  return e.json(200, { key: cfg.publicKey });
+});
+
+// POST /owner/push/subscribe  { endpoint, keys: { p256dh, auth }, lang? }
+//
+// Upserts on endpoint, like the staff route, because browsers re-subscribe a
+// device on their own and a second row means two copies of every reminder.
+routerAdd("POST", "/owner/push/subscribe", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") {
+    return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
+  }
+
+  const W = require(`${__hooks}/webpush.js`);
+  if (!W.vapidConfig()) {
+    return e.json(503, { error: "Push is not configured on this server", code: "PUSH_NOT_CONFIGURED" });
+  }
+
+  const body = e.requestInfo().body || {};
+  const endpoint = String(body.endpoint || "").trim();
+  const keys = body.keys || {};
+  const p256dh = String(keys.p256dh || "").trim();
+  const auth = String(keys.auth || "").trim();
+  const lang = String(body.lang || "fa") === "en" ? "en" : "fa";
+
+  if (!endpoint || !p256dh || !auth) {
+    return e.json(400, { error: "Missing subscription fields", code: "MISSING_FIELDS" });
+  }
+  // The SSRF guard — see the note on PUSH_HOSTS in webpush.js. This is the
+  // only thing deciding where this server can later be told to send requests.
+  if (!W.allowedPushEndpoint(endpoint)) {
+    return e.json(400, { error: "Unrecognised push endpoint", code: "BAD_ENDPOINT" });
+  }
+  const C = require(`${__hooks}/webpush_crypto.js`);
+  if (C.b64urlDecode(p256dh).length !== 65) {
+    return e.json(400, { error: "p256dh must be a 65-byte P-256 point", code: "BAD_P256DH" });
+  }
+  if (C.b64urlDecode(auth).length !== 16) {
+    return e.json(400, { error: "auth must be 16 bytes", code: "BAD_AUTH" });
+  }
+
+  // owner_user ONLY, unlike the staff route's `staff_user = {:u} ||
+  // owner_user = {:u}`. A café's staff service account must not be able to
+  // register itself for the owner's billing reminders, and the role check
+  // above is not enough on its own — it asks what this account is, not whose
+  // café this is.
+  let cafe = null;
+  try { cafe = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:u}", { u: u.id }); }
+  catch (err) { cafe = null; }
+  if (!cafe) return e.json(403, { error: "No café for this account", code: "NO_CAFE" });
+
+  let row = null;
+  try { row = $app.findFirstRecordByFilter("push_subs", "endpoint = {:ep}", { ep: endpoint }); }
+  catch (err) { row = null; }
+  if (!row) row = new Record($app.findCollectionByNameOrId("push_subs"));
+
+  row.set("cafe", cafe.id);
+  row.set("endpoint", endpoint);
+  row.set("p256dh", p256dh);
+  row.set("auth", auth);
+  row.set("label", "");
+  row.set("lang", lang);
+  row.set("scope", "owner");
+  $app.save(row);
+
+  return e.json(200, { ok: true });
+});
+
+// Deliberately not scoped to the caller's café, for the same reason as the
+// staff route: turning notifications off must always succeed, and holding an
+// unguessable endpoint is proof enough of being that device.
+routerAdd("POST", "/owner/push/unsubscribe", (e) => {
+  const u = e.auth;
+  if (!u || u.getString("role") !== "admin") {
+    return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
   }
   const endpoint = String((e.requestInfo().body || {}).endpoint || "").trim();
   if (!endpoint) return e.json(400, { error: "Missing endpoint", code: "MISSING_FIELDS" });
@@ -157,8 +286,14 @@ onRecordAfterCreateSuccess((e) => {
     const cfg = W.vapidConfig();
     if (!cfg) return; // push not set up on this server — nothing to do, quietly
 
+    // scope != "owner" keeps this off the owner's own phone. The owner is a
+    // café's admin and may well have a till subscribed too, which is fine —
+    // what must never happen is the reverse: a device that subscribed to be
+    // told about SUBSCRIPTION deadlines (owner.push.js) receiving a customer
+    // name on its lock screen. Rows written before the scope field exists
+    // read back as "" and are tills, which is what they are.
     let subs = [];
-    try { subs = $app.findRecordsByFilter("push_subs", "cafe = {:c}", "-created", 20, 0, { c: cafeId }); }
+    try { subs = $app.findRecordsByFilter("push_subs", 'cafe = {:c} && scope != "owner"', "-created", 20, 0, { c: cafeId }); }
     catch (err) { subs = []; }
     if (!subs.length) return;
 

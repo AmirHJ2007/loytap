@@ -1,13 +1,21 @@
-// Reloy service worker — web push for staff tills, and nothing else.
+// Reloy service worker — web push, and nothing else. Two senders use it:
+// stamp requests to a café's tills (staff.push.js / push.pb.js) and
+// subscription deadlines to the owner's own phone (owner.push.js /
+// subscriptions.pb.js).
 //
-// Deliberately NOT a caching/offline worker. The staff panel talks to the API
-// on every action and a stale cached build would be worse than useless at a
+// Deliberately NOT a caching/offline worker. Both panels talk to the API on
+// every action and a stale cached build would be worse than useless at a
 // till; this exists purely because a push notification cannot be received
 // without a service worker to receive it.
 //
-// Scope is "/" (it is served from the site root), which is what lets it cover
-// /staff. Moving this file into a subdirectory would silently narrow the
-// scope and stop pushes arriving.
+// Scope is "/" (it is served from the site root), which is what lets one
+// registration cover both /staff and /owner. Moving this file into a
+// subdirectory would silently narrow the scope and stop pushes arriving.
+//
+// The push handler below is deliberately generic — title, body, url, tag out
+// of the payload — so a new kind of notification needs no change here. Only
+// the Approve/Deny buttons are stamp-specific, and they appear solely when
+// the payload carries a requestId.
 
 // Take over as soon as a new version is installed, rather than waiting for
 // every tab to close. A till that is left open for a week would otherwise
@@ -97,7 +105,7 @@ self.addEventListener("notificationclick", (event) => {
 
   // No action tapped means the body was tapped: just open the till.
   if (event.action !== "approve" && event.action !== "deny") {
-    event.waitUntil(openTill(d.url || "/staff"));
+    event.waitUntil(openPanel(d.url || "/staff"));
     return;
   }
 
@@ -148,10 +156,22 @@ self.addEventListener("notificationclick", (event) => {
   })());
 });
 
-async function openTill(url) {
+// Focus a window already showing the page this notification points at,
+// rather than opening a second one — a till that accumulates tabs is a till
+// whose camera permission stops working in the one being looked at.
+//
+// The path comes from the notification, NOT hardcoded. This used to match
+// "/staff" literally, which was right while the till was the only thing that
+// could push: now that subscription reminders point at /owner (push.pb.js's
+// owner routes, sent by subscriptions.pb.js), a hardcoded match would focus
+// an open till on a phone that had both, leaving the owner looking at the
+// scanner and wondering what the notification wanted.
+async function openPanel(url) {
+  let path = "/staff";
+  try { path = new URL(url, self.location.origin).pathname || path; } catch (e) {}
   const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   for (const client of all) {
-    if (client.url.indexOf("/staff") !== -1 && "focus" in client) return client.focus();
+    if (client.url.indexOf(path) !== -1 && "focus" in client) return client.focus();
   }
   if (self.clients.openWindow) return self.clients.openWindow(url);
 }
