@@ -233,6 +233,26 @@ routerAdd("POST", "/owner/register", (e) => {
   codeRec.set("code", staffCode);
   $app.save(codeRec);
 
+  // 30-day free trial, exactly what /business promises on the pricing section.
+  // Created here rather than lazily on first read: a café with no subscription
+  // row is indistinguishable from one whose row failed to write, and once
+  // stamping is gated on this it is the difference between "trialing" and
+  // "shut down". Wrapped so a failure here cannot lose the café itself — the
+  // owner has just paid attention through an OTP and a form, and a café with a
+  // missing trial row is recoverable while a failed registration is not.
+  try {
+    const trialEnds = new Date(Date.now() + 30 * 86400000);
+    const sub = new Record($app.findCollectionByNameOrId("subscriptions"));
+    sub.set("cafe", card.id);
+    sub.set("owner_user", owner.id);
+    sub.set("status", "trialing");
+    sub.set("trial_ends", trialEnds.toISOString().replace("T", " "));
+    sub.set("amount", 0);
+    $app.save(sub);
+  } catch (err) {
+    $app.logger().error("trial subscription not created", "cafe", card.id, "error", String(err));
+  }
+
   // A starter discount so the café has something to offer on day one — and
   // more than a convenience: lastreward.pb.js refuses to delete a café's last
   // reward, because a café with none cannot complete a customer's card at all,

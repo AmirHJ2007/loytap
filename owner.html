@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=50"></script>
+  <script src="i18n.js?v=57"></script>
   <style>
     :root {
       --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#cccccc;
@@ -609,18 +609,54 @@
     .sheet__rows { display: flex; flex-direction: column; margin-top: 10px; }
     .srow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 2px; border-bottom: 1px solid rgba(20,20,20,0.08); }
     .srow:last-child { border-bottom: 0; }
-    /* subscription row: state on top, the date it runs to underneath */
-    .sub-v { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; line-height: 1.3; }
-    .sub-v__state { font-size: 13.5px; font-weight: 800; color: #171717; }
-    /* the two states needing the owner to DO something are the only coloured
-       ones, so colour here means "act", not merely "status" */
-    .sub-v__state.is-past_due, .sub-v__state.is-expired { color: #b3261e; }
-    .sub-v__state.is-trialing { color: #1f7a4d; }
-    .sub-v__state.is-none { color: #9a9a9a; font-weight: 700; }
-    .sub-v__until { font-style: normal; font-size: 11px; font-weight: 700; color: #565656; }
-    /* The buy CTA. Dark and solid rather than the glass used elsewhere on this
-       panel: it is the only thing here that takes money, and it should not
-       read as another row. */
+    /* ---- subscription row ----
+       Four states, read from the DATE rather than `status`: green while there
+       is real time left, yellow in the last week, orange through the grace,
+       red once stamping is actually off. The colour is the first thing an
+       owner takes in, so it must track what the counter will really do. */
+    .subrow {
+      align-items: stretch; gap: 12px;
+      padding: 14px 14px 14px 12px; margin: 4px 0;
+      border-radius: 14px; border-bottom: 0;
+      border-inline-start: 4px solid var(--sub-accent, #9a9a9a);
+      background: var(--sub-tint, rgba(20,20,20,0.03));
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    /* main block at the start, pill pinned to the far end — the row was
+       stacking everything against one edge with dead space opposite */
+    .subrow { justify-content: space-between; align-items: center; }
+    .subrow__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .subrow__state { font-size: 12.5px; font-weight: 800; color: var(--sub-accent, #565656); line-height: 1.2; }
+    /* says what the date MEANS — a bare number tells an owner nothing, and the
+       tense flips once the date is behind them */
+    /* one sentence, not a caption stacked over a number: "ends on 17.12.26"
+       reads as a fact, where a lone date needed the eye to pair it with the
+       label above before it meant anything. Baseline-aligned so the small
+       label sits on the same line as the big date. */
+    .subrow__when { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
+    /* One size for both halves — 16px, between the 11 and 21 they used to be.
+       The label and the date are one sentence, and two sizes made it read as
+       a caption with a number glued on. Weight and colour carry the emphasis
+       instead, which keeps the date dominant without breaking the line. */
+    .subrow__cap { font-style: normal; font-family: var(--font-heading); font-size: 16px; font-weight: 700; color: #8a8a8a; line-height: 1.25; }
+    .subrow__date { font-family: var(--font-heading); font-size: 16px; font-weight: 800; color: #171717; line-height: 1.25; letter-spacing: -0.2px; }
+    /* the remaining time, as a pill: a status rather than a sentence */
+    .subrow__pill {
+      flex: none; padding: 5px 11px; border-radius: 99px;
+      background: var(--sub-accent, #9a9a9a); color: #fff;
+      font-family: var(--font-heading); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.2px; white-space: nowrap;
+    }
+    .subrow__pill[hidden] { display: none; }
+
+    .subrow.is-ok    { --sub-accent: #1f7a4d; --sub-tint: rgba(31,122,77,0.07); }
+    .subrow.is-soon  { --sub-accent: #b58100; --sub-tint: rgba(181,129,0,0.09); }
+    .subrow.is-grace { --sub-accent: #c2560f; --sub-tint: rgba(194,86,15,0.09); }
+    .subrow.is-off   { --sub-accent: #b02020; --sub-tint: rgba(176,32,32,0.09); }
+    .subrow.is-off .subrow__date { color: #b02020; }
+    .subrow.is-none  { --sub-accent: #c2c2c2; --sub-tint: rgba(20,20,20,0.03); }
+    .subrow.is-none .subrow__date { font-size: 14px; color: #9a9a9a; }
+
     .sub-cta {
       display: flex; align-items: center; justify-content: center; gap: 9px;
       width: 100%; margin-top: 14px; padding: 14px 20px; border-radius: 15px;
@@ -1549,12 +1585,19 @@
         <div class="srow"><span class="srow__k" data-i18n="WALLET_SETTINGS_PHONE">Phone</span><span class="srow__v" id="setOwnerPhone">—</span></div>
         <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_EMAIL">Email</span><span class="srow__v" id="setOwnerEmail">—</span></div>
         <div class="srow"><span class="srow__k" data-i18n="AUTH_LABEL_BUSINESS_NAME">Business name</span><span class="srow__v" id="setCafeName">—</span></div>
-        <div class="srow">
-          <span class="srow__k" data-i18n="OWNER_SUB">Subscription</span>
-          <span class="srow__v sub-v">
-            <b class="sub-v__state" id="setSubState">—</b>
-            <i class="sub-v__until" id="setSubUntil"></i>
+        <!-- Taller than a normal row, and without the "Subscription" key the
+             other rows carry: the caption underneath already says what the
+             date is, so the label was only crowding one edge while the other
+             sat empty. The pill moves to the far side to use that width. -->
+        <div class="srow subrow" id="setSubRow">
+          <span class="subrow__main">
+            <b class="subrow__state" id="setSubState">—</b>
+            <span class="subrow__when">
+              <i class="subrow__cap" id="setSubCap"></i>
+              <b class="subrow__date" id="setSubUntil"></b>
+            </span>
           </span>
+          <span class="subrow__pill" id="setSubPill" hidden></span>
         </div>
       </div>
       <!-- Label changes with the state (buy / renew / extend): the same button
@@ -1788,6 +1831,6 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=45"></script>
+  <script src="owner.page.js?v=51"></script>
 </body>
 </html>

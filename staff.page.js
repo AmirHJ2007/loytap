@@ -145,6 +145,12 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.tap_url) { fail(); return; }
+        // tell staff before a customer does
+        var bar = document.getElementById("suspendedBar");
+        if (bar) bar.hidden = !d.suspended;
+        // and mark the code itself, so it is obvious at arm's length
+        var plate = document.getElementById("qrPlate");
+        if (plate) plate.classList.toggle("is-dead", !!d.suspended);
         draw(d.tap_url);
       })
       .catch(fail);

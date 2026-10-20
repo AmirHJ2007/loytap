@@ -244,8 +244,26 @@ routerAdd("GET", "/staff/cafe", (e) => {
   // reloy.ir form notify.pb.js writes into the tag-programming email. app. is
   // deliberately not used: index.guard.js lets ?t= override the marketing
   // redirect, so this reaches the wallet even for a signed-out customer.
+  // Whether stamping is currently paused, so the staff panel can say so up
+  // front. A suspended café's stamp requests are refused before they ever
+  // reach this panel, which means without this the staff member's first clue
+  // would be a customer telling them it did not work.
+  let suspended = false;
+  try {
+    const sub = $app.findFirstRecordByFilter("subscriptions", "cafe = {:c}", { c: card.id });
+    if (sub) {
+      const st = sub.getString("status");
+      const rawEnd = st === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
+      const end = rawEnd ? new Date(String(rawEnd).replace(" ", "T")).getTime() : 0;
+      // same 7-day grace and same fail-open rule as card.pb.js; the two must
+      // agree or the banner lies about what the counter will actually do
+      suspended = !!end && Date.now() > end + 7 * 86400000;
+    }
+  } catch (err) { suspended = false; }
+
   return e.json(200, {
     cafe_name: card.getString("cafe_name"),
     tap_url: "https://reloy.ir/?t=" + tag.getString("code"),
+    suspended: suspended,
   });
 }, $apis.requireAuth());

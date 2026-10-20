@@ -186,6 +186,13 @@ const STRINGS = {
 
     // ---- staff.html / staff.js ----
     STAFF_TAB_SCAN: "Scan",
+    // Staff banner. Whoever reads this is standing in front of a customer
+    // whose stamp just failed, so it must explain the cause immediately —
+    // "something went wrong" makes them look incompetent for a bill they
+    // never saw.
+    STAFF_SUSPENDED_TITLE: "Stamping is paused",
+    STAFF_SUSPENDED_BODY: "This café's subscription has ended. Customers can still use rewards they already earned.",
+    STAFF_QR_DISABLED: "Not usable",
     STAFF_TAB_QR: "QR code",
     STAFF_QR_SUB: "Have the customer scan this",
     STAFF_QR_FOOT: "Point a phone camera at the code",
@@ -285,6 +292,23 @@ const STRINGS = {
     OWNER_SUB_BUY: "Buy a subscription",
     OWNER_SUB_RENEW: "Renew the subscription",
     OWNER_SUB_EXTEND: "Extend",
+    // the health line under the date — computed from the date itself, never
+    // from `status`, which nothing moves once a period simply runs out
+    OWNER_SUB_DAYS_LEFT: "{n} days left",
+    OWNER_SUB_LAST_DAY: "Last day",
+    OWNER_SUB_GRACE_LEFT: "Grace period — {n} days to renew",
+    OWNER_SUB_GRACE_LAST: "Grace period — last day",
+    OWNER_SUB_OFF: "Stamping is switched off",
+    // the date needs saying what happens ON it — a bare "01.10.26" tells an
+    // owner nothing, and the tense has to flip once it is in the past
+    OWNER_SUB_ENDS_CAP: "Subscription ends on",
+    OWNER_SUB_ENDED_CAP: "Subscription ended on",
+    OWNER_SUB_TRIAL_ENDS_CAP: "Free trial ends on",
+    OWNER_SUB_TRIAL_ENDED_CAP: "Free trial ended on",
+    OWNER_SUB_PILL_DAYS: "{n} days",
+    OWNER_SUB_PILL_LAST: "last day",
+    OWNER_SUB_PILL_GRACE: "{n} days to renew",
+    OWNER_SUB_PILL_OFF: "switched off",
     // Buy page. The selling copy is lifted from /business (for-business.js)
     // rather than rewritten, so an owner who read the site before signing up
     // sees the same promises here — and the two cannot drift apart in meaning.
@@ -319,6 +343,16 @@ const STRINGS = {
     ERR_PAY_NOT_CONFIGURED: "Payments are not set up yet.",
     ERR_PAY_GATEWAY_DOWN: "Could not reach the payment gateway. Try again in a moment.",
     ERR_PAY_REQUEST_REFUSED: "The payment gateway refused the request.",
+    // Shown to the CUSTOMER when their café's subscription has lapsed. Says
+    // what happened and what still works, and deliberately does not blame the
+    // café in front of its own customer.
+    ERR_CAFE_SUSPENDED: "Stamps are paused at this café right now. Rewards you have already earned still work.",
+    // The full-screen version. A café leaving is not an error the customer can
+    // retry, so it gets a screen of its own rather than a toast that vanishes.
+    WALLET_ENDED_TITLE: "We are very sorry",
+    WALLET_ENDED_BODY: "This place has ended its partnership with us.",
+    WALLET_ENDED_HINT: "To keep using Reloy, visit the places that still work with us.",
+    WALLET_ENDED_OK: "Got it",
     OWNER_BTN_SAVE: "Save",
     OWNER_BTN_EDIT: "Edit",
     OWNER_MINP_NOTE_HTML: "<b>⚠️ Your staff's responsibility:</b> we only display this on your loyalty card. We don't have access to your accounting system, so your staff must give a stamp only when the customer buys at least this amount.",
@@ -704,6 +738,9 @@ const STRINGS = {
 
     // ---- staff.html / staff.js ----
     STAFF_TAB_SCAN: "اسکن",
+    STAFF_SUSPENDED_TITLE: "جمع‌کردن مهر متوقف است",
+    STAFF_SUSPENDED_BODY: "اشتراک این کافه تمام شده است. مشتری‌ها همچنان می‌توانند از جایزه‌هایی که گرفته‌اند استفاده کنند.",
+    STAFF_QR_DISABLED: "غیرقابل استفاده",
     STAFF_TAB_QR: "کد QR",
     STAFF_QR_SUB: "از مشتری بخواهید این را اسکن کند",
     STAFF_QR_FOOT: "دوربین گوشی را روی کد بگیرید",
@@ -802,6 +839,19 @@ const STRINGS = {
     OWNER_SUB_BUY: "خرید اشتراک",
     OWNER_SUB_RENEW: "تمدید اشتراک",
     OWNER_SUB_EXTEND: "تمدید",
+    OWNER_SUB_DAYS_LEFT: "{n} روز باقی مانده",
+    OWNER_SUB_LAST_DAY: "آخرین روز",
+    OWNER_SUB_GRACE_LEFT: "مهلت تمدید — {n} روز باقی مانده",
+    OWNER_SUB_GRACE_LAST: "مهلت تمدید — آخرین روز",
+    OWNER_SUB_OFF: "جمع‌کردن مهر خاموش است",
+    OWNER_SUB_ENDS_CAP: "پایان اشتراک در",
+    OWNER_SUB_ENDED_CAP: "اشتراک تمام شد در",
+    OWNER_SUB_TRIAL_ENDS_CAP: "پایان دورهٔ آزمایشی در",
+    OWNER_SUB_TRIAL_ENDED_CAP: "دورهٔ آزمایشی تمام شد در",
+    OWNER_SUB_PILL_DAYS: "{n} روز",
+    OWNER_SUB_PILL_LAST: "آخرین روز",
+    OWNER_SUB_PILL_GRACE: "{n} روز مهلت",
+    OWNER_SUB_PILL_OFF: "خاموش",
     OWNER_BUY_TITLE: "همه‌چیز در یک اشتراک",
     OWNER_BUY_LEDE: "مشتری نامحدود، استمپ نامحدود، بدون کمیسیون. یک عدد ثابت در ماه.",
     OWNER_BUY_BACK: "بازگشت",
@@ -832,6 +882,11 @@ const STRINGS = {
     ERR_PAY_NOT_CONFIGURED: "پرداخت هنوز راه‌اندازی نشده است.",
     ERR_PAY_GATEWAY_DOWN: "درگاه پرداخت در دسترس نیست. کمی بعد دوباره تلاش کنید.",
     ERR_PAY_REQUEST_REFUSED: "درگاه پرداخت درخواست را نپذیرفت.",
+    ERR_CAFE_SUSPENDED: "جمع‌کردن مهر در این کافه فعلاً متوقف است. جایزه‌هایی که قبلاً گرفته‌اید همچنان معتبرند.",
+    WALLET_ENDED_TITLE: "بسیار از شما عذرخواهی می‌کنیم",
+    WALLET_ENDED_BODY: "متأسفانه این مجموعه همکاری‌اش را با ما به پایان رسانده است.",
+    WALLET_ENDED_HINT: "برای استفاده از ریلوی به مجموعه‌هایی که با ما همکاری می‌کنند سر بزنید.",
+    WALLET_ENDED_OK: "متوجه شدم",
     OWNER_BTN_SAVE: "ذخیره",
     OWNER_BTN_EDIT: "ویرایش",
     OWNER_MINP_NOTE_HTML: "<b>⚠️ مسئولیت کارمندان شما:</b> این مبلغ فقط روی کارت وفاداری نمایش داده می‌شود. ما به سیستم حسابداری شما دسترسی نداریم، پس کارمندان باید فقط وقتی مشتری حداقل این مبلغ را خرید کرد، مهر بزنند.",

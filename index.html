@@ -16,8 +16,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="styles.css?v=104" />
-  <script src="i18n.js?v=50"></script>
+  <link rel="stylesheet" href="styles.css?v=105" />
+  <script src="i18n.js?v=57"></script>
 </head>
 <body>
   <!-- Hidden SVG defs: rough-ink filter reused by every stamped star -->
@@ -126,6 +126,27 @@
   </div>
 
   <!-- Waiting for staff to confirm the tap (realtime, no refresh) -->
+  <!-- A café that has left. Shown INSTEAD of the waiting screen: the server
+       refuses the stamp outright, so there is no staff member to wait for and
+       nothing for the customer to retry. A toast would be the wrong size for
+       news this final. -->
+  <div class="ended" id="ended" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="endedTitle">
+    <div class="ended__card">
+      <span class="ended__glow" aria-hidden="true"></span>
+      <span class="ended__mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 40V14a2 2 0 0 1 2-2h12l3-4h11a2 2 0 0 1 2 2v30"/>
+          <path d="M5 40h38"/><path d="M18 40v-8h8v8"/>
+          <path d="M31 20l8 8M39 20l-8 8"/>
+        </svg>
+      </span>
+      <h2 class="ended__title" id="endedTitle" data-i18n="WALLET_ENDED_TITLE">We are very sorry</h2>
+      <p class="ended__body" data-i18n="WALLET_ENDED_BODY">This place has ended its partnership with us.</p>
+      <p class="ended__hint" data-i18n="WALLET_ENDED_HINT">To keep using Reloy, visit the places that still work with us.</p>
+      <button class="ended__ok" id="endedOk" type="button" data-i18n="WALLET_ENDED_OK">Got it</button>
+    </div>
+  </div>
+
   <div class="confirmwait" id="confirmWait" hidden aria-hidden="true">
     <div class="confirmwait__glow" aria-hidden="true"></div>
     <div class="confirmwait__card">
@@ -198,6 +219,6 @@
   <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
 
   <script src="qrcode.js"></script>
-  <script src="app.js?v=84"></script>
+  <script src="app.js?v=86"></script>
 </body>
 </html>

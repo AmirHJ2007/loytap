@@ -566,3 +566,45 @@ html[dir="rtl"] .tabbar__ind {
   .qr-stage { padding: 24px 20px 20px; gap: 18px; border-radius: 22px; }
 }
 @media (prefers-reduced-motion: reduce) { .qr-stage { animation: none; } }
+
+/* ---- subscription lapsed ----
+   Amber rather than red: nothing is broken, it is unpaid. The staff member
+   reading this is standing in front of a customer whose stamp just failed. */
+.suspended {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 0 0 14px; padding: 12px 14px; border-radius: 14px;
+  background: rgba(180, 120, 20, 0.1);
+  border: 1px solid rgba(180, 120, 20, 0.3);
+  color: #8a5a10;
+}
+.suspended[hidden] { display: none; }
+.suspended svg { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+.suspended b { display: block; font-family: var(--font-heading); font-size: 13.5px; font-weight: 800; }
+.suspended span { display: block; font-size: 11.5px; line-height: 1.5; margin-top: 2px; opacity: 0.9; }
+
+/* ---- QR disabled while the subscription is lapsed ----
+   Red here, unlike the amber banner above: amber says "there is a billing
+   problem", this says "do not hold this up to a customer". The code is still
+   drawn underneath rather than blanked — staff recognise the shape, and a
+   missing QR reads as the app being broken instead of the plan being over. */
+.qr-dead { display: none; }
+.qr-plate.is-dead .qr-dead {
+  position: absolute; inset: 0; z-index: 3;
+  display: grid; place-items: center;
+  border-radius: inherit;
+  background: rgba(176, 32, 32, 0.14);
+  border: 2px solid rgba(176, 32, 32, 0.75);
+}
+/* the code behind goes grey and faint, so it plainly is not for scanning */
+.qr-plate.is-dead .qr-plate__code { filter: grayscale(1); opacity: 0.3; }
+.qr-plate.is-dead .qr-corner { border-color: rgba(176, 32, 32, 0.6); }
+.qr-dead__tag {
+  /* sized to be read at arm's length — this is what stops a staff member
+     holding the plate up to a customer, so it has to win over the code
+     behind it rather than sit politely on top of it */
+  padding: 12px 24px; border-radius: 14px;
+  background: #b02020; color: #fff;
+  font-family: var(--font-heading); font-size: 19px; font-weight: 800;
+  letter-spacing: 0.2px; transform: rotate(-6deg);
+  box-shadow: 0 12px 26px -8px rgba(120, 10, 10, 0.85);
+}

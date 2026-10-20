@@ -13,8 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <link rel="stylesheet" href="staff.css?v=20" />
-  <script src="i18n.js?v=50"></script>
+  <link rel="stylesheet" href="staff.css?v=23" />
+  <script src="i18n.js?v=57"></script>
 </head>
 <body>
   <div class="bg" aria-hidden="true"><span class="stain stain--1"></span><span class="stain stain--2"></span><span class="grain"></span></div>
@@ -107,8 +107,19 @@
          page to scan, and index 0 is a position, not a default (the owner
          panel lands on Card at index 1 for the same reason). Drop the content
          in here; the bar, indicator and switching already work. -->
+
     <section class="panel" id="panelQr" hidden>
       <div class="qr-card">
+    <!-- Inside the QR panel only. The Scan tab still works when the subscription
+           has lapsed — that is where staff redeem rewards customers already
+           earned — so a "stamping is paused" notice over it would be a lie. -->
+    <div class="suspended" id="suspendedBar" hidden role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.4" r="0.6" fill="currentColor" stroke="none"/></svg>
+      <div>
+        <b data-i18n="STAFF_SUSPENDED_TITLE">Stamping is paused</b>
+        <span data-i18n="STAFF_SUSPENDED_BODY">This café's subscription has ended.</span>
+      </div>
+    </div>
         <!-- The dark stage is the whole idea. The scan tab's hero is a dark
              viewport showing what the camera sees; this tab's hero is the same
              dark field showing what the customer should look at. It also does
@@ -120,12 +131,18 @@
           <!-- opaque white, not the glass the rest of the page uses: a QR is
                read by a camera and contrast is the whole job. The brackets
                echo the scanner's own corner marks on the other tab. -->
-          <div class="qr-plate">
+          <div class="qr-plate" id="qrPlate">
             <span class="qr-corner tl" aria-hidden="true"></span>
             <span class="qr-corner tr" aria-hidden="true"></span>
             <span class="qr-corner bl" aria-hidden="true"></span>
             <span class="qr-corner br" aria-hidden="true"></span>
             <div class="qr-plate__code" id="qrCode" role="img" aria-label="QR code" data-i18n-aria="STAFF_QR_ARIA"></div>
+            <!-- Covers the code itself when the subscription has lapsed. The
+                 banner above says why; this stops a staff member holding up a
+                 QR that will refuse every customer who scans it. -->
+            <span class="qr-dead" aria-hidden="true">
+              <span class="qr-dead__tag" data-i18n="STAFF_QR_DISABLED">Not usable</span>
+            </span>
           </div>
           <p class="qr-stage__line" data-i18n="STAFF_QR_SUB">Have the customer scan this</p>
         </div>
@@ -175,7 +192,7 @@
        different libraries, both needed. qrcode.js must come before
        staff.page.js, which calls it on load to draw the code. -->
   <script src="qrcode.js"></script>
-  <script src="staff.page.js?v=12"></script>
+  <script src="staff.page.js?v=15"></script>
   <script src="jsQR.js"></script>
   <script src="staff.js?v=14"></script>
   <script src="staff.push.js?v=4"></script>

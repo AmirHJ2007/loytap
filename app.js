@@ -409,6 +409,35 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // enough on its own). We surface that café's card to the front of the wallet
 // — creating it with a slide-in if this is the first visit — then show a
 // live "waiting for staff" screen that resolves the instant staff responds.
+// Shown when the server refuses a stamp because the café's subscription ended.
+function showEnded() {
+  const box = document.getElementById("ended");
+  if (!box) return;
+  box.hidden = false;
+  box.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => box.classList.add("is-on"));
+  document.addEventListener("keydown", endedKeys);
+}
+
+function hideEnded() {
+  const box = document.getElementById("ended");
+  if (!box || box.hidden) return;
+  box.classList.remove("is-on");
+  box.setAttribute("aria-hidden", "true");
+  setTimeout(() => { box.hidden = true; }, 360);
+  document.removeEventListener("keydown", endedKeys);
+}
+
+function endedKeys(e) { if (e.key === "Escape") hideEnded(); }
+
+(function wireEnded() {
+  const ok = document.getElementById("endedOk");
+  const box = document.getElementById("ended");
+  if (ok) ok.addEventListener("click", hideEnded);
+  // tapping the dim surround dismisses too, but not a tap on the card
+  if (box) box.addEventListener("click", (e) => { if (e.target === box) hideEnded(); });
+})();
+
 async function handleTap(tagCode) {
   if (busy || !tagCode) return;
   busy = true;
@@ -423,6 +452,10 @@ async function handleTap(tagCode) {
     if (!r.ok) throw new Error((res && res.error) || "stamp failed");
   } catch (err) {
     busy = false;
+    // A café that has left gets its own screen rather than a toast: the
+    // customer tapped expecting a stamp, there is no staff member to wait for,
+    // and there is nothing they can retry. Everything else stays a toast.
+    if (res && res.code === "CAFE_SUSPENDED") { showEnded(); return; }
     // tErr picks the translated string for res.code and only falls back to the
     // server's English when this build has no entry for it (see i18n.js)
     if (res && (res.code || res.error)) toast(tErr(res, "ERR_SAVE_FAILED"));

@@ -1024,41 +1024,82 @@
     // a trial has never paid, a lapsed one is being asked to come back, and a
     // café already paid up is only being offered more time — so that last one
     // steps back to an outline instead of selling at someone who already bought.
-    function paintSubCta(sub) {
+    function paintSubCta(sub, health) {
       const btn = $("subBuy"), label = $("subBuyLabel");
       if (!btn || !label) return;
       const status = (sub && sub.status) || "none";
-      const key = status === "active" ? "OWNER_SUB_EXTEND"
+      // health wins over status: a café inside its grace reads `active`, and
+      // offering it a quiet "extend" would understate the situation
+      const lapsing = health === "is-grace" || health === "is-off";
+      const key = lapsing ? "OWNER_SUB_RENEW"
+        : status === "active" ? "OWNER_SUB_EXTEND"
         : (status === "past_due" || status === "expired" || status === "cancelled") ? "OWNER_SUB_RENEW"
         : "OWNER_SUB_BUY";
       label.textContent = t(key);
-      btn.classList.toggle("is-quiet", status === "active");
+      // Solid from the yellow state onwards. The quiet outline is for a café
+      // with real time left and nothing to do; once the row has started
+      // warning, the way to act on it should not be the faintest thing on the
+      // screen. Green is the only state that gets the understated button.
+      btn.classList.toggle("is-quiet", health === "is-ok");
     }
 
+    // The row's colour comes from the DATE, not from `status`. Nothing moves
+    // a subscription out of `active` when its period simply runs out — only a
+    // payment rewrites that field — so trusting the status here would paint a
+    // lapsed café green while the counter refuses its customers.
+    const GRACE_DAYS = 7;                       // must match card.pb.js
     function paintSubscription(sub) {
-      const stateEl = $("setSubState"), untilEl = $("setSubUntil");
-      if (!stateEl || !untilEl) return;
+      const row = $("setSubRow"), stateEl = $("setSubState"), pill = $("setSubPill"),
+            capEl = $("setSubCap"), dateEl = $("setSubUntil");
+      if (!row || !stateEl || !pill || !capEl || !dateEl) return;
+      buySub = sub;
+
       if (!sub || !sub.status) {
+        row.className = "srow subrow is-none";
         stateEl.textContent = t("OWNER_SUB_NONE");
-        untilEl.textContent = "";
-        stateEl.className = "sub-v__state is-none";
+        pill.hidden = true;
+        capEl.textContent = "";
+        dateEl.textContent = "—";
         paintSubCta(null);
-        buySub = null;
         return;
       }
-      const key = sub.status === "active"
-        ? (sub.plan === "yearly" ? "OWNER_SUB_ACTIVE_YEARLY" : "OWNER_SUB_ACTIVE")
-        : (SUB_STATE[sub.status] || "OWNER_SUB_NONE");
-      stateEl.textContent = t(key);
-      stateEl.className = "sub-v__state is-" + sub.status;
-      // the server already picked the date that matters for this status; a
-      // finished subscription reads "ended", a live one "until"
-      paintSubCta(sub);
-      buySub = sub;
-      const over = sub.status === "expired" || sub.status === "cancelled";
-      untilEl.textContent = sub.until
-        ? t(over ? "OWNER_SUB_ENDED" : "OWNER_SUB_UNTIL", { date: subDate(sub.until) })
+
+      const trial = sub.status === "trialing";
+      stateEl.textContent = t(trial ? "OWNER_SUB_TRIAL"
+        : sub.status === "active" ? (sub.plan === "yearly" ? "OWNER_SUB_ACTIVE_YEARLY" : "OWNER_SUB_ACTIVE")
+        : (SUB_STATE[sub.status] || "OWNER_SUB_NONE"));
+
+      // whole days, rounded UP: with six hours left an owner has "1 day", not 0
+      const endMs = sub.until ? new Date(String(sub.until).replace(" ", "T")).getTime() : 0;
+      const days = endMs ? Math.ceil((endMs - Date.now()) / 86400000) : null;
+      const past = days !== null && days <= 0;
+
+      // the caption carries the meaning the date cannot carry alone, and flips
+      // tense once the date is behind them
+      capEl.textContent = endMs
+        ? t(trial ? (past ? "OWNER_SUB_TRIAL_ENDED_CAP" : "OWNER_SUB_TRIAL_ENDS_CAP")
+                  : (past ? "OWNER_SUB_ENDED_CAP" : "OWNER_SUB_ENDS_CAP"))
         : "";
+      dateEl.textContent = sub.until ? subDate(sub.until) : "—";
+
+      let health = "is-ok", badge = "";
+      if (days === null) {
+        health = "is-none";
+      } else if (days > GRACE_DAYS) {
+        health = "is-ok";  badge = t("OWNER_SUB_PILL_DAYS", { n: days });
+      } else if (days > 0) {
+        health = "is-soon";
+        badge = days === 1 ? t("OWNER_SUB_PILL_LAST") : t("OWNER_SUB_PILL_DAYS", { n: days });
+      } else if (days > -GRACE_DAYS) {
+        health = "is-grace";
+        badge = t("OWNER_SUB_PILL_GRACE", { n: GRACE_DAYS + days });
+      } else {
+        health = "is-off";  badge = t("OWNER_SUB_PILL_OFF");
+      }
+      row.className = "srow subrow " + health;
+      pill.textContent = badge;
+      pill.hidden = !badge;
+      paintSubCta(sub, health);
     }
 
     const plural1 = (n, one, many) => t(n === 1 ? one : many);

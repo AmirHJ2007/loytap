@@ -950,6 +950,81 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 }
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------------- Café has left ---------------- */
+/* Its own screen, not a toast. The customer tapped expecting a stamp and is
+   getting a refusal they cannot act on, so it needs room to apologise and
+   then point somewhere useful. */
+.ended {
+  position: fixed; inset: 0; z-index: 270;
+  display: grid; grid-template-rows: minmax(0, 1fr); place-items: center;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 18px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: rgba(14, 14, 16, 0.72);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity 0.35s ease;
+}
+.ended.is-on { opacity: 1; }
+.ended[hidden] { display: none; }
+
+.ended__card {
+  position: relative; overflow: hidden;
+  width: min(100%, 360px); padding: 30px 24px 22px;
+  border-radius: 28px; text-align: center;
+  background: linear-gradient(170deg, #26292e, #101215);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 40px 70px -30px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.12);
+  transform: translateY(22px) scale(0.95);
+  transition: transform 0.6s var(--ease-spring);
+}
+.ended.is-on .ended__card { transform: none; }
+/* one slow warm glow — an apology should not feel like an error dialog */
+.ended__glow {
+  position: absolute; top: -45%; left: 50%; width: 150%; height: 120%;
+  transform: translateX(-50%); pointer-events: none;
+  background: radial-gradient(closest-side, rgba(230,160,90,0.17), transparent);
+}
+.ended__mark {
+  position: relative; display: grid; place-items: center;
+  width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 24px;
+  color: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.ended__mark svg { width: 38px; height: 38px; }
+.ended.is-on .ended__mark { animation: endedMark 0.7s var(--ease-spring) 0.12s both; }
+@keyframes endedMark { from { transform: scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.ended__title {
+  position: relative; font-family: var(--font-heading);
+  font-size: 19px; font-weight: 800; color: #fff; margin: 0 0 10px; letter-spacing: -0.2px;
+}
+.ended__body { position: relative; font-size: 13.5px; color: rgba(255,255,255,0.88); margin: 0 0 8px; line-height: 1.65; }
+.ended__hint { position: relative; font-size: 12.5px; color: rgba(255,255,255,0.58); margin: 0 0 22px; line-height: 1.65; }
+.ended.is-on .ended__title,
+.ended.is-on .ended__body,
+.ended.is-on .ended__hint { animation: endedUp 0.55s var(--ease-spring) both; }
+.ended.is-on .ended__title { animation-delay: 0.2s; }
+.ended.is-on .ended__body  { animation-delay: 0.28s; }
+.ended.is-on .ended__hint  { animation-delay: 0.36s; }
+@keyframes endedUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.ended__ok {
+  position: relative; width: 100%; border: 0; cursor: pointer;
+  padding: 14px 18px; border-radius: 15px;
+  font-family: var(--font-heading); font-size: 14.5px; font-weight: 800;
+  color: #16181b; background: #fff;
+  box-shadow: 0 12px 24px -12px rgba(0,0,0,0.6);
+  transition: transform 0.14s ease;
+}
+.ended__ok:active { transform: translateY(1px) scale(0.985); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ended, .ended__card { transition-duration: 0.01ms; }
+  .ended.is-on .ended__mark,
+  .ended.is-on .ended__title,
+  .ended.is-on .ended__body,
+  .ended.is-on .ended__hint { animation: none; }
+}
+
 /* ================= Glassy bottom navigation ================= */
 /* discounts now live in the tab bar; retire the top-corner buttons */
 .pocket-btn { display: none; }

@@ -52,6 +52,36 @@ routerAdd("POST", "/card/stamp/request", (e) => {
   try { cafe = $app.findRecordById("cafe_card", cafeId); } catch (err) { cafe = null; }
   if (!cafe) return e.json(400, { error: "This card isn't recognised.", code: "CARD_UNKNOWN" });
 
+  // Subscription gate. A café whose plan ran out — and whose 7-day grace also
+  // ran out — can no longer GRANT stamps. Rewards already earned stay valid
+  // and redeemable: a customer must never lose a coffee they worked for
+  // because their café did not pay an invoice.
+  //
+  // FAILS OPEN. A café with no subscription row at all keeps working, and the
+  // gap is logged instead. Every café gets a row at registration and the
+  // backfill gave one to the rest, so a missing row means OUR bookkeeping
+  // broke — and breaking a working café at the counter is far worse than
+  // letting an unbilled one carry on until someone notices the log.
+  const GRACE_MS = 7 * 86400000;
+  let sub = null;
+  try { sub = $app.findFirstRecordByFilter("subscriptions", "cafe = {:c}", { c: cafeId }); } catch (err) { sub = null; }
+  if (!sub) {
+    $app.logger().warn("stamping a café with no subscription row", "cafe", cafeId);
+  } else {
+    const st = sub.getString("status");
+    // whichever period the café is actually inside decides the deadline
+    const rawEnd = st === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
+    const end = rawEnd ? new Date(String(rawEnd).replace(" ", "T")).getTime() : 0;
+    // an end date we cannot read is treated as "no deadline", for the same
+    // fail-open reason as above
+    if (end && Date.now() > end + GRACE_MS) {
+      return e.json(402, {
+        error: "This café's subscription has ended, so new stamps are paused.",
+        code: "CAFE_SUSPENDED",
+      });
+    }
+  }
+
   const logoName = cafe.getString("logo");
   const cafeEcho = {
     id: cafe.id,
