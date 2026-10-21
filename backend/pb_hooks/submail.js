@@ -222,4 +222,75 @@ function shutdown(o) {
   };
 }
 
-module.exports = { renewalReminder, graceStarted, shutdown, esc };
+// ---------------------------------------------------------------------------
+// 4. the receipt — money actually moved
+// ---------------------------------------------------------------------------
+// The one email here that reports something good, and the only one an owner is
+// likely to keep. So it leads with the thanks and carries the numbers as a
+// table rather than the single `fact` panel the others use: a receipt is read
+// by scanning down a column for one value, usually the reference number when
+// something needs chasing.
+//
+// WHY THE REFERENCE NUMBER IS THE HERO. Everything else on the receipt we also
+// hold in our own database, so an owner asking "did my payment go through"
+// could be answered from the panel. The ZarinPal ref_id is the only line that
+// means anything to ZarinPal or to a bank, which makes it the one thing worth
+// keeping an email for. It is given its own emphasis and left-to-right, since
+// it is a Latin/numeric token inside a Persian page.
+//
+function paymentReceipt(o) {
+  const rows = [
+    ["کافه", o.cafe],
+    ["طرح", o.planLabel],
+    ["مبلغ", o.amount + " تومان"],
+    ["تاریخ پرداخت", o.paidAt],
+    ["شماره پیگیری", o.refId],
+    ["اشتراک تا", o.endDate],
+  ];
+
+  // A receipt is a column of label/value pairs. Borders between rows rather
+  // than around the block: the eye is travelling down one axis.
+  const table =
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"' +
+    ' style="margin:16px 0;background:#fafafa;border-radius:12px;">' +
+    rows.map(function (r, i) {
+      const last = i === rows.length - 1;
+      const isRef = r[0] === "شماره پیگیری";
+      return '<tr>' +
+        '<td align="right" style="padding:11px 14px;font-size:12px;color:' + FAINT +
+          ';line-height:1.8;white-space:nowrap;' + (last ? '' : 'border-bottom:1px solid #efefef;') + '">' +
+          esc(r[0]) + '</td>' +
+        // LTR + a monospace stack for the reference: it is digits, and a
+        // Persian paragraph would otherwise reorder a long number around the
+        // punctuation inside it.
+        '<td align="left" style="padding:11px 14px;font-size:' + (isRef ? '15' : '14') +
+          'px;font-weight:700;color:' + INK + ';line-height:1.8;' +
+          (isRef ? 'direction:ltr;font-family:Menlo,Consolas,monospace;' : '') +
+          (last ? '' : 'border-bottom:1px solid #efefef;') + '">' +
+          esc(r[1]) + '</td>' +
+        '</tr>';
+    }).join("") +
+    '</table>';
+
+
+  return {
+    subject: "رسید پرداخت اشتراک " + o.cafe,
+    body: shell({
+      accent: "#1f7a4d",
+      cafe: o.cafe,
+      title: "پرداخت شما دریافت شد",
+      preheader: "رسید پرداخت " + o.amount + " تومان — شماره پیگیری " + o.refId,
+      body: [
+        "<p style='margin:0 0 10px;'>سلام،</p>",
+        "<p style='margin:0 0 10px;'>از اینکه ریلوی را انتخاب کردید سپاسگزاریم. پرداخت شما با موفقیت انجام شد و اشتراک ",
+        esc(o.cafe), " فعال است.</p>",
+        table,
+        "<p style='margin:0;'>این رسید را نزد خود نگه دارید؛ برای هر پیگیری، شماره بالا لازم است.</p>",
+      ].join(""),
+      cta: { label: "مشاهده پنل", url: o.url },
+      foot: "اگر سوالی دربارهٔ این پرداخت دارید، کافی است به همین ایمیل پاسخ دهید.",
+    }),
+  };
+}
+
+module.exports = { renewalReminder, graceStarted, shutdown, paymentReceipt, esc };

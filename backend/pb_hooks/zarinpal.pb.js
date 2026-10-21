@@ -186,12 +186,24 @@ routerAdd("GET", "/zarinpal/callback", (e) => {
   const now = new Date();
   const MONTH_MS = 30 * 86400000, YEAR_MS = 365 * 86400000;
 
+  // Filled in ONLY by the invocation that actually moves the row to paid, and
+  // read after the transaction commits. Two things depend on that:
+  //
+  //   exactly once   the `return` below is the race guard between two
+  //                  callbacks for the same authority. Hanging the receipt off
+  //                  the same guard means a café is thanked once, not twice.
+  //   never early    queueing inside the transaction would send a receipt for
+  //                  a payment a rollback then threw away. Mail cannot be
+  //                  unsent; a database row can be.
+  let receipt = null;
+
   $app.runInTransaction((tx) => {
     const p = tx.findRecordById("payments", pay.id);
     if (p.getString("status") === "paid") return;        // raced with another callback
     p.set("status", "paid");
     p.set("ref_id", String(data.ref_id || ""));
     p.set("paid_at", now.toISOString().replace("T", " "));
+
     tx.save(p);
 
     const cafeId = p.getString("cafe");
@@ -216,7 +228,77 @@ routerAdd("GET", "/zarinpal/callback", (e) => {
     s.set("current_period_end", end.toISOString().replace("T", " "));
     s.set("amount", p.getInt("amount"));
     tx.save(s);
+
+    receipt = {
+      payId: p.id,
+      cafeId: cafeId,
+      ownerId: p.getString("owner_user"),
+      plan: p.getString("plan"),
+      amount: p.getInt("amount"),
+      refId: String(data.ref_id || ""),
+      endMs: end.getTime(),
+    };
   });
+
+  // ---- the receipt -------------------------------------------------------
+  //
+  // Wrapped whole and never allowed to throw. The money has already moved and
+  // the subscription is already extended by this point; an owner who paid must
+  // land back on a working panel even if the mail system is broken. A failure
+  // here costs a receipt, and the payment row still holds every number it
+  // would have carried.
+  if (receipt) {
+    try {
+      const mail = require(`${__hooks}/submail.js`);
+
+      let owner = null;
+      try { owner = $app.findRecordById("users", receipt.ownerId); } catch (err) { owner = null; }
+      const to = owner ? String(owner.getString("email") || "").trim() : "";
+
+      let cafeName = "";
+      try { cafeName = $app.findRecordById("cafe_card", receipt.cafeId).getString("cafe_name"); } catch (err) { cafeName = ""; }
+
+      if (!to) {
+        // Not an error: some owner rows carry a placeholder address. Logged
+        // because a café that paid and got no receipt is worth knowing about.
+        $app.logger().warn("payment receipt skipped, no owner email",
+          "cafe", receipt.cafeId, "ref", receipt.refId);
+      } else {
+        // Tehran, and Gregorian — Goja has no Intl and no Persian calendar.
+        // Same limitation as the reminder emails; see the note in submail.js.
+        const IRAN_OFF = 3.5 * 3600000;
+        const z = (n) => (n < 10 ? "0" + n : "" + n);
+        const shown = (ms) => {
+          const d = new Date(ms + IRAN_OFF);
+          return z(d.getUTCDate()) + "." + z(d.getUTCMonth() + 1) + "." + String(d.getUTCFullYear()).slice(2);
+        };
+        // 3000000 -> "3,000,000". The owner is checking this against a bank
+        // SMS, so it has to be groupable at a glance.
+        const grouped = String(receipt.amount).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+        const origin = $os.getenv("APP_ORIGIN") || "https://reloy.ir";
+        const letter = mail.paymentReceipt({
+          cafe: cafeName,
+          planLabel: receipt.plan === "yearly" ? "سالانه" : "ماهانه",
+          amount: grouped,
+          paidAt: shown(now.getTime()),
+          refId: receipt.refId || "—",
+          endDate: shown(receipt.endMs),
+          url: origin + "/owner",
+        });
+
+        const row = new Record($app.findCollectionByNameOrId("mail_outbox"));
+        row.set("to", to);
+        row.set("subject", letter.subject);
+        row.set("body", letter.body);
+        row.set("sent", false);
+        row.set("attempts", 0);
+        $app.save(row);
+      }
+    } catch (err) {
+      $app.logger().error("payment receipt failed", "ref", receipt.refId, "error", String(err));
+    }
+  }
 
   return e.redirect(302, home + "ok");
 });
