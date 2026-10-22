@@ -6,7 +6,7 @@
 .pattern { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 .pattern__ink {
   position: absolute; inset: 0;
-  /* the pattern colour: white at the café's chosen strength (4–22 %) */
+  /* the pattern colour: white at the café's chosen strength (4–40 %) */
   background: rgba(255, 255, 255, var(--pat-strength, 0.12));
 }
 

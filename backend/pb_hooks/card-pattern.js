@@ -48,7 +48,7 @@ var PATTERNS = {
 var FADES = ["none", "top", "corner"];
 var PLACES = ["top", "bottom"];
 var UPRIGHT_PLACES = ["bottom", "center"];
-var MIN_STRENGTH = 4, MAX_STRENGTH = 22, DEFAULT_STRENGTH = 12;
+var MIN_STRENGTH = 4, MAX_STRENGTH = 40, DEFAULT_STRENGTH = 12;
 
 // Which layout a pattern actually supports, regardless of what was asked for.
 function layoutFor(p, wanted) {

@@ -17,24 +17,16 @@
     "id": "beans",
     "name": "دانهٔ قهوه",
     "group": "کافه",
-    "tile": "patterns/beans-tile.png",
-    "motif": "patterns/beans.png",
+    "tile": "patterns/beans-tile.webp",
+    "motif": "patterns/beans.webp",
     "size": 80
-  },
-  {
-    "id": "leaves",
-    "name": "برگ",
-    "group": "کافه",
-    "tile": "patterns/leaves-tile.png",
-    "motif": "patterns/leaves.png",
-    "size": 76
   },
   {
     "id": "cups",
     "name": "فنجان",
     "group": "کافه",
-    "tile": "patterns/cups-tile.png",
-    "motif": "patterns/cups.png",
+    "tile": "patterns/cups-tile.webp",
+    "motif": "patterns/cups.webp",
     "size": 76,
     "upright": true,
     "drop": "-22%"
@@ -43,8 +35,8 @@
     "id": "iced",
     "name": "قهوه سرد",
     "group": "کافه",
-    "tile": "patterns/iced-tile.png",
-    "motif": "patterns/iced.png",
+    "tile": "patterns/iced-tile.webp",
+    "motif": "patterns/iced.webp",
     "size": 72,
     "upright": true,
     "drop": "-36%"
@@ -53,16 +45,16 @@
     "id": "tamper",
     "name": "تمپر",
     "group": "کافه",
-    "tile": "patterns/tamper-tile.png",
-    "motif": "patterns/tamper.png",
+    "tile": "patterns/tamper-tile.webp",
+    "motif": "patterns/tamper.webp",
     "size": 72
   },
   {
     "id": "grinder",
     "name": "آسیاب",
     "group": "کافه",
-    "tile": "patterns/grinder-tile.png",
-    "motif": "patterns/grinder.png",
+    "tile": "patterns/grinder-tile.webp",
+    "motif": "patterns/grinder.webp",
     "size": 72,
     "upright": true,
     "drop": "-38%"
@@ -71,16 +63,25 @@
     "id": "espresso",
     "name": "دستگاه قهوه",
     "group": "کافه",
-    "motif": "patterns/espresso.png",
+    "motif": "patterns/espresso.webp",
     "upright": true,
-    "motifOnly": true
+    "motifOnly": true,
+    "drop": "-38%"
+  },
+  {
+    "id": "croissant",
+    "name": "کروسان",
+    "group": "کافه",
+    "tile": "patterns/croissant-tile.webp",
+    "motif": "patterns/croissant.webp",
+    "size": 88
   },
   {
     "id": "cutlery",
     "name": "قاشق و چنگال",
     "group": "رستوران",
-    "tile": "patterns/cutlery-tile.png",
-    "motif": "patterns/cutlery.png",
+    "tile": "patterns/cutlery-tile.webp",
+    "motif": "patterns/cutlery.webp",
     "size": 72,
     "upright": true,
     "drop": "-34%"
@@ -89,72 +90,32 @@
     "id": "forkknife",
     "name": "چنگال و کارد",
     "group": "رستوران",
-    "tile": "patterns/forkknife-tile.png",
-    "motif": "patterns/forkknife.png",
+    "tile": "patterns/forkknife-tile.webp",
+    "motif": "patterns/forkknife.webp",
     "size": 72
   },
   {
     "id": "pizza",
     "name": "پیتزا",
     "group": "رستوران",
-    "tile": "patterns/pizza-tile.png",
-    "motif": "patterns/pizza.png",
+    "tile": "patterns/pizza-tile.webp",
+    "motif": "patterns/pizza.webp",
     "size": 74
-  },
-  {
-    "id": "croissant",
-    "name": "کروسان",
-    "group": "رستوران",
-    "tile": "patterns/croissant-tile.png",
-    "motif": "patterns/croissant.png",
-    "size": 88
   },
   {
     "id": "burger",
     "name": "همبرگر",
     "group": "رستوران",
-    "tile": "patterns/burger-tile.png",
-    "motif": "patterns/burger.png",
+    "tile": "patterns/burger-tile.webp",
+    "motif": "patterns/burger.webp",
     "size": 76
-  },
-  {
-    "id": "girih",
-    "name": "گره‌چینی",
-    "group": "ایرانی",
-    "tile": "patterns/girih-tile.svg",
-    "motif": "patterns/girih.svg",
-    "size": 54
-  },
-  {
-    "id": "lattice",
-    "name": "کاشی",
-    "group": "ایرانی",
-    "tile": "patterns/lattice-tile.svg",
-    "motif": "patterns/lattice.svg",
-    "size": 46
-  },
-  {
-    "id": "brick",
-    "name": "آجری",
-    "group": "ایرانی",
-    "tile": "patterns/brick-tile.svg",
-    "size": 60,
-    "tileOnly": true
-  },
-  {
-    "id": "basket",
-    "name": "آجر حصیری",
-    "group": "ایرانی",
-    "tile": "patterns/basket-tile.svg",
-    "size": 64,
-    "tileOnly": true
   },
   {
     "id": "moon",
     "name": "ماه",
     "group": "آسمان",
-    "tile": "patterns/moon-tile.png",
-    "motif": "patterns/moon.png",
+    "tile": "patterns/moon-tile.webp",
+    "motif": "patterns/moon.webp",
     "size": 70
   },
   {
@@ -169,8 +130,8 @@
     "id": "saturn",
     "name": "زحل",
     "group": "آسمان",
-    "tile": "patterns/saturn-tile.png",
-    "motif": "patterns/saturn.png",
+    "tile": "patterns/saturn-tile.webp",
+    "motif": "patterns/saturn.webp",
     "size": 96
   },
   {
@@ -208,20 +169,60 @@
     "size": 26
   },
   {
+    "id": "girih",
+    "name": "گره‌چینی",
+    "group": "خط و نقش",
+    "tile": "patterns/girih-tile.svg",
+    "motif": "patterns/girih.svg",
+    "size": 54
+  },
+  {
+    "id": "lattice",
+    "name": "کاشی",
+    "group": "خط و نقش",
+    "tile": "patterns/lattice-tile.svg",
+    "motif": "patterns/lattice.svg",
+    "size": 46
+  },
+  {
+    "id": "brick",
+    "name": "آجری",
+    "group": "خط و نقش",
+    "tile": "patterns/brick-tile.svg",
+    "size": 60,
+    "tileOnly": true
+  },
+  {
+    "id": "basket",
+    "name": "آجر حصیری",
+    "group": "خط و نقش",
+    "tile": "patterns/basket-tile.svg",
+    "size": 64,
+    "tileOnly": true
+  },
+  {
     "id": "tree",
     "name": "درخت",
     "group": "طبیعت",
-    "motif": "patterns/tree.png",
+    "motif": "patterns/tree.webp",
     "upright": true,
     "drop": "-36%",
     "motifOnly": true
   },
   {
+    "id": "leaves",
+    "name": "برگ",
+    "group": "طبیعت",
+    "tile": "patterns/leaves-tile.webp",
+    "motif": "patterns/leaves.webp",
+    "size": 76
+  },
+  {
     "id": "sea",
     "name": "موج دریا",
     "group": "طبیعت",
-    "tile": "patterns/sea-tile.png",
-    "motif": "patterns/sea.png",
+    "tile": "patterns/sea-tile.webp",
+    "motif": "patterns/sea.webp",
     "size": 96,
     "upright": true,
     "drop": "-22%"
@@ -230,8 +231,8 @@
     "id": "flower",
     "name": "گل",
     "group": "طبیعت",
-    "tile": "patterns/flower-tile.png",
-    "motif": "patterns/flower.png",
+    "tile": "patterns/flower-tile.webp",
+    "motif": "patterns/flower.webp",
     "size": 78
   }
 ];
@@ -245,7 +246,7 @@
   var FADES = ["none", "top", "corner"];            // tile layout only
   var PLACES = ["top", "bottom"];                   // motif layout, normal drawings
   var UPRIGHT_PLACES = ["bottom", "center"];        // motif layout, drawings that stand on their feet
-  var MIN_STRENGTH = 4, MAX_STRENGTH = 22, DEFAULT_STRENGTH = 12;
+  var MIN_STRENGTH = 4, MAX_STRENGTH = 40, DEFAULT_STRENGTH = 12;
 
   // Which layout a pattern actually uses: "art" fills the whole card, some are motif-only
   // or tile-only, the rest follow the café's choice.
