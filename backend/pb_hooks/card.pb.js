@@ -58,6 +58,7 @@ routerAdd("POST", "/card/stamp/request", (e) => {
     name: cafe.getString("cafe_name"),
     tagline: cafe.getString("tagline"),
     accent: cafe.getString("accent") || "#171717",
+    pattern: require(`${__hooks}/card-pattern.js`).read(cafe),
     // ready-to-use URL — this payload isn't a raw record, so the client has no
     // collectionId to build one from (see fileUrl() in app.js)
     logo: logoName ? "/api/files/" + cafe.collection().id + "/" + cafe.id + "/" + logoName + "?thumb=240x240" : "",
@@ -367,6 +368,7 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
         name: cafe.getString("cafe_name"),
         tagline: cafe.getString("tagline"),
         accent: cafe.getString("accent") || "#171717",
+    pattern: require(`${__hooks}/card-pattern.js`).read(cafe),
         stamps_required: required,
         min_purchase: cafe.getInt("min_purchase"),
         theme: cafe.getString("theme"),

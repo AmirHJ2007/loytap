@@ -70,6 +70,9 @@
           identAccentSel = d.accent || "#171717";
           setIdentAccentUI(identAccentSel);
           savedCafeName = d.cafe_name || ""; savedTagline = d.tagline || "Cafe"; savedAccent = identAccentSel;
+          savedPattern = (window.CardPatterns && d.pattern) ? window.CardPatterns.normalize(d.pattern) : null;
+          patState = savedPattern;
+          if (savedPattern) paintPreviewPattern();   // the Card tab preview shows it too
           showIdentitySummary();
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
         }
@@ -454,6 +457,55 @@
     $("addBtn").onclick = () => { addPage.open(); $("fDeal").focus(); };
     $("cancelBtn").onclick = () => addPage.close();
 
+    // The loyalty-card design page. Same arrival as the add page — a circle
+    // grown from the control that opened it — measured at open time because
+    // the card sits in a scrolling column.
+    //
+    // Save is a no-op until the page has controls to save; it closes like
+    // Cancel so neither button is a dead end while the body is empty.
+    const designPage = makeSheet($("designPage"), $("designPage"), $("designEditBtn"), () => {
+      const el = $("designPage"), r = $("designEditBtn").getBoundingClientRect();
+      const ox = r.left + r.width / 2, oy = r.top + r.height / 2;
+      const reach = Math.max(
+        Math.hypot(ox, oy), Math.hypot(window.innerWidth - ox, oy),
+        Math.hypot(ox, window.innerHeight - oy), Math.hypot(window.innerWidth - ox, window.innerHeight - oy));
+      el.style.setProperty("--ox", ox.toFixed(1) + "px");
+      el.style.setProperty("--oy", oy.toFixed(1) + "px");
+      el.style.setProperty("--r", Math.ceil(reach) + "px");
+      $("designEditBtn").classList.add("is-open");
+      setDesignAccentUI(savedAccent);      // always opens on the saved colour
+      if (CP && !$("dpPatterns").children.length) buildPatternPicker();
+      commitPatternState(savedPattern);    // and on the saved pattern
+      lendPreviewToPage();
+    }, () => {
+      $("designEditBtn").classList.remove("is-open");
+      returnPreviewToCardTab();
+    });
+
+    // The card at the top of the design page is the Card tab's live preview,
+    // moved across and moved back — not a clone. A clone would need a second
+    // set of ids and its own copy of every refresh (name, logo, stamp count,
+    // minimum, colour), and the two would disagree the first time one of them
+    // was missed. Moving it also means what the owner judges a design against
+    // is literally the thing the customer gets.
+    //
+    // Where it came from is remembered rather than assumed: the Card tab's
+    // column is built in a fixed order today, but putting it back by anchor
+    // survives anything being inserted above it later.
+    let previewHome = null;
+    function lendPreviewToPage() {
+      const wrap = document.querySelector(".ownpv-wrap");
+      if (!wrap || wrap.parentNode === $("designBody")) return;
+      previewHome = { parent: wrap.parentNode, next: wrap.nextSibling };
+      $("designBody").insertBefore(wrap, $("designBody").firstChild);
+    }
+    function returnPreviewToCardTab() {
+      const wrap = document.querySelector(".ownpv-wrap");
+      if (!wrap || !previewHome) return;
+      previewHome.parent.insertBefore(wrap, previewHome.next);
+      previewHome = null;
+    }
+
     async function copyStaffCode() {
       const code = $("staffCode").textContent.trim();
       if (!code || code === "—") return;
@@ -651,6 +703,10 @@
       $("identSummaryName").textContent = savedCafeName || t("OWNER_CAFE_FALLBACK");
       $("identSummaryType").textContent = savedTagline;
       $("identSummaryDot").style.background = savedAccent;
+      // The design card shows the same colour. Driven from here rather than
+      // kept in its own render so the two dots cannot disagree — identity's
+      // Save is still the only thing that commits an accent today.
+      $("designSummaryDot").style.background = savedAccent;
     }
     function showIdentitySummary() {
       renderIdentitySummary();
@@ -692,6 +748,321 @@
         } else { $("identityErr").textContent = tErr(d, "OWNER_ERR_SAVE_FAILED"); $("identityErr").hidden = false; }
       } catch (e) { $("identityErr").textContent = t("AUTH_ERR_SERVER_UNREACHABLE"); $("identityErr").hidden = false; }
       finally { $("identitySave").disabled = false; }
+    };
+
+    // ---- the colour the design page is working on ----
+    //
+    // Staged, exactly like the identity form: picking paints the card so the
+    // colour is judged at card size, but nothing is committed until Save.
+    // Cancel — on the window or on the page — puts the card back, so an
+    // abandoned experiment never leaks into what the customer sees.
+    let designAccentSel = savedAccent;     // what the page would save
+    let colourAtOpen = savedAccent;        // what the window would revert to
+    const dpCustomWrap = $("dpAccentCustomWrap");
+    const dpSwatchEls = {};
+
+    function setDesignAccentUI(hex) {
+      designAccentSel = hex;
+      Object.values(dpSwatchEls).forEach((b) => b.classList.remove("is-on"));
+      dpCustomWrap.classList.remove("is-on");
+      if (dpSwatchEls[hex]) {
+        dpSwatchEls[hex].classList.add("is-on");
+      } else {
+        dpCustomWrap.classList.add("is-on");
+        dpCustomWrap.style.background = hex;
+        $("dpAccentCustom").value = hex;
+      }
+      $("designRowDot").style.background = hex;
+      paintOwnPreviewAccent(hex);          // the card behind the window
+      refreshSwatches();                   // thumbnails sit on that colour too
+    }
+
+    (function buildDesignSwatches() {
+      const wrap = $("dpAccent");
+      ACCENTS.forEach((hex, i) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "swatch";
+        b.style.background = hex; b.setAttribute("aria-label", hex);
+        b.style.setProperty("--i", String(i));   // its place in the entrance stagger
+        b.onclick = () => { setDesignAccentUI(hex); popSwatch(b); };
+        wrap.insertBefore(b, dpCustomWrap);
+        dpSwatchEls[hex] = b;
+      });
+      dpCustomWrap.style.setProperty("--i", String(ACCENTS.length));
+    })();
+
+    // Restart-able: the class has to come off before it can go on again, or a
+    // second pick on the same swatch would do nothing. It is also taken off
+    // when the animation ends, so a swatch is not left wearing a state it is
+    // no longer in — `once` because a fresh listener is added on every pick.
+    function popSwatch(el) {
+      el.classList.remove("just-picked");
+      void el.offsetWidth;                       // forces the removal to take
+      el.classList.add("just-picked");
+      el.addEventListener("animationend", () => el.classList.remove("just-picked"), { once: true });
+    }
+    $("dpAccentCustom").addEventListener("input", (e) => {
+      // same deepening the identity picker applies — a colour chosen on a
+      // white swatch is lighter than it reads behind white card text
+      setDesignAccentUI(deepenForCard(e.target.value.toLowerCase()));
+      popSwatch(dpCustomWrap);
+    });
+
+    // ---- the background pattern ----
+    //
+    // CardPatterns (card-patterns/patterns.js) owns the library, the drawing
+    // and the rules; this code is only the form around it. The screen's state
+    // lives in `patState` and is pushed at the preview card on every change —
+    // the point of having the card at the top of the page is that a pattern is
+    // judged on a card, not on a 62px thumbnail.
+    //
+    // The two vocabularies do not match and must not be confused: the layout
+    // switch says "repeat"/"single" because that is what an owner is choosing
+    // between, while CardPatterns says "tile"/"motif"/"art". segToLayout()
+    // is the only place they meet.
+    const CP = window.CardPatterns;
+    const LAYOUT_DEFAULT = "single";
+    let designLayoutSel = LAYOUT_DEFAULT;          // what the switch shows
+    let patState = null;                           // staged config, or null for "no pattern"
+    let savedPattern = null;                       // what the server last confirmed
+
+    const segToLayout = (seg) => (seg === "repeat" ? "tile" : "motif");
+    const layoutToSeg = (l) => (l === "tile" ? "repeat" : "single");
+
+    // The preview card, repainted from the staged state.
+    function paintPreviewPattern() {
+      const face = $("ownPreview") && $("ownPreview").querySelector(".face");
+      if (face && CP) CP.apply(face, patState);
+    }
+
+    // ---- the picker ----
+    // Built once. The thumbnails are redrawn (not rebuilt) whenever the layout
+    // switch or the card colour changes, because each one shows the tile or
+    // motif version to match what the card would actually get.
+    function buildPatternPicker() {
+      if (!CP) return;
+      const host = $("dpPatterns");
+      host.innerHTML = "";
+
+      const mkBtn = (id, name, badge) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "dp-pat" + (id ? "" : " dp-pat--none");
+        b.dataset.pat = id || "";
+        b.setAttribute("aria-pressed", "false");
+        b.innerHTML = '<span class="dp-pat__sq"></span><span class="dp-pat__name"></span>';
+        b.querySelector(".dp-pat__name").textContent = name;
+        if (badge) {
+          const tag = document.createElement("span");
+          tag.className = "dp-pat__badge"; tag.textContent = badge;
+          b.querySelector(".dp-pat__sq").appendChild(tag);
+        }
+        b.onclick = () => selectPattern(id || null);
+        return b;
+      };
+
+      // "no pattern" leads, in a group of its own so it is never mistaken for
+      // a member of the first category
+      const lead = document.createElement("div");
+      lead.className = "dp-group";
+      const leadGrid = document.createElement("div");
+      leadGrid.className = "dp-grid";
+      leadGrid.appendChild(mkBtn("", t("OWNER_DESIGN_NONE"), ""));
+      lead.appendChild(leadGrid);
+      host.appendChild(lead);
+
+      CP.groups.forEach((g) => {
+        const wrap = document.createElement("div");
+        wrap.className = "dp-group";
+        const h = document.createElement("p");
+        h.className = "dp-group__name"; h.textContent = g;
+        const grid = document.createElement("div");
+        grid.className = "dp-grid";
+        CP.list.filter((p) => p.group === g).forEach((p) => {
+          const badge = p.art ? t("OWNER_DESIGN_BADGE_ART")
+                      : p.motifOnly ? t("OWNER_DESIGN_BADGE_MOTIF")
+                      : p.tileOnly ? t("OWNER_DESIGN_BADGE_TILE") : "";
+          grid.appendChild(mkBtn(p.id, p.name, badge));
+        });
+        wrap.appendChild(h); wrap.appendChild(grid);
+        host.appendChild(wrap);
+      });
+      refreshSwatches();
+    }
+
+    function refreshSwatches() {
+      if (!CP) return;
+      // thumbnails sit on the café's current colour, so they have to follow it
+      const sq = (btn) => btn.querySelector(".dp-pat__sq");
+      $("dpPatterns").querySelectorAll(".dp-pat").forEach((b) => {
+        const el = sq(b);
+        el.style.setProperty("--sw-paper", shade(designAccentSel, -0.08));
+        el.style.setProperty("--sw-paper2", shade(designAccentSel, -0.30));
+        if (b.dataset.pat) CP.swatch(el, b.dataset.pat, segToLayout(designLayoutSel));
+      });
+    }
+
+    function markSelected() {
+      const cur = patState ? patState.pattern : "";
+      $("dpPatterns").querySelectorAll(".dp-pat").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.pat === cur));
+      });
+    }
+
+    // ---- the controls that depend on the choice ----
+    function syncPatternControls() {
+      const p = patState ? CP.byId[patState.pattern] : null;
+      const has = !!p;
+      $("dpPlaceGroup").hidden = !has || patState.layout === "art";
+      $("dpStrengthGroup").hidden = !has;
+
+      // the layout switch: locked patterns disable the half they cannot use
+      const lockMotif = !!(p && p.motifOnly), lockTile = !!(p && p.tileOnly), isArt = !!(p && p.art);
+      [...$("dpLayout").children].forEach((b) => {
+        const wantsTile = b.dataset.layout === "repeat";
+        b.disabled = isArt || (lockMotif && wantsTile) || (lockTile && !wantsTile);
+      });
+      const hint = isArt ? t("OWNER_DESIGN_HINT_ART")
+                 : lockMotif ? t("OWNER_DESIGN_HINT_MOTIF")
+                 : lockTile ? t("OWNER_DESIGN_HINT_TILE") : "";
+      $("dpLayoutHint").textContent = hint;
+      $("dpLayoutHint").hidden = !hint;
+
+      if (!has || patState.layout === "art") return;
+
+      // one control, two questions
+      const isTile = patState.layout === "tile";
+      $("dpPlaceLabel").textContent = t(isTile ? "OWNER_DESIGN_FADE" : "OWNER_DESIGN_PLACE");
+      const opts = isTile
+        ? [["none", t("OWNER_DESIGN_FADE_NONE")], ["top", t("OWNER_DESIGN_FADE_TOP")], ["corner", t("OWNER_DESIGN_FADE_CORNER")]]
+        : (p.upright
+            ? [["bottom", t("OWNER_DESIGN_PLACE_BR")], ["center", t("OWNER_DESIGN_PLACE_CENTER")]]
+            : [["top", t("OWNER_DESIGN_PLACE_TOP")], ["bottom", t("OWNER_DESIGN_PLACE_BOTTOM")]]);
+      const seg = $("dpPlace");
+      seg.classList.toggle("seg--3", opts.length === 3);
+      const cur = isTile ? (patState.fade || "none") : (patState.place || "bottom");
+      seg.innerHTML = "";
+      opts.forEach(([val, label]) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "seg__btn" + (val === cur ? " is-on" : "");
+        b.dataset.val = val; b.textContent = label;
+        seg.appendChild(b);
+      });
+    }
+
+    // Everything funnels through here: stage, normalise, redraw, repaint.
+    function commitPatternState(next) {
+      patState = CP ? CP.normalize(next) : null;
+      if (patState) designLayoutSel = layoutToSeg(patState.layout);
+      paintLayoutSwitch();
+      markSelected();
+      syncPatternControls();
+      refreshSwatches();
+      paintPreviewPattern();
+      if (patState) $("dpStrength").value = String(patState.strength);
+      $("dpStrengthVal").textContent = (patState ? patState.strength : CP.DEFAULT_STRENGTH) + "%";
+    }
+
+    function selectPattern(id) {
+      if (!id) { commitPatternState(null); return; }
+      const keep = patState || {};
+      commitPatternState({
+        pattern: id,
+        layout: segToLayout(designLayoutSel),
+        fade: keep.fade, place: keep.place,
+        strength: typeof keep.strength === "number" ? keep.strength : CP.DEFAULT_STRENGTH,
+      });
+    }
+
+    function paintLayoutSwitch() {
+      [...$("dpLayout").children].forEach((b) => b.classList.toggle("is-on", b.dataset.layout === designLayoutSel));
+    }
+    function setDesignLayout(v) {
+      designLayoutSel = v;
+      paintLayoutSwitch();
+      if (patState) commitPatternState(Object.assign({}, patState, { layout: segToLayout(v) }));
+      else refreshSwatches();
+    }
+    $("dpLayout").addEventListener("click", (e) => {
+      const b = e.target.closest(".seg__btn"); if (!b || b.disabled) return;
+      setDesignLayout(b.dataset.layout);
+    });
+    $("dpPlace").addEventListener("click", (e) => {
+      const b = e.target.closest(".seg__btn"); if (!b || !patState) return;
+      const k = patState.layout === "tile" ? "fade" : "place";
+      commitPatternState(Object.assign({}, patState, { [k]: b.dataset.val }));
+    });
+    $("dpStrength").addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      $("dpStrengthVal").textContent = v + "%";
+      if (!patState) return;
+      // the slider is dragged, so the heavy path (rebuilding the segmented
+      // control, redrawing 28 thumbnails) is skipped — only the number the
+      // layer reads actually changes
+      patState.strength = v;
+      paintPreviewPattern();
+    });
+
+    const colourModal = $("colourModal");
+    function openColourWindow() {
+      colourAtOpen = designAccentSel;
+      setDesignAccentUI(designAccentSel);
+      colourModal.hidden = false;
+      colourModal.setAttribute("aria-hidden", "false");
+      $("designColourRow").setAttribute("aria-expanded", "true");
+      $("colourDone").focus();
+    }
+    function closeColourWindow(revert) {
+      if (colourModal.hidden) return;
+      if (revert) setDesignAccentUI(colourAtOpen);
+      colourModal.hidden = true;
+      colourModal.setAttribute("aria-hidden", "true");
+      $("designColourRow").setAttribute("aria-expanded", "false");
+      $("designColourRow").focus();
+    }
+    $("designColourRow").onclick = openColourWindow;
+    $("colourDone").onclick = () => closeColourWindow(false);
+    $("colourCancel").onclick = () => closeColourWindow(true);
+    // backdrop only, same as the sheets
+    colourModal.addEventListener("pointerdown", (e) => { if (e.target === colourModal) closeColourWindow(true); });
+    // Escape closes the window, and must not also close the page under it
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !colourModal.hidden) { e.stopPropagation(); closeColourWindow(true); }
+    }, true);
+
+    $("designEditBtn").onclick = () => designPage.open();
+    $("designCancel").onclick = () => {
+      setDesignAccentUI(savedAccent);
+      commitPatternState(savedPattern);    // discards an unsaved pattern too
+      designPage.close();
+    };
+    $("designSave").onclick = async () => {
+      const nextPattern = CP ? CP.normalize(patState) : null;
+      const patUnchanged = JSON.stringify(nextPattern) === JSON.stringify(savedPattern);
+      if (designAccentSel === savedAccent && patUnchanged) { designPage.close(); return; }
+      const btn = $("designSave");
+      btn.disabled = true;
+      try {
+        // The name and type come from what is already saved, not from the
+        // identity form's live inputs: an edit half-typed up there must not
+        // ride along with a colour saved down here.
+        const r = await fetch(API + "/owner/cafe/profile", {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: token },
+          body: JSON.stringify({
+            cafe_name: savedCafeName, tagline: savedTagline,
+            accent: designAccentSel, pattern: nextPattern,
+          }),
+        });
+        const d = await r.json();
+        if (r.ok) {
+          savedAccent = d.accent || designAccentSel;
+          // the server's answer, not the form's — it is the one that validated
+          savedPattern = CP ? CP.normalize(d.pattern) : null;
+          commitPatternState(savedPattern);
+          identAccentSel = savedAccent; setIdentAccentUI(savedAccent);
+          renderIdentitySummary();
+          designPage.close();
+        } else { btn.disabled = false; }
+      } catch (e) { btn.disabled = false; }
     };
 
     // ---------------- café logo ----------------
