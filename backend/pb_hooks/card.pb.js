@@ -343,6 +343,12 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
         description: d.getString("description"),
         shop: cafe.getString("cafe_name"),
         cafe_id: cafe.id,
+        // The raw instant is what the client formats from: it renders the date in
+        // the reader's own calendar (Jalali on the Persian UI) and in Tehran time.
+        // Goja has no Intl and no Persian calendar, so the server does not try.
+        due_date: new Date(dueMs).toISOString(),
+        // Kept only for app builds cached before due_date existed — those read
+        // `due` and would otherwise fall back to a generic 30-day guess.
         due: z(due.getDate()) + "." + z(due.getMonth() + 1) + "." + String(due.getFullYear()).slice(2),
       };
 

@@ -814,17 +814,12 @@ function formatPhone(raw) {
   if (!/^9\d{9}$/.test(d)) return raw ? String(raw) : "—";
   return "0" + d.slice(0, 3) + " " + d.slice(3, 6) + " " + d.slice(6);
 }
+// Stand-in due date for a coupon whose payload carried none — the café-wide
+// default is 30 days. Both this and every other date on screen go through
+// formatDateLocal (i18n.js), which resolves them in Tehran time and in the
+// reader's calendar: Jalali on the Persian UI, Gregorian on the English one.
 function dueDateStr() {
-  const d = new Date(Date.now() + 30 * 864e5);
-  const z = (n) => String(n).padStart(2, "0");
-  return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
-}
-
-function formatDue(iso) {
-  const d = new Date(iso);
-  if (isNaN(d)) return "";
-  const z = (n) => String(n).padStart(2, "0");
-  return `${z(d.getDate())}.${z(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`;
+  return formatDateLocal(Date.now() + 30 * 864e5);
 }
 
 // whole days left until the discount expires (negative = already expired)
@@ -843,7 +838,9 @@ function discountToRec(d) {
     desc: (d && d.description) || "",
     code: (d && d.code) || "",
     short: shortDiscount((d && d.deal) || ""),
-    due: (d && d.due) || dueDateStr(),
+    // prefer the raw instant (formatted here, in the reader's calendar); `d.due`
+    // is the server's pre-formatted Gregorian string, kept for older payloads
+    due: (d && d.due_date && formatDateLocal(d.due_date)) || (d && d.due) || dueDateStr(),
   };
 }
 
@@ -859,7 +856,7 @@ function mapDiscount(item) {
     desc: item.description || "",
     code: item.code || "",
     short: shortDiscount(item.deal || ""),
-    due: formatDue(item.due_date),
+    due: formatDateLocal(item.due_date),
     dueISO: item.due_date,
     days: days,
     status: item.status,
@@ -999,6 +996,9 @@ const tabBtns = {
   wallet: document.getElementById("tabWallet"),
   settings: document.getElementById("tabSettings"),
 };
+// Indices follow DOM order, which the bar mirrors in Persian — index 0 is the
+// first child and therefore the RIGHTMOST tab. Left to right the bar reads
+// Settings · Wallet · Discounts.
 const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 
 // Wallet and Discounts are real, mutually-exclusive full panels (#stage /
@@ -1009,6 +1009,9 @@ const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 function showPanel(name) {
   stage.hidden = name !== "wallet";
   drawer.hidden = name !== "discounts";
+  // the camera must never outlive the sheet that owns it — switching tabs
+  // behind it would leave the lens and the privacy light on
+  closeScanSheet();
   if (name === "discounts") {
     drawerCafeId = null; // always start at the café list
     renderDrawer();
@@ -1071,14 +1074,20 @@ function closeSettings(keepTab) {
 }
 
 function doSignout() {
-  ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe", "loytap_phone"]
+  // reloy_install_tip goes too: the bar is dismissed per session, so signing
+  // out must not carry one session's "not now" into the next one
+  ["loytap_token", "loytap_owner", "loytap_staff", "loytap_role", "loytap_signed_in", "loytap_name", "loytap_cafe", "loytap_phone", "reloy_install_tip"]
     .forEach((k) => { try { localStorage.removeItem(k); } catch (_) {} });
   location.replace("/signin");
 }
 
 pocketBtn.addEventListener("click", () => goToTab("discounts"));
 if (drawerBack) drawerBack.addEventListener("click", () => { drawerCafeId = null; renderDrawer(); });
-scrim.addEventListener("click", () => closeSettings());
+scrim.addEventListener("click", () => {
+  const sc = document.getElementById("scanSheet");
+  if (sc && !sc.hidden) { closeScanSheet(); return; }
+  closeSettings();
+});
 if (settingsSheet) settingsSheet.addEventListener("click", (e) => { if (e.target === settingsSheet) closeSettings(); });
 
 if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => goToTab("discounts"));
@@ -1394,6 +1403,334 @@ function renderWalletEmpty() {
     </div>`;
 }
 
+// ---- scan ---------------------------------------------------------------
+// A café without an NFC tag — or a customer whose phone has none — can collect
+// a stamp from a printed code instead. This only reads the tag code out of the
+// QR; everything after that is the ordinary tap flow, so a scan still has to be
+// confirmed by staff in person and is still subject to the café's cooldown.
+// Nothing here can grant a stamp on its own.
+let scanStream = null, scanRaf = null, scanOn = false;
+
+// Tags encode reloy.ir/?t=<code>, so a printed QR usually holds the whole URL.
+// Accept a bare code too — a café may well print just the code.
+function scanCodeFrom(raw) {
+  const text = String(raw || "").trim();
+  if (!text) return "";
+  const m = /[?&]t=([^&\s]+)/.exec(text);
+  if (m) return decodeURIComponent(m[1]);
+  if (/^https?:\/\//i.test(text)) return "";        // some other site's QR
+  return /^[A-Za-z0-9_-]{4,64}$/.test(text) ? text : "";
+}
+
+function scanNote(msg, bad) {
+  const el = document.getElementById("scanNote");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("is-err", !!bad);
+}
+
+function scanStop() {
+  scanOn = false;
+  if (scanRaf) cancelAnimationFrame(scanRaf);
+  scanRaf = null;
+  if (scanStream) scanStream.getTracks().forEach((tr) => tr.stop());
+  scanStream = null;
+  const box = document.getElementById("scanBox");
+  const btn = document.getElementById("scanBtn");
+  if (box) box.classList.remove("is-live", "is-waking");
+  if (btn) { const l = btn.querySelector(".btn__label"); (l || btn).textContent = t("WALLET_SCAN_START"); }
+  scanNote("");
+}
+
+async function scanStart() {
+  if (scanOn) { scanStop(); return; }
+  if (!window.isSecureContext) { scanNote(t("WALLET_SCAN_ERR_HTTPS"), true); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    scanNote(t("WALLET_SCAN_ERR_NO_CAMERA"), true); return;
+  }
+  const video = document.getElementById("scanVideo");
+  const box = document.getElementById("scanBox");
+  const btn = document.getElementById("scanBtn");
+  // Say something BEFORE the await. Handing over the camera takes the best
+  // part of a second on a phone and none of it is ours to speed up, so the
+  // least we can do is not look frozen while it happens.
+  box.classList.add("is-waking");
+  scanNote(t("WALLET_SCAN_OPENING"));
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    video.srcObject = scanStream;
+    await video.play();
+    scanOn = true;
+    box.classList.remove("is-waking");
+    box.classList.add("is-live");
+    if (btn) { const l = btn.querySelector(".btn__label"); (l || btn).textContent = t("WALLET_SCAN_STOP"); }
+    scanNote(t("WALLET_SCAN_LOOKING"));
+    scanRaf = requestAnimationFrame(scanLoop);
+  } catch (err) {
+    // tear down FIRST: scanStop clears the note, so setting the message before
+    // it would wipe the very thing the person needs to read
+    scanStop();
+    scanNote(err && err.name === "NotAllowedError"
+      ? t("WALLET_SCAN_ERR_DENIED") : t("WALLET_SCAN_ERR_FAILED"), true);
+  }
+}
+
+function scanLoop() {
+  if (!scanOn) return;
+  const v = document.getElementById("scanVideo");
+  if (v && v.readyState === v.HAVE_ENOUGH_DATA && typeof jsQR === "function") {
+    const w = v.videoWidth, h = v.videoHeight;
+    if (w && h) {
+      const c = scanLoop._c || (scanLoop._c = document.createElement("canvas"));
+      const ctx = scanLoop._x || (scanLoop._x = c.getContext("2d", { willReadFrequently: true }));
+      c.width = w; c.height = h;
+      ctx.drawImage(v, 0, 0, w, h);
+      const found = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" });
+      if (found && found.data) {
+        const code = scanCodeFrom(found.data);
+        if (code) {
+          closeScanSheet();           // the stamp lands on the card behind it
+          handleTap(code);
+          return;
+        }
+        scanNote(t("WALLET_SCAN_BAD"), true);   // keep looking; wrong QR
+      }
+    }
+  }
+  scanRaf = requestAnimationFrame(scanLoop);
+}
+
+function openScanSheet() {
+  const sheet = document.getElementById("scanSheet");
+  if (!sheet) return;
+  sheet.hidden = false;
+  sheet.setAttribute("aria-hidden", "false");
+  showScrim();
+  requestAnimationFrame(() => sheet.classList.add("open"));
+  scanNote("");
+  scanStart();            // opening the sheet IS the gesture; no second tap
+  document.addEventListener("keydown", scanKeys);
+}
+
+function closeScanSheet() {
+  const sheet = document.getElementById("scanSheet");
+  if (!sheet || sheet.hidden) return;
+  scanStop();
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  hideScrim();
+  setTimeout(() => { sheet.hidden = true; }, 320);
+  document.removeEventListener("keydown", scanKeys);
+}
+
+function scanKeys(e) { if (e.key === "Escape") closeScanSheet(); }
+
+function setupScan() {
+  const open = document.getElementById("scanOpen");
+  if (open) open.addEventListener("click", openScanSheet);
+  const btn = document.getElementById("scanBtn");
+  if (btn) btn.addEventListener("click", scanStart);
+  // a backgrounded tab must not keep the camera
+  document.addEventListener("visibilitychange", () => { if (document.hidden) scanStop(); });
+}
+
+// ---- add-to-home-screen hint ----------------------------------------------
+// A one-line bar at the top. Not a native install prompt: on iOS no such
+// prompt exists at all, and the product's promise is that there is nothing to
+// download.
+//
+// Shown once per SIGN-IN SESSION: the cross is a "not now", not a permanent
+// no, and auth.js clears this key the moment a session begins. A permanent
+// dismissal meant one distracted tap during a stamp cost that customer the
+// prompt forever — and on iOS this bar is the only route to web push.
+// Never shown when the wallet is already running from the home screen, where
+// the whole suggestion would be nonsense.
+const INSTALL_TIP_KEY = "reloy_install_tip";
+
+// iOS reports standalone separately from the display-mode query, the same way
+// staff.push.js has to check it.
+function isStandalone() {
+  return window.navigator.standalone === true ||
+    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+}
+
+// ---- the walkthrough the Add button opens ---------------------------------
+// Two sets of shots, because the control being pointed at is the browser's,
+// not ours: Safari hides it behind Share, Chrome behind the three-dot menu.
+// They are not even the same length — iOS needs a sixth step for the "Add"
+// confirmation — so the slides are built per platform rather than written out
+// in the markup. The track is laid out left-to-right in both languages, so
+// `iwAt` is simply the slide index and never reasons about writing direction.
+const IW_SETS = {
+  ios: { src: "install-ios-", caps: ["WALLET_IW_C1", "WALLET_IW_C2", "WALLET_IW_C3",
+                                     "WALLET_IW_C4", "WALLET_IW_C5", "WALLET_IW_C6"] },
+  and: { src: "install-and-", caps: ["WALLET_IW_A1", "WALLET_IW_A2", "WALLET_IW_A3",
+                                     "WALLET_IW_A4", "WALLET_IW_A5"] },
+};
+let iwSet = IW_SETS.and;
+let iwAt = 0;
+
+// iPadOS reports itself as a Mac, so it is caught by the touch-point test
+// rather than the user-agent string. Chrome on iOS gets the Safari shots on
+// purpose: it is WebKit underneath and installs through the same Share menu,
+// so the OS is the right thing to branch on, not the browser badge.
+function installPlatform() {
+  const ua = navigator.userAgent || "";
+  const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  return (/iPad|iPhone|iPod/.test(ua) || iPadOS) ? "ios" : "and";
+}
+
+// Slides and dots are rebuilt whenever the sheet opens, so a language change
+// (which reloads the page anyway) or a different device can never leave a
+// stale set behind.
+function iwBuild() {
+  const track = document.getElementById("iwTrack");
+  const dots = document.getElementById("iwDots");
+  if (!track || !dots) return;
+  iwSet = IW_SETS[installPlatform()];
+  const n = iwSet.caps.length;
+
+  track.innerHTML = iwSet.caps.map((key, i) =>
+    '<figure class="iw__slide" aria-roledescription="slide" aria-label="' + (i + 1) + ' / ' + n + '">'
+    + '<img class="iw__shot" src="' + iwSet.src + (i + 1) + '.webp"'
+    + (i === 0 ? '' : ' loading="lazy"') + ' alt="' + escapeHtml(t(key)) + '" />'
+    + '</figure>').join("");
+
+  dots.innerHTML = iwSet.caps.map((_, i) =>
+    '<button class="iw__dot" type="button" data-go="' + i + '" aria-label="' + (i + 1) + '"></button>').join("");
+  dots.querySelectorAll(".iw__dot")
+    .forEach((d) => d.addEventListener("click", () => iwGo(+d.dataset.go)));
+}
+
+function iwRender(animateCaption) {
+  const track = document.getElementById("iwTrack");
+  const cap = document.getElementById("iwCap");
+  const prev = document.getElementById("iwPrev");
+  const next = document.getElementById("iwNext");
+  const label = document.getElementById("iwNextLabel");
+  if (!track) return;
+  const slides = track.querySelectorAll(".iw__slide");
+  const last = iwAt === iwSet.caps.length - 1;
+
+  track.style.transform = "translateX(" + (-iwAt * 100) + "%)";
+  slides.forEach((el, i) => el.classList.toggle("is-cur", i === iwAt));
+  document.querySelectorAll("#iwDots .iw__dot")
+    .forEach((d, i) => d.classList.toggle("is-cur", i === iwAt));
+
+  cap.textContent = t(iwSet.caps[iwAt]);
+  if (animateCaption) { cap.classList.remove("is-swap"); void cap.offsetWidth; cap.classList.add("is-swap"); }
+
+  prev.disabled = iwAt === 0;
+  label.textContent = t(last ? "WALLET_IW_DONE" : "WALLET_IW_NEXT");
+  next.classList.toggle("is-done", last);
+
+  // the next shot is decoded before it is asked for, so a slide never lands
+  // on a blank frame
+  const ahead = slides[iwAt + 1] && slides[iwAt + 1].querySelector("img");
+  if (ahead) ahead.loading = "eager";
+}
+
+function iwGo(i, animate) {
+  const n = iwSet.caps.length;
+  iwAt = Math.max(0, Math.min(n - 1, i));
+  iwRender(animate !== false);
+}
+
+function openInstallWalkthrough() {
+  const box = document.getElementById("iw");
+  if (!box) return;
+  box.hidden = false;
+  box.setAttribute("aria-hidden", "false");
+  iwBuild();
+  iwGo(0, false);
+  requestAnimationFrame(() => box.classList.add("is-on"));
+  document.addEventListener("keydown", iwKeys);
+}
+
+function closeInstallWalkthrough() {
+  const box = document.getElementById("iw");
+  if (!box || box.hidden) return;
+  box.classList.remove("is-on");
+  box.setAttribute("aria-hidden", "true");
+  setTimeout(() => { box.hidden = true; }, 300);
+  document.removeEventListener("keydown", iwKeys);
+}
+
+// The controls are laid out left-to-right in both languages (see .iw__nav), so
+// Right is always "further along" — no direction test to get wrong.
+function iwKeys(e) {
+  if (e.key === "Escape") { closeInstallWalkthrough(); return; }
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    iwGo(iwAt + (e.key === "ArrowRight" ? 1 : -1));
+    e.preventDefault();
+  }
+}
+
+function setupInstallWalkthrough(onFinish) {
+  const box = document.getElementById("iw");
+  if (!box) return;
+  const next = document.getElementById("iwNext");
+
+  document.getElementById("iwClose").addEventListener("click", closeInstallWalkthrough);
+  document.getElementById("iwPrev").addEventListener("click", () => iwGo(iwAt - 1));
+  next.addEventListener("click", () => {
+    if (iwAt === iwSet.caps.length - 1) { closeInstallWalkthrough(); if (onFinish) onFinish(); }
+    else iwGo(iwAt + 1);
+  });
+  // tapping the dimmed surround closes, but a tap on the panel must not
+  box.addEventListener("click", (e) => { if (e.target === box) closeInstallWalkthrough(); });
+
+  // swipe, which is how anyone on a phone will actually move between shots
+  const vp = document.getElementById("iwViewport");
+  let x0 = null, y0 = null;
+  vp.addEventListener("touchstart", (e) => {
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive: true });
+  vp.addEventListener("touchend", (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    // ignore anything that reads as a vertical scroll rather than a swipe
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) iwGo(iwAt + (dx < 0 ? 1 : -1));
+    x0 = y0 = null;
+  }, { passive: true });
+}
+
+function setupInstallTip() {
+  const el = document.getElementById("installTip");
+  const x = document.getElementById("installTipClose");
+  const add = document.getElementById("installTipAdd");
+  if (!el || !x) return;
+
+  const dismiss = () => {
+    el.classList.remove("is-on");
+    setTimeout(() => { el.hidden = true; }, 340);   // after the fade, not during
+    try { localStorage.setItem(INSTALL_TIP_KEY, "1"); } catch (_) {}
+  };
+
+  // reaching the last shot counts as having been told; the bar has done its job
+  setupInstallWalkthrough(dismiss);
+  if (add) add.addEventListener("click", openInstallWalkthrough);
+  x.addEventListener("click", dismiss);
+
+  // The same walkthrough from Settings. This is the way back once the bar has
+  // been dismissed for the session, so it is wired before the early return
+  // below — and shown whether or not the bar itself is. It stays hidden when
+  // the wallet is already on the home screen, where there is nothing to add.
+  const row = document.getElementById("setInstallRow");
+  if (row && !isStandalone()) {
+    row.hidden = false;
+    row.addEventListener("click", openInstallWalkthrough);
+  }
+
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(INSTALL_TIP_KEY) === "1"; } catch (_) {}
+  if (dismissed || isStandalone()) return;
+
+  el.hidden = false;
+  requestAnimationFrame(() => el.classList.add("is-on"));
+}
+
 async function init() {
   // signed-in user: refresh the session
   let user = null;
@@ -1449,6 +1786,11 @@ async function init() {
   if (tapCode) setTimeout(() => handleTap(tapCode), decks.length ? 650 : 200);
 
   loadDiscounts(); // populate the Discounts tab badge + café list on load
+
+  // last, and only once the wallet is on screen — a hint that beats the cards
+  // to the paint reads as an interstitial
+  setupInstallTip();
+  setupScan();
 
   if (params.get("debugopen") === "discounts") {
     setTimeout(() => {
