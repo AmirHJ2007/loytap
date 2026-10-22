@@ -145,6 +145,19 @@ const STRINGS = {
     WALLET_SETTINGS_LANGUAGE: "Language",
     WALLET_TAB_DISCOUNTS: "Discounts",
     WALLET_TAB_WALLET: "Wallet",
+    WALLET_TAB_SCAN: "Scan",
+    WALLET_SCAN_TITLE: "Scan and collect a stamp",
+    WALLET_SCAN_IDLE: "Find the Reloy code on the counter",
+    WALLET_SCAN_HINT: "Point the camera at the Reloy code on the counter",
+    WALLET_SCAN_START: "Start camera",
+    WALLET_SCAN_STOP: "Stop",
+    WALLET_SCAN_OPENING: "Starting the camera…",
+    WALLET_SCAN_LOOKING: "Looking for a code…",
+    WALLET_SCAN_BAD: "That is not a Reloy code",
+    WALLET_SCAN_ERR_HTTPS: "The camera needs a secure (https) connection",
+    WALLET_SCAN_ERR_NO_CAMERA: "This browser cannot open the camera",
+    WALLET_SCAN_ERR_DENIED: "Camera permission was declined",
+    WALLET_SCAN_ERR_FAILED: "The camera could not start",
     // Add-to-home-screen hint. Deliberately not "download": the product's own
     // promise, on /business, is that there is nothing to install.
     WALLET_INSTALL_TIP: "For a better experience",
@@ -641,6 +654,19 @@ const STRINGS = {
     WALLET_SETTINGS_LANGUAGE: "زبان",
     WALLET_TAB_DISCOUNTS: "تخفیف‌ها",
     WALLET_TAB_WALLET: "کیف پول",
+    WALLET_TAB_SCAN: "اسکن",
+    WALLET_SCAN_TITLE: "اسکن کنید، مهر بگیرید",
+    WALLET_SCAN_IDLE: "کد ریلوی را روی پیشخوان پیدا کنید",
+    WALLET_SCAN_HINT: "دوربین را روی کد ریلوی روی پیشخوان بگیرید",
+    WALLET_SCAN_START: "روشن کردن دوربین",
+    WALLET_SCAN_STOP: "توقف",
+    WALLET_SCAN_OPENING: "دوربین در حال روشن شدن…",
+    WALLET_SCAN_LOOKING: "در جست‌وجوی کد…",
+    WALLET_SCAN_BAD: "این کد ریلوی نیست",
+    WALLET_SCAN_ERR_HTTPS: "دوربین به اتصال امن (https) نیاز دارد",
+    WALLET_SCAN_ERR_NO_CAMERA: "این مرورگر نمی‌تواند دوربین را باز کند",
+    WALLET_SCAN_ERR_DENIED: "اجازهٔ دسترسی به دوربین داده نشد",
+    WALLET_SCAN_ERR_FAILED: "دوربین روشن نشد",
     WALLET_INSTALL_TIP: "برای تجربهٔ بهتر",
     WALLET_INSTALL_TIP_SUB: "ریلوی را به صفحهٔ اصلی اضافه کنید",
     WALLET_INSTALL_ADD: "افزودن",
@@ -1150,6 +1176,14 @@ function formatDayMonthLocal(input) {
   return (g.d < 10 ? "0" + g.d : "" + g.d) + " " + EN_MONTHS[g.m - 1];
 }
 
+// The inverse of jalaliParts: a Jalali y/m/d back to the Gregorian day it is.
+// Intl only converts one way, so this binary-searches the day whose Tehran
+// Jalali parts match — exact by construction, and it inherits whatever
+// calendar rules the engine already uses, rather than re-implementing the
+// 33-year leap cycle and disagreeing with the formatter on edge years.
+//
+// Returns "YYYY-MM-DD" (Gregorian, the shape the API takes), or "" if the
+// date does not exist — Esfand 30 in a common year, say.
 // Day-of-month alone, for the sparse tick labels under the activity bars.
 function formatDayNumLocal(input) {
   const p = getLang() === "fa" ? (jalaliParts(input) || gregorianParts(input)) : gregorianParts(input);

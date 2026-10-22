@@ -984,6 +984,9 @@ const tabBtns = {
   wallet: document.getElementById("tabWallet"),
   settings: document.getElementById("tabSettings"),
 };
+// Indices follow DOM order, which the bar mirrors in Persian — index 0 is the
+// first child and therefore the RIGHTMOST tab. Left to right the bar reads
+// Settings · Wallet · Discounts.
 const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 
 // Wallet and Discounts are real, mutually-exclusive full panels (#stage /
@@ -994,6 +997,9 @@ const TAB_INDEX = { discounts: 0, wallet: 1, settings: 2 };
 function showPanel(name) {
   stage.hidden = name !== "wallet";
   drawer.hidden = name !== "discounts";
+  // the camera must never outlive the sheet that owns it — switching tabs
+  // behind it would leave the lens and the privacy light on
+  closeScanSheet();
   if (name === "discounts") {
     drawerCafeId = null; // always start at the café list
     renderDrawer();
@@ -1065,7 +1071,11 @@ function doSignout() {
 
 pocketBtn.addEventListener("click", () => goToTab("discounts"));
 if (drawerBack) drawerBack.addEventListener("click", () => { drawerCafeId = null; renderDrawer(); });
-scrim.addEventListener("click", () => closeSettings());
+scrim.addEventListener("click", () => {
+  const sc = document.getElementById("scanSheet");
+  if (sc && !sc.hidden) { closeScanSheet(); return; }
+  closeSettings();
+});
 if (settingsSheet) settingsSheet.addEventListener("click", (e) => { if (e.target === settingsSheet) closeSettings(); });
 
 if (tabBtns.discounts) tabBtns.discounts.addEventListener("click", () => goToTab("discounts"));
@@ -1380,6 +1390,137 @@ function renderWalletEmpty() {
     </div>`;
 }
 
+// ---- scan ---------------------------------------------------------------
+// A café without an NFC tag — or a customer whose phone has none — can collect
+// a stamp from a printed code instead. This only reads the tag code out of the
+// QR; everything after that is the ordinary tap flow, so a scan still has to be
+// confirmed by staff in person and is still subject to the café's cooldown.
+// Nothing here can grant a stamp on its own.
+let scanStream = null, scanRaf = null, scanOn = false;
+
+// Tags encode reloy.ir/?t=<code>, so a printed QR usually holds the whole URL.
+// Accept a bare code too — a café may well print just the code.
+function scanCodeFrom(raw) {
+  const text = String(raw || "").trim();
+  if (!text) return "";
+  const m = /[?&]t=([^&\s]+)/.exec(text);
+  if (m) return decodeURIComponent(m[1]);
+  if (/^https?:\/\//i.test(text)) return "";        // some other site's QR
+  return /^[A-Za-z0-9_-]{4,64}$/.test(text) ? text : "";
+}
+
+function scanNote(msg, bad) {
+  const el = document.getElementById("scanNote");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("is-err", !!bad);
+}
+
+function scanStop() {
+  scanOn = false;
+  if (scanRaf) cancelAnimationFrame(scanRaf);
+  scanRaf = null;
+  if (scanStream) scanStream.getTracks().forEach((tr) => tr.stop());
+  scanStream = null;
+  const box = document.getElementById("scanBox");
+  const btn = document.getElementById("scanBtn");
+  if (box) box.classList.remove("is-live", "is-waking");
+  if (btn) { const l = btn.querySelector(".btn__label"); (l || btn).textContent = t("WALLET_SCAN_START"); }
+  scanNote("");
+}
+
+async function scanStart() {
+  if (scanOn) { scanStop(); return; }
+  if (!window.isSecureContext) { scanNote(t("WALLET_SCAN_ERR_HTTPS"), true); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    scanNote(t("WALLET_SCAN_ERR_NO_CAMERA"), true); return;
+  }
+  const video = document.getElementById("scanVideo");
+  const box = document.getElementById("scanBox");
+  const btn = document.getElementById("scanBtn");
+  // Say something BEFORE the await. Handing over the camera takes the best
+  // part of a second on a phone and none of it is ours to speed up, so the
+  // least we can do is not look frozen while it happens.
+  box.classList.add("is-waking");
+  scanNote(t("WALLET_SCAN_OPENING"));
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    video.srcObject = scanStream;
+    await video.play();
+    scanOn = true;
+    box.classList.remove("is-waking");
+    box.classList.add("is-live");
+    if (btn) { const l = btn.querySelector(".btn__label"); (l || btn).textContent = t("WALLET_SCAN_STOP"); }
+    scanNote(t("WALLET_SCAN_LOOKING"));
+    scanRaf = requestAnimationFrame(scanLoop);
+  } catch (err) {
+    // tear down FIRST: scanStop clears the note, so setting the message before
+    // it would wipe the very thing the person needs to read
+    scanStop();
+    scanNote(err && err.name === "NotAllowedError"
+      ? t("WALLET_SCAN_ERR_DENIED") : t("WALLET_SCAN_ERR_FAILED"), true);
+  }
+}
+
+function scanLoop() {
+  if (!scanOn) return;
+  const v = document.getElementById("scanVideo");
+  if (v && v.readyState === v.HAVE_ENOUGH_DATA && typeof jsQR === "function") {
+    const w = v.videoWidth, h = v.videoHeight;
+    if (w && h) {
+      const c = scanLoop._c || (scanLoop._c = document.createElement("canvas"));
+      const ctx = scanLoop._x || (scanLoop._x = c.getContext("2d", { willReadFrequently: true }));
+      c.width = w; c.height = h;
+      ctx.drawImage(v, 0, 0, w, h);
+      const found = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" });
+      if (found && found.data) {
+        const code = scanCodeFrom(found.data);
+        if (code) {
+          closeScanSheet();           // the stamp lands on the card behind it
+          handleTap(code);
+          return;
+        }
+        scanNote(t("WALLET_SCAN_BAD"), true);   // keep looking; wrong QR
+      }
+    }
+  }
+  scanRaf = requestAnimationFrame(scanLoop);
+}
+
+function openScanSheet() {
+  const sheet = document.getElementById("scanSheet");
+  if (!sheet) return;
+  sheet.hidden = false;
+  sheet.setAttribute("aria-hidden", "false");
+  showScrim();
+  requestAnimationFrame(() => sheet.classList.add("open"));
+  scanNote("");
+  scanStart();            // opening the sheet IS the gesture; no second tap
+  document.addEventListener("keydown", scanKeys);
+}
+
+function closeScanSheet() {
+  const sheet = document.getElementById("scanSheet");
+  if (!sheet || sheet.hidden) return;
+  scanStop();
+  sheet.classList.remove("open");
+  sheet.setAttribute("aria-hidden", "true");
+  hideScrim();
+  setTimeout(() => { sheet.hidden = true; }, 320);
+  document.removeEventListener("keydown", scanKeys);
+}
+
+function scanKeys(e) { if (e.key === "Escape") closeScanSheet(); }
+
+function setupScan() {
+  const open = document.getElementById("scanOpen");
+  if (open) open.addEventListener("click", openScanSheet);
+  const btn = document.getElementById("scanBtn");
+  if (btn) btn.addEventListener("click", scanStart);
+  // a backgrounded tab must not keep the camera
+  document.addEventListener("visibilitychange", () => { if (document.hidden) scanStop(); });
+}
+
 // ---- add-to-home-screen hint ----------------------------------------------
 // A one-line bar at the top. Not a native install prompt: on iOS no such
 // prompt exists at all, and the product's promise is that there is nothing to
@@ -1636,6 +1777,7 @@ async function init() {
   // last, and only once the wallet is on screen — a hint that beats the cards
   // to the paint reads as an interstitial
   setupInstallTip();
+  setupScan();
 
   if (params.get("debugopen") === "discounts") {
     setTimeout(() => {
