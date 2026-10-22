@@ -1,0 +1,35 @@
+/* card-patterns/patterns.css — the pattern layer that sits inside a card's .face.
+   It is inserted as the face's first child by CardPatterns.apply(). The face already has
+   overflow:hidden and its header/grid already sit at z-index:1, so the pattern stays
+   under the text and the stamps. */
+
+.pattern { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.pattern__ink {
+  position: absolute; inset: 0;
+  /* the pattern colour: white at the café's chosen strength (4–40 %) */
+  background: rgba(255, 255, 255, var(--pat-strength, 0.12));
+}
+
+/* tile layout: optional fade so the pattern sits in one area of the card */
+.pattern[data-layout="tile"][data-fade="top"] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.5) 50%, transparent 88%);
+          mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.5) 50%, transparent 88%);
+}
+.pattern[data-layout="tile"][data-fade="corner"] {
+  -webkit-mask-image: radial-gradient(130% 110% at 100% 0%, #000 22%, rgba(0,0,0,0.5) 52%, transparent 86%);
+          mask-image: radial-gradient(130% 110% at 100% 0%, #000 22%, rgba(0,0,0,0.5) 52%, transparent 86%);
+}
+
+/* motif layout: one large drawing that bleeds off a corner of the card */
+.pattern[data-layout="motif"] .pattern__ink { inset: auto; width: 96%; aspect-ratio: 1; }
+.pattern[data-layout="motif"][data-place="bottom"] .pattern__ink { right: -20%; bottom: -18%; transform: rotate(-14deg); }
+.pattern[data-layout="motif"][data-place="top"]    .pattern__ink { right: -24%; top: -26%;   transform: rotate(12deg); }
+
+/* drawings that stand upright (machine, grinder, cup, tree, wave…) are never rotated and
+   only sit at the bottom; tall ones carry their own --drop so they clear the header */
+.pattern[data-layout="motif"][data-upright="1"] .pattern__ink { width: 104%; transform: none; }
+.pattern[data-layout="motif"][data-upright="1"][data-place="bottom"] .pattern__ink { right: -18%; bottom: var(--drop, -12%); }
+.pattern[data-layout="motif"][data-upright="1"][data-place="center"] .pattern__ink { width: 112%; right: -6%; bottom: calc(var(--drop, -12%) - 4%); }
+
+/* picker thumbnail helper (see CardPatterns.swatch) */
+.pattern-swatch__ink { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.55); pointer-events: none; }

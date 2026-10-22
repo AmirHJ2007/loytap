@@ -250,6 +250,15 @@ function buildCard(cfg, index) {
 
   const q = (s) => el.querySelector(s);
 
+  // The café's background pattern, if it chose one. Painted after the face is
+  // built and before anything else is bound: CardPatterns inserts its layer as
+  // the face's FIRST child at z-index 0, and .oram-head / .grid already sit at
+  // z-index 1, so the name, counter and stamps stay on top of it.
+  //
+  // Guarded on window.CardPatterns so a card still renders if patterns.js is
+  // missing or blocked — a café without a pattern is the normal case anyway.
+  if (window.CardPatterns) window.CardPatterns.apply(q(".face"), cfg.pattern);
+
   // A logo that 404s (deleted between page loads, thumb not generated) drops out
   // rather than leaving a broken-image icon on the card. Bound here, not as an
   // inline onerror — script-src 'self' blocks inline handlers.
@@ -380,6 +389,7 @@ function fileUrl(rec, name, thumb) {
 function cfgFromMembership(m) {
   return Object.assign({}, CARDS[0], {
     cafeId: m.cafeId, name: m.cafeName, tagline: m.tagline || "", accent: m.accent || "#171717",
+    pattern: m.pattern || null,
     logo: m.logo || "",
     stamps: m.stampsRequired, cols: Math.max(1, Math.ceil(m.stampsRequired / 2)),
     tag: `Collect ${m.stampsRequired} · earn a treat`, minPurchase: m.minPurchase || 0,
@@ -388,6 +398,7 @@ function cfgFromMembership(m) {
 function cfgFromCafe(c) {
   return Object.assign({}, CARDS[0], {
     cafeId: c.id, name: c.name, tagline: c.tagline || "", accent: c.accent || "#171717",
+    pattern: c.pattern || null,
     logo: c.logo || "",
     stamps: c.stamps_required, cols: Math.max(1, Math.ceil(c.stamps_required / 2)),
     tag: `Collect ${c.stamps_required} · earn a treat`, minPurchase: c.min_purchase || 0,
@@ -441,6 +452,7 @@ async function handleTap(tagCode) {
     wallet.appendChild(deck.el);
     memberships.push({
       id: "", cafeId: c.id, cafeName: c.name, tagline: c.tagline || "", accent: c.accent || "#171717",
+      pattern: c.pattern || null,
       stampsRequired: c.stamps_required, minPurchase: c.min_purchase || 0, stampCount: 0, cycles: 0, stamps: [],
     });
     idx = deck.index;
@@ -1300,6 +1312,7 @@ async function loadMemberships() {
         cafeName: c.cafe_name || t("WALLET_CAFE_FALLBACK"),
         tagline: c.tagline || "",
         accent: c.accent || "#171717",
+        pattern: c.pattern || null,
         logo: fileUrl(c, c.logo, "240x240"),
         // an in-progress card keeps the goal locked onto it when it started; an
         // empty card (no stamps yet) isn't started, so it follows the café's

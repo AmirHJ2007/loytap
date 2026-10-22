@@ -52,6 +52,10 @@ COPY backend/pb_migrations/ /pb/pb_migrations/
 COPY *.html *.js *.css *.png *.jpg *.txt *.xml manifest*.json /pb/pb_public/
 # Self-hosted fonts (woff2) so typography works where Google Fonts is blocked.
 COPY fonts/ /pb/pb_public/fonts/
+# Card background patterns. A folder, so the globs above do not reach it —
+# without this line production serves 404s for every mask and the cards
+# silently lose their pattern.
+COPY card-patterns/ /pb/pb_public/card-patterns/
 
 EXPOSE 8090
 
