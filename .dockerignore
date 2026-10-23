@@ -8,3 +8,9 @@ pocketbase.exe
 .git
 node_modules
 .DS_Store
+
+# Unfinished work in the tree must not reach a release. The Dockerfile copies
+# backend/pb_migrations/ wholesale, and PocketBase REFUSES TO BOOT if any
+# migration fails — so an untracked, half-written migration takes the whole
+# site down, not just its own feature.
+backend/pb_migrations/1700000039_payment_invoice_no.js
