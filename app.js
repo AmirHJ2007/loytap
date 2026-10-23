@@ -470,6 +470,13 @@ async function handleTap(tagCode) {
 // Waiting for staff to confirm — live over PocketBase realtime, no refresh
 // ===================================================================
 let confirmWaitTimer = null;
+// Every confirm-wait gets a number. The one on screen is always the highest,
+// and every callback left over from an earlier one checks this before
+// touching anything: the countdown interval, the overlay and `busy` are all
+// shared singletons, so a stale callback does not merely do nothing useful —
+// it reaches into the request the customer is actually watching.
+let confirmGen = 0;
+let confirmBackstop = null;
 // The pending request the countdown is currently watching, and whether a
 // cancel is already in flight — read by the walletClose ("✕") button's
 // click handler, which cancels this request instead of leaving the wallet
@@ -490,13 +497,18 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
   const sub = document.getElementById("confirmWaitSub");
   if (!wrap || !requestId) { busy = false; return; }
 
+  const gen = ++confirmGen;
+  clearTimeout(confirmBackstop);     // the previous request's, if it is still pending
   activeRequestId = requestId;
   cancellingRequest = false;
   const wc = document.getElementById("walletClose");
   if (wc) wc.setAttribute("aria-label", t("WALLET_ARIA_CANCEL_REQUEST"));
 
   clearInterval(confirmWaitTimer);
-  wrap.classList.remove("is-approved", "is-declined");
+  // is-leaving is removed by hideConfirmWait's own timer 460ms later; a second
+  // scan inside that window would otherwise open onto an overlay still styled
+  // as the one that just left — card scaled up and fully transparent.
+  wrap.classList.remove("is-approved", "is-declined", "is-leaving");
   status.textContent = t("WALLET_CONFIRM_WAITING");
   sub.innerHTML = t("WALLET_CONFIRM_SUB", { shop: escapeHtml(cafeName || "") });
   wrap.hidden = false;
@@ -534,8 +546,10 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
   }, 1000);
 
   const finish = (outcome, resultForStamp) => {
+    if (gen !== confirmGen) return;   // a later request owns the screen now
     if (wrap.hidden || wrap.classList.contains("is-approved") || wrap.classList.contains("is-declined")) return;
     clearInterval(confirmWaitTimer);
+    clearTimeout(confirmBackstop);
     rtStop();
     activeRequestId = null;
     activeFinish = null;
@@ -565,6 +579,7 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
   activeFinish = finish;
 
   rtWatch("stamp_requests/" + requestId, (rec) => {
+    if (gen !== confirmGen) return;
     if (rec.status === "approved") finish("approved", rec.result);
     // "cancelled" normally resolves locally the instant POST /card/stamp/cancel
     // succeeds (see cancelStampRequest below) — this is just the backstop if
@@ -582,7 +597,8 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
   // they'd only find out on their next visit, having watched the wrong
   // outcome animate. A plain GET is enough; the customer already has
   // read access to their own request (same viewRule as the realtime feed).
-  setTimeout(async () => {
+  confirmBackstop = setTimeout(async () => {
+    if (gen !== confirmGen) return;   // this one's screen is long gone
     if (wrap.hidden || wrap.classList.contains("is-approved") || wrap.classList.contains("is-declined")) return;
     try {
       const r = await fetch(API + "/api/collections/stamp_requests/records/" + requestId, { headers: { Authorization: token } });
