@@ -523,7 +523,13 @@ function showConfirmWait(deck, requestId, seconds, cafeName) {
   confirmWaitTimer = setInterval(() => {
     remaining -= 1;
     num.textContent = String(Math.max(0, remaining));
-    num.classList.remove("tick"); void num.offsetWidth; num.classList.add("tick"); // heartbeat pulse each second
+    // heartbeat pulse each second. Driven by the animation API rather than by
+    // removing a class and reading offsetWidth to restart it: that read forced
+    // a synchronous layout of the whole page once a second, in the middle of
+    // the one screen that is doing nothing but animating.
+    if (num.animate) num.animate(
+      [{ transform: "scale(1)" }, { transform: "scale(1.18)", offset: 0.4 }, { transform: "scale(1)" }],
+      { duration: 420, easing: "cubic-bezier(0.34,1.4,0.5,1)" });
     if (remaining <= 0) clearInterval(confirmWaitTimer);
   }, 1000);
 
@@ -1429,11 +1435,20 @@ function scanNote(msg, bad) {
   el.classList.toggle("is-err", !!bad);
 }
 
-function scanStop() {
+function scanStop(deferCamera) {
   scanOn = false;
   if (scanRaf) cancelAnimationFrame(scanRaf);
   scanRaf = null;
-  if (scanStream) scanStream.getTracks().forEach((tr) => tr.stop());
+  scanLoop._t = 0;
+  // Releasing the camera is the one part of teardown that can block, and on
+  // the way out it is not urgent to the frame — a frame later the lens light
+  // is still off well inside human reaction time, and the sheet gets its
+  // first paint uncontested.
+  const tracks = scanStream;
+  if (tracks) {
+    const release = () => tracks.getTracks().forEach((tr) => tr.stop());
+    if (deferCamera) requestAnimationFrame(release); else release();
+  }
   scanStream = null;
   const box = document.getElementById("scanBox");
   const btn = document.getElementById("scanBtn");
@@ -1475,29 +1490,53 @@ async function scanStart() {
   }
 }
 
-function scanLoop() {
+// Decoding is the most expensive thing this app ever does on the main thread,
+// and it runs while a sheet is sliding and a card is about to animate. Three
+// limits keep it off everyone else's frame budget:
+//
+//   - SCAN_EDGE: a phone hands over 1280x720 or more. jsQR walks every pixel
+//     in JS, and getImageData copies the lot — 3.7MB a frame at 720p. A
+//     counter-top code is still found comfortably at 480px on the long edge,
+//     which is roughly a seventh of the work.
+//   - SCAN_HZ: a QR does not move. Ten looks a second is past the point where
+//     a person notices, and it leaves two thirds of the frames untouched.
+//   - the canvas is allocated once. Assigning width/height reallocates the
+//     bitmap even when the value is unchanged, which was happening 60x a
+//     second.
+const SCAN_EDGE = 480, SCAN_HZ = 10;
+
+function scanLoop(now) {
   if (!scanOn) return;
-  const v = document.getElementById("scanVideo");
-  if (v && v.readyState === v.HAVE_ENOUGH_DATA && typeof jsQR === "function") {
-    const w = v.videoWidth, h = v.videoHeight;
-    if (w && h) {
-      const c = scanLoop._c || (scanLoop._c = document.createElement("canvas"));
-      const ctx = scanLoop._x || (scanLoop._x = c.getContext("2d", { willReadFrequently: true }));
-      c.width = w; c.height = h;
-      ctx.drawImage(v, 0, 0, w, h);
-      const found = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" });
-      if (found && found.data) {
-        const code = scanCodeFrom(found.data);
-        if (code) {
-          closeScanSheet();           // the stamp lands on the card behind it
-          handleTap(code);
-          return;
-        }
-        scanNote(t("WALLET_SCAN_BAD"), true);   // keep looking; wrong QR
-      }
-    }
-  }
   scanRaf = requestAnimationFrame(scanLoop);
+  const gap = 1000 / SCAN_HZ;
+  if (scanLoop._t && now - scanLoop._t < gap) return;
+  scanLoop._t = now || 0;
+
+  const v = document.getElementById("scanVideo");
+  if (!v || v.readyState !== v.HAVE_ENOUGH_DATA || typeof jsQR !== "function") return;
+  const vw = v.videoWidth, vh = v.videoHeight;
+  if (!vw || !vh) return;
+
+  const scale = Math.min(1, SCAN_EDGE / Math.max(vw, vh));
+  const w = Math.round(vw * scale), h = Math.round(vh * scale);
+  const c = scanLoop._c || (scanLoop._c = document.createElement("canvas"));
+  const ctx = scanLoop._x || (scanLoop._x = c.getContext("2d", { willReadFrequently: true }));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  ctx.drawImage(v, 0, 0, w, h);
+  const found = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" });
+  if (!found || !found.data) return;
+
+  const code = scanCodeFrom(found.data);
+  if (!code) { scanNote(t("WALLET_SCAN_BAD"), true); return; }   // keep looking; wrong QR
+
+  // Hand off in the right order: kill the loop before anything else, so no
+  // decode lands on the frames the sheet is leaving in, then start the exit,
+  // then let the tap flow begin a frame later. Doing all three in this frame
+  // put a fetch, a card build and two reflows on top of the exit's first
+  // paint, which is exactly where it looked like it stuttered.
+  scanOn = false;
+  closeScanSheet();                 // the stamp lands on the card behind it
+  requestAnimationFrame(() => handleTap(code));
 }
 
 function openScanSheet() {
@@ -1515,11 +1554,15 @@ function openScanSheet() {
 function closeScanSheet() {
   const sheet = document.getElementById("scanSheet");
   if (!sheet || sheet.hidden) return;
-  scanStop();
+  scanStop(true);
+  // The sheet carries a live backdrop blur. Blurring what is behind a moving
+  // element means re-sampling it every frame, which is what made the slide
+  // out judder; on the way out nobody can see the blur go, so it goes first.
+  sheet.classList.add("is-closing");
   sheet.classList.remove("open");
   sheet.setAttribute("aria-hidden", "true");
   hideScrim();
-  setTimeout(() => { sheet.hidden = true; }, 320);
+  setTimeout(() => { sheet.hidden = true; sheet.classList.remove("is-closing"); }, 320);
   document.removeEventListener("keydown", scanKeys);
 }
 

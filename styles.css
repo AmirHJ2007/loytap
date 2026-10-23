@@ -1189,6 +1189,14 @@ html[dir="rtl"] .cafe-row { text-align: right; }
   transition: transform 0.46s var(--ease-spring), opacity 0.3s ease;
 }
 .scansheet.open { transform: translate(-50%, 0); opacity: 1; }
+/* On the way out the blur is dropped and the panel goes opaque-ish instead:
+   a backdrop-filter on a MOVING element is re-sampled and re-blurred every
+   frame, which is the most expensive thing a phone GPU can be asked to do
+   mid-transition. Nobody can read the backdrop of a sheet that is leaving. */
+.scansheet.is-closing {
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  background: rgba(255,255,255,0.82);
+}
 .scansheet[hidden] { display: none; }
 .scansheet__title {
   font-family: var(--font-heading); font-size: 17px; font-weight: 800;
