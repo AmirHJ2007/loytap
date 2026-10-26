@@ -73,6 +73,7 @@
     let cafeId = "";
 
     async function loadCafe() {
+      let sub = null;
       try {
         const r = await fetch(API + "/owner/cafe", { headers: { Authorization: token } });
         const d = await r.json();
@@ -99,8 +100,18 @@
           if (savedPattern) paintPreviewPattern();   // the Card tab preview shows it too
           showIdentitySummary();
           try { localStorage.setItem("loytap_cafe", d.cafe_name || ""); } catch (e) {}
+          sub = d.subscription || null;
         }
       } catch (e) {}
+
+      // Back from the gateway with a verified payment: the row behind the
+      // screen is now the extended one, so the confirmation can open on top
+      // of it. Outside the ok-branch on purpose — the money moved whether or
+      // not this dashboard could redraw itself, and "the panel failed to
+      // load" must not become "nobody ever told me the payment worked". With
+      // no subscription in hand the screen simply opens without the line
+      // about the new period.
+      if (paidPending) { paidPending = false; showPaid(sub); }
     }
 
     async function loadRewards() {
@@ -549,14 +560,83 @@
 
     // The gateway sends the browser back to /owner?pay=… — say what happened
     // and clear the parameter so a refresh does not repeat the message.
+    //
+    // A verified payment gets the confirmation screen instead of a toast, and
+    // it has to WAIT: everything on that screen comes from /owner/cafe, which
+    // is still in flight when this runs. paintSubscription() opens it once the
+    // row it has just painted is the extended one, so the screen can never
+    // announce a period that is not on screen behind it.
+    //
+    // The quieter outcomes stay toasts. A failure took no money and a pending
+    // one is a sentence of instruction; neither has anything to celebrate or
+    // any figures to show.
+    let paidPending = false;
     (function payResult() {
       const r = new URLSearchParams(location.search).get("pay");
       if (!r) return;
-      const key = { ok: "OWNER_PAY_OK", failed: "OWNER_PAY_FAILED",
-                    pending: "OWNER_PAY_PENDING", error: "OWNER_PAY_ERROR" }[r];
-      if (key) setTimeout(() => toast(t(key)), 600);
+      if (r === "ok") {
+        paidPending = true;
+      } else {
+        const key = { failed: "OWNER_PAY_FAILED", pending: "OWNER_PAY_PENDING",
+                      error: "OWNER_PAY_ERROR" }[r];
+        if (key) setTimeout(() => toast(t(key)), 600);
+      }
       try { history.replaceState(null, "", location.pathname); } catch (_) {}
     })();
+
+    // ---- the confirmation screen (owner.html .paid) ------------------
+    // Nothing on it is read from the URL. A screen that says "3,000,000 paid,
+    // code 7251701" because the query string said so is not a receipt, it is
+    // a sentence anyone can type into their own address bar. The subscription
+    // says what the café now has; the ledger row says what was actually
+    // charged and under which code, and both come from the server.
+    const PAID_MS = 420;            // must stay >= the .paid opacity transition
+    async function showPaid(sub) {
+      const el = $("paidPage");
+      if (!el) return;
+
+      $("paidLede").textContent = sub && sub.until
+        ? t("OWNER_PAID_UNTIL", { date: formatDateLocal(sub.until) }) : "";
+
+      // The ledger is readable by the café that owns it (the payments
+      // listRule), so this needs no endpoint of its own. If it cannot be
+      // reached the screen still opens: the amount falls back to the period's
+      // own price and the code shows a dash, which is a confirmation with one
+      // fact missing rather than no confirmation at all.
+      let pay = null;
+      try {
+        const r = await fetch(API + "/api/collections/payments/records?perPage=1&sort=-paid_at&filter="
+          + encodeURIComponent("(status='paid')"), { headers: { Authorization: token } });
+        const d = await r.json();
+        if (r.ok && d.items && d.items.length) pay = d.items[0];
+      } catch (e) { pay = null; }
+
+      const amount = (pay && pay.amount) || (sub && sub.amount) || 0;
+      $("paidAmount").textContent = amount ? money(amount) : "—";
+      $("paidRef").textContent = (pay && pay.ref_id) || "—";
+      $("paidOn").textContent = formatDateLocal((pay && pay.paid_at) || Date.now());
+
+      el.hidden = false;
+      el.setAttribute("aria-hidden", "false");
+      // Resolve the parked transform before the class lands, for the same
+      // reason makeSheet() does: without this the card is simply there, with
+      // no arrival at all.
+      void getComputedStyle(el.querySelector(".paid__card")).transform;
+      el.classList.add("is-on");
+      document.body.style.overflow = "hidden";
+      $("paidGo").focus();
+    }
+
+    function closePaid() {
+      const el = $("paidPage");
+      if (!el || el.hidden) return;
+      el.classList.remove("is-on");
+      setTimeout(() => {
+        el.hidden = true;
+        el.setAttribute("aria-hidden", "true");
+        releaseScrollLock();
+      }, PAID_MS);
+    }
 
     const buyPage = makeSheet($("buyPage"), $("buyPage"), $("subBuy"), () => {
       const el = $("buyPage"), r = $("subBuy").getBoundingClientRect();
@@ -571,6 +651,11 @@
     });
     $("subBuy").onclick = () => buyPage.open();
     $("buyPay").onclick = startPayment;
+    // Continue is the way out. The backdrop deliberately is not — this is the
+    // one screen on the page a stray tap must not dismiss — but Escape is,
+    // because a keyboard user should never be held in a dialog.
+    $("paidGo").onclick = () => closePaid();
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePaid(); });
     $("buyPage").querySelector(".buypage__back").onclick = () => buyPage.close();
     document.querySelectorAll(".buy-seg__btn").forEach((b) => {
       b.onclick = () => { buyPlan = b.dataset.plan; paintBuy(); };

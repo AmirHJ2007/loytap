@@ -405,6 +405,16 @@ const STRINGS = {
     OWNER_PAY_FAILED: "The payment did not go through. Nothing was charged.",
     OWNER_PAY_PENDING: "We could not confirm the payment yet. If money left your account it will be sorted \u2014 do not pay twice.",
     OWNER_PAY_ERROR: "Something went wrong with the payment.",
+    // The confirmation screen the gateway returns to (owner.html .paid).
+    // OWNER_PAY_OK above is still the toast for the quieter outcomes; this
+    // is the screen the successful one earns.
+    OWNER_PAID_TITLE: "Payment received",
+    OWNER_PAID_UNTIL: "Your subscription now runs to {date}.",
+    OWNER_PAID_AMOUNT: "Amount",
+    OWNER_PAID_REF: "Tracking code",
+    OWNER_PAID_ON: "Paid on",
+    OWNER_PAID_EMAIL: "A receipt is on its way to your inbox.",
+    OWNER_PAID_CONTINUE: "Continue",
     // The reminders switch in Settings (owner.push.js). Separate from the
     // STAFF_NOTIFY_* keys above and not shared with them: the till's switch
     // is about customers waiting at the counter, this one is about a billing
@@ -1019,6 +1029,13 @@ const STRINGS = {
     OWNER_PAY_FAILED: "پرداخت انجام نشد. مبلغی کسر نشده است.",
     OWNER_PAY_PENDING: "هنوز نتوانستیم پرداخت را تأیید کنیم. اگر مبلغی از حسابتان کم شده پیگیری می‌شود — دوباره پرداخت نکنید.",
     OWNER_PAY_ERROR: "در فرایند پرداخت مشکلی پیش آمد.",
+    OWNER_PAID_TITLE: "پرداخت انجام شد",
+    OWNER_PAID_UNTIL: "اشتراک شما تا {date} فعال است.",
+    OWNER_PAID_AMOUNT: "مبلغ",
+    OWNER_PAID_REF: "کد رهگیری",
+    OWNER_PAID_ON: "تاریخ پرداخت",
+    OWNER_PAID_EMAIL: "رسید پرداخت به ایمیل شما فرستاده می‌شود.",
+    OWNER_PAID_CONTINUE: "ادامه",
     OWNER_NOTIFY_LABEL: "یادآوری اشتراک",
     OWNER_NOTIFY_OFF_NOTE: "قبل از پایان اشتراک، روی همین گوشی به شما اطلاع می‌دهیم.",
     OWNER_NOTIFY_ON_NOTE: "قبل از پایان اشتراک، روی همین گوشی اطلاع داده می‌شود.",
