@@ -498,15 +498,47 @@
 
     const money = (n) => Number(n).toLocaleString("en-US");
 
+    // How many months the yearly price effectively waives against paying
+    // monthly all year. Derived, not written down: the two prices are what
+    // move, and a hardcoded "2 months free" would quietly start lying the
+    // first time one of them changed. Same calculation as for-business.js.
+    const monthsFree = () => Math.round((BUY_PRICE.monthly * 12 - BUY_PRICE.yearly) / BUY_PRICE.monthly);
+
+    // A per-day figure lands harder than a per-month one on a café owner who
+    // thinks in covers and cups. Rounded to the nearest 1,000 so it reads as
+    // the honest approximation it is rather than false precision.
+    const perDay = (total, days) => money(Math.round(total / days / 1000) * 1000);
+
     function paintBuy() {
       const yearly = buyPlan === "yearly";
-      $("buyAmount").textContent = money(BUY_PRICE[buyPlan]);
-      $("buyPer").textContent = t(yearly ? "OWNER_BUY_PER_YEAR" : "OWNER_BUY_PER_MONTH");
+      const price = BUY_PRICE[buyPlan];
+
+      $("buyAmount").textContent = money(price);
+      $("buyPer").textContent = t(yearly ? "OWNER_BUY_PER_YEAR_FULL" : "OWNER_BUY_PER_MONTH_FULL");
+
       // the struck-through figure is what twelve months would have cost, which
       // is the only honest way to show what "2 months free" is measured against
-      const was = $("buyWas");
-      was.hidden = !yearly;
-      if (yearly) was.textContent = money(BUY_PRICE.monthly * 12);
+      const anchor = $("buyAnchor"), was = $("buyWas");
+      anchor.hidden = !yearly;
+      if (yearly) {
+        was.textContent = money(BUY_PRICE.monthly * 12);
+        was.setAttribute("aria-label", t("OWNER_BUY_WAS_LABEL", { amount: money(BUY_PRICE.monthly * 12) }));
+        $("buySave").textContent = t("OWNER_BUY_SAVE_N", { n: monthsFree() });
+      }
+
+      // One reframe each, not both: for a month the useful retelling is the
+      // daily cost; for a year it is what it works out to monthly, which is
+      // the comparison the owner is actually making.
+      $("buyDay").textContent = yearly
+        ? t("OWNER_BUY_EQUIV", { amount: money(Math.round(BUY_PRICE.yearly / 12)) })
+        : t("OWNER_BUY_PER_DAY", { amount: perDay(price, 30) });
+
+      // The nudge always offers the OTHER plan, and tapping it is the same
+      // action as moving the toggle — so the two can never disagree.
+      $("buyNudge").innerHTML = yearly
+        ? esc(t("OWNER_BUY_NUDGE_MONTHLY", { amount: money(BUY_PRICE.monthly) }))
+        : esc(t("OWNER_BUY_NUDGE_YEARLY", {
+            amount: money(BUY_PRICE.yearly), was: money(BUY_PRICE.monthly * 12), n: monthsFree() }));
 
       $("buySeg").classList.toggle("is-yearly", yearly);
       document.querySelectorAll(".buy-seg__btn").forEach((b) => {
@@ -514,10 +546,12 @@
         b.classList.toggle("is-on", on);
         b.setAttribute("aria-pressed", on ? "true" : "false");
       });
-      $("buyPayLabel").textContent = t("OWNER_BUY_PAY", { amount: money(BUY_PRICE[buyPlan]) });
+      $("buySeg").querySelector(".buy-seg__save").textContent =
+        t("OWNER_BUY_SAVE_N", { n: monthsFree() });
+      $("buyPayLabel").textContent = t("OWNER_BUY_PAY", { amount: money(price) });
 
-      // replay the entrance on the figure — a price that changes silently
-      // under a toggle reads as a rendering glitch rather than a choice
+      // replay the entrance on the whole figure — a price that changes
+      // silently under a toggle reads as a rendering glitch rather than a choice
       const box = $("buyPriceBox");
       box.classList.remove("is-swap"); void box.offsetWidth; box.classList.add("is-swap");
 
@@ -660,6 +694,7 @@
     document.querySelectorAll(".buy-seg__btn").forEach((b) => {
       b.onclick = () => { buyPlan = b.dataset.plan; paintBuy(); };
     });
+    $("buyNudge").onclick = () => { buyPlan = buyPlan === "yearly" ? "monthly" : "yearly"; paintBuy(); };
 
     addPageClose = addPage.close;
     $("addBtn").onclick = () => { addPage.open(); $("fDeal").focus(); };

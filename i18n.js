@@ -382,7 +382,23 @@ const STRINGS = {
     OWNER_BUY_BACK: "Back",
     OWNER_BUY_PER_MONTH: "per month",
     OWNER_BUY_PER_YEAR: "per year",
-    OWNER_BUY_SAVE: "2 months free",
+    // "{n} months free" — the figure is derived from the two prices in
+    // owner.page.js, so this key never has to be edited alongside them.
+    OWNER_BUY_SAVE_N: "{n} months free",
+    // The price, said three ways. The figure is what leaves the account, the
+    // "per" line says what it buys, and the third line reframes it: a café
+    // owner thinks in covers and cups, so a monthly number lands differently
+    // as a daily one. Lifted from the pricing card on for-business.js rather
+    // than reinvented — the owner reading this may well have read that first.
+    OWNER_BUY_PER_MONTH_FULL: "a month, for your whole brand",
+    OWNER_BUY_PER_YEAR_FULL: "a year, for your whole brand",
+    OWNER_BUY_PER_DAY: "\u2248 {amount} Toman a day",
+    OWNER_BUY_EQUIV: "\u2248 {amount} Toman a month",
+    OWNER_BUY_WAS_LABEL: "Instead of {amount} Toman",
+    // The other plan, priced out, one tap away. The toggle above it is easy
+    // to miss, and for most cafés this is the cheaper answer.
+    OWNER_BUY_NUDGE_YEARLY: "Pay for the year instead: {amount} rather than {was} Toman, {n} months free.",
+    OWNER_BUY_NUDGE_MONTHLY: "Would rather not commit for a year? {amount} Toman a month, no contract.",
     OWNER_BUY_INCLUDES: "What this package includes",
     OWNER_BUY_INCLUDES_SUB: "Everything below is in the one price. There is no tier above it.",
     OWNER_BUY_F1: "Your NFC stamp, delivered and set up",
@@ -1007,7 +1023,18 @@ const STRINGS = {
     OWNER_BUY_BACK: "بازگشت",
     OWNER_BUY_PER_MONTH: "ماهانه",
     OWNER_BUY_PER_YEAR: "سالانه",
-    OWNER_BUY_SAVE: "2 ماه رایگان",
+    OWNER_BUY_SAVE_N: "{n} ماه رایگان",
+    OWNER_BUY_PER_MONTH_FULL: "در ماه، برای کل برند شما",
+    OWNER_BUY_PER_YEAR_FULL: "در سال، برای کل برند شما",
+    OWNER_BUY_PER_DAY: "\u2248 {amount} تومان در روز",
+    OWNER_BUY_EQUIV: "\u2248 {amount} تومان در ماه",
+    OWNER_BUY_WAS_LABEL: "به‌جای {amount} تومان",
+    // No bare punctuation between two Latin numbers in a Persian line: bidi
+    // reorders "36,000,000. 2 ماه" into "36,000,000 .2". Persian words
+    // between the figures keep each number in its own run. Same trap, and the
+    // same fix, as the pricing card in for-business.js.
+    OWNER_BUY_NUDGE_YEARLY: "سالانه بپردازید: {amount} به‌جای {was} تومان، یعنی {n} ماه رایگان.",
+    OWNER_BUY_NUDGE_MONTHLY: "نمی‌خواهید یک‌ساله متعهد شوید؟ ماهانه {amount} تومان، بدون قرارداد.",
     OWNER_BUY_INCLUDES: "خدماتی که در این پکیج ارائه می‌دهیم",
     OWNER_BUY_INCLUDES_SUB: "همه‌ی موارد زیر داخل همین یک قیمت است. پلن بالاتری وجود ندارد.",
     OWNER_BUY_F1: "تحویل و راه‌اندازی استمپ مجهز به تکنولوژی NFC",

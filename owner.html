@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=61"></script>
+  <script src="i18n.js?v=62"></script>
   <link rel="stylesheet" href="card-patterns/patterns.css?v=2" />
   <script src="card-patterns/patterns.js?v=6"></script>
   <style>
@@ -754,14 +754,27 @@
     .buypage__back {
       position: absolute; left: 0; top: 0;
       display: grid; place-items: center; width: 36px; height: 36px;
+      border-radius: 50%;
     }
     .buypage__back svg { width: 18px; height: 18px; }
-    .buypage__body { padding-bottom: 8px; }
+    /* The page opens with this focused, so a default focus ring was the first
+       thing an owner saw — a blue circle around the back arrow, on a screen
+       that is asking them for money. A keyboard user still gets a ring. */
+    .buypage__back:focus { outline: none; }
+    .buypage__back:focus-visible { outline: 2px solid rgba(20,20,20,0.45); outline-offset: 2px; }
+    /* The list must not end in a row half-hidden behind the CTA. Padding
+       clears the bar, and the mask fades the last few pixels out instead of
+       slicing them, so a scrollable body looks scrollable. */
+    .buypage__body {
+      padding-bottom: 26px;
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+    }
 
     /* ---- the dark slab: everything you choose between ---- */
     .buy-hero {
       position: relative; overflow: hidden;
-      margin: 4px 0 18px; padding: 14px 14px 14px; border-radius: 24px;
+      margin: 4px 0 12px; padding: 14px 14px 16px; border-radius: 26px;
       background: linear-gradient(165deg, #2b2f35, #0e1013);
       box-shadow: 0 26px 48px -24px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.14);
     }
@@ -775,12 +788,12 @@
 
     .buy-seg {
       position: relative; display: grid; grid-template-columns: 1fr 1fr;
-      padding: 4px; border-radius: 14px; margin-bottom: 16px;
+      padding: 4px; border-radius: 15px; margin-bottom: 18px;
       background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.1);
     }
     .buy-seg__glider {
       position: absolute; top: 4px; bottom: 4px; width: calc(50% - 4px);
-      inset-inline-start: 4px; border-radius: 11px; background: #fff;
+      inset-inline-start: 4px; border-radius: 12px; background: #fff;
       box-shadow: 0 6px 14px -6px rgba(0,0,0,0.6);
       transition: transform 0.42s var(--ease-spring);
     }
@@ -789,234 +802,136 @@
     html[dir="rtl"] .buy-seg.is-yearly .buy-seg__glider { transform: translateX(-100%); }
     .buy-seg__btn {
       position: relative; z-index: 1; border: 0; background: transparent; cursor: pointer;
-      padding: 9px 6px; border-radius: 11px;
-      display: flex; flex-direction: column; align-items: center; gap: 1px;
-      font-family: var(--font-heading); font-size: 13px; font-weight: 800;
+      padding: 9px 6px; border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      font-family: var(--font-heading); font-size: 13.5px; font-weight: 800;
       color: rgba(255,255,255,0.72); transition: color 0.3s ease;
     }
     .buy-seg__btn.is-on { color: #141414; }
-    .buy-seg__save { font-size: 9.5px; font-weight: 800; opacity: 0.8; }
-    .buy-seg__btn.is-on .buy-seg__save { color: #1f7a4d; opacity: 1; }
+    /* Mint on the dark side, the panel's green on the white one — the saving
+       was previously a grey line on a grey ground, which is the one thing on
+       this toggle nobody should have to hunt for. */
+    .buy-seg__save {
+      font-size: 10px; font-weight: 800; color: #5edb9a;
+      transition: color 0.3s ease;
+    }
+    .buy-seg__btn.is-on .buy-seg__save { color: #1f7a4d; }
 
-    .buy-price { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-    .buy-price__was { font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.45); text-decoration: line-through; }
+    .buy-price { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    /* what twelve monthly payments actually cost — a real anchor, not a fake
+       one, and it only appears on the side it is an argument for */
+    .buy-price__anchor { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+    .buy-price__anchor[hidden] { display: none; }
+    .buy-price__was {
+      font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.42);
+      text-decoration: line-through; text-decoration-thickness: 1.5px;
+      unicode-bidi: isolate;
+    }
+    .buy-price__save {
+      padding: 3px 8px; border-radius: 999px;
+      background: rgba(94,219,154,0.16); border: 1px solid rgba(94,219,154,0.3);
+      font-size: 10px; font-weight: 800; color: #9ff0c4;
+    }
     .buy-price__fig { display: flex; align-items: baseline; gap: 6px; font-family: var(--font-heading); }
-    .buy-price__fig b { font-size: 34px; font-weight: 800; color: #fff; letter-spacing: -0.8px; line-height: 1.15; }
+    .buy-price__fig b { font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -0.9px; line-height: 1.12; }
     .buy-price__fig span { font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.6); }
-    .buy-price__per { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.5); }
+    .buy-price__per { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.52); }
+    /* the reframe sits in its own pill so it reads as a second way of saying
+       the figure above, not as another charge */
+    .buy-price__day {
+      margin-top: 8px; padding: 5px 11px; border-radius: 999px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.09);
+      font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.78);
+      /* a figure and a unit in one Latin-digit run, inside a Persian slab */
+      unicode-bidi: isolate;
+    }
+    .buy-price__day:empty { display: none; }
     /* the figure is re-read every time the toggle moves, so it is worth
        animating — a number that changes silently reads as a glitch */
-    .buy-price.is-swap { animation: buySwap 0.4s var(--ease-spring); }
+    .buy-price.is-swap > * { animation: buySwap 0.42s var(--ease-spring) both; }
+    .buy-price.is-swap > *:nth-child(2) { animation-delay: 0.03s; }
+    .buy-price.is-swap > *:nth-child(3) { animation-delay: 0.06s; }
+    .buy-price.is-swap > *:nth-child(4) { animation-delay: 0.09s; }
     @keyframes buySwap { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
 
     .buy-starts {
-      margin: 14px 0 0; padding: 10px 12px; border-radius: 13px;
+      position: relative; margin: 14px 0 0; padding: 10px 12px; border-radius: 14px;
       background: rgba(94,219,154,0.12); border: 1px solid rgba(94,219,154,0.22);
       font-size: 11.5px; font-weight: 700; color: #9ff0c4; line-height: 1.55; text-align: center;
+      /* two even lines rather than a full one and a single dangling word —
+         these sentences are short enough for the browser to balance cheaply */
+      text-wrap: balance;
     }
 
-    /* three across, so they never wrap into a ragged 2 + 1 */
-    .buy-trust { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .buy-trust li {
-      display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
-      padding: 10px 6px; border-radius: 13px;
-      background: rgba(20,20,20,0.04); border: 1px solid rgba(20,20,20,0.07);
-      font-size: 10.5px; font-weight: 700; color: #565656; line-height: 1.35;
+    /* ---- the other plan, one tap away ---- */
+    /* A real button, and the same one the toggle is: switching here moves the
+       glider, so the page can never show one plan and offer another. */
+    .buy-nudge {
+      display: block; width: 100%; margin: 0 0 18px; cursor: pointer;
+      padding: 11px 14px; border-radius: 15px; text-align: center;
+      background: rgba(31,122,77,0.07); border: 1px dashed rgba(31,122,77,0.3);
+      font-family: var(--font-body); font-size: 11.5px; font-weight: 700;
+      color: #1f7a4d; line-height: 1.6; text-wrap: balance;
+      transition: background 0.25s ease, transform 0.14s ease;
     }
-    .buy-trust svg { width: 13px; height: 13px; color: #1f7a4d; }
+    .buy-nudge:hover { background: rgba(31,122,77,0.12); }
+    .buy-nudge:active { transform: scale(0.99); }
+    .buy-nudge b { font-weight: 800; }
+    /* each figure in its own run, so neither reorders against the other */
+    .buy-nudge b, .buy-nudge .nb { unicode-bidi: isolate; }
+    .buy-nudge:empty { display: none; }
+
+    /* ---- the three promises ---- */
+    /* One strip of three rows, not three boxes: "no commission on your sales"
+       is longer than the other two and wrapped inside its box, which left the
+       row ragged and the three claims looking unequal. Stacked, each gets the
+       full width and they read as one list. */
+    .buy-trust {
+      list-style: none; margin: 0 0 22px; padding: 4px 2px;
+      border-radius: 16px; background: rgba(20,20,20,0.035);
+      border: 1px solid rgba(20,20,20,0.06);
+    }
+    .buy-trust li {
+      display: flex; align-items: center; gap: 9px; padding: 8px 12px;
+      font-size: 12px; font-weight: 700; color: #3d3d3d; line-height: 1.4;
+    }
+    .buy-trust li + li { border-top: 1px solid rgba(20,20,20,0.055); }
+    .buy-trust svg { flex: none; width: 14px; height: 14px; color: #1f7a4d; }
 
     .buy-inc__h { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #171717; margin: 0 0 4px; }
-    .buy-inc__sub { font-size: 11.5px; color: #565656; margin: 0 0 13px; line-height: 1.5; }
-    .buy-inc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-    .buy-inc li {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 9px 10px; border-radius: 12px;
-      font-size: 12.5px; color: #171717; line-height: 1.5;
-      background: rgba(20,20,20,0.025);
+    .buy-inc__sub { font-size: 11.5px; color: #565656; margin: 0 0 12px; line-height: 1.5; text-wrap: pretty; }
+    /* Hairlines rather than seven filled slabs. The old rows were identical
+       grey blocks, which made a list of seven different things look like one
+       repeated thing; the tick is what carries the rhythm now. */
+    .buy-inc {
+      list-style: none; margin: 0; padding: 2px 2px;
+      border-radius: 18px; background: rgba(20,20,20,0.025);
+      border: 1px solid rgba(20,20,20,0.05);
     }
-    .buy-inc svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: #1f7a4d; }
+    .buy-inc li {
+      display: flex; align-items: center; gap: 11px;
+      padding: 11px 12px;
+      font-size: 12.5px; color: #171717; line-height: 1.5;
+    }
+    .buy-inc li + li { border-top: 1px solid rgba(20,20,20,0.05); }
+    .buy-inc__tick {
+      flex: none; display: grid; place-items: center; width: 22px; height: 22px;
+      border-radius: 50%; color: #1f7a4d;
+      background: rgba(31,122,77,0.1);
+    }
+    .buy-inc__tick svg { width: 12px; height: 12px; }
     /* staggered in, so the list arrives rather than appearing all at once */
     .buypage.is-open .buy-inc li { animation: fadeUp 0.5s var(--ease-spring) both; animation-delay: calc(0.26s + var(--i) * 0.035s); }
+    .buypage.is-open .buy-trust li { animation: fadeUp 0.45s var(--ease-spring) both; }
+    .buypage.is-open .buy-trust li:nth-child(2) { animation-delay: 0.06s; }
+    .buypage.is-open .buy-trust li:nth-child(3) { animation-delay: 0.12s; }
     .buypage__foot .sub-cta { margin-top: 0; }
 
     @media (prefers-reduced-motion: reduce) {
-      .buypage.is-open .buy-inc li { animation: none; }
-      .buy-price.is-swap { animation: none; }
+      .buypage.is-open .buy-inc li,
+      .buypage.is-open .buy-trust li { animation: none; }
+      .buy-price.is-swap > * { animation: none; }
       .buy-seg__glider { transition: none; }
-    }
-
-    /* ---- payment confirmation ---- */
-    /* A whole screen rather than the toast this used to be. Money has just
-       left a café's account; a line that fades after three seconds is the
-       wrong weight for that, and an owner who blinked was left with a
-       dashboard that never acknowledged the payment at all. The only way
-       out is the button, so it cannot be dismissed by a stray tap. */
-    .paid {
-      position: fixed; inset: 0; z-index: 300;
-      display: grid; place-items: center;
-      padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(18px + env(safe-area-inset-bottom, 0px));
-      background: rgba(12, 14, 16, 0.76);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      opacity: 0; transition: opacity 0.4s ease;
-    }
-    .paid.is-on { opacity: 1; }
-    .paid[hidden] { display: none; }
-
-    /* same slab as the buy page's hero, so the screen that takes the money
-       and the screen that confirms it are recognisably the same surface */
-    .paid__card {
-      position: relative; overflow: hidden;
-      width: min(100%, 360px); padding: 30px 22px 22px;
-      border-radius: 30px; text-align: center;
-      background: linear-gradient(168deg, #2b2f35, #0e1013);
-      border: 1px solid rgba(255,255,255,0.07);
-      box-shadow: 0 44px 80px -34px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.14);
-      transform: translateY(26px) scale(0.94);
-      transition: transform 0.72s var(--ease-spring);
-    }
-    .paid.is-on .paid__card { transform: none; }
-    /* one green bloom behind the seal — the only colour on the slab */
-    .paid__glow {
-      position: absolute; top: -38%; left: 50%; width: 160%; height: 120%;
-      transform: translateX(-50%); pointer-events: none;
-      background: radial-gradient(closest-side, rgba(94,219,154,0.20), transparent 70%);
-      opacity: 0; transition: opacity 1.1s ease 0.25s;
-    }
-    .paid.is-on .paid__glow { opacity: 1; }
-
-    /* ---- the seal ---- */
-    /* A stamp landing, not a generic tick: this product is loyalty stamps,
-       and the gesture an owner knows is a mark pressed onto a card. The ring
-       draws, the mark follows it in, and two rings travel outward the way ink
-       spreads. All of it is stroke and transform, so it stays sharp at any
-       density and costs no image. */
-    .paid__seal { position: relative; width: 112px; height: 112px; margin: 2px auto 18px; }
-    .paid__seal svg { position: relative; z-index: 1; width: 100%; height: 100%; overflow: visible; }
-    .paid__ring {
-      fill: none; stroke: #5edb9a; stroke-width: 5; stroke-linecap: round;
-      /* 2*pi*52, the circumference this is drawn along */
-      stroke-dasharray: 326.73; stroke-dashoffset: 326.73;
-      transform: rotate(-90deg); transform-origin: 60px 60px;
-    }
-    .paid.is-on .paid__ring { animation: paidRing 0.85s cubic-bezier(0.25, 0.9, 0.3, 1) 0.18s forwards; }
-    @keyframes paidRing { to { stroke-dashoffset: 0; } }
-
-    .paid__tick {
-      fill: none; stroke: #fff; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round;
-      stroke-dasharray: 72; stroke-dashoffset: 72;
-    }
-    .paid.is-on .paid__tick { animation: paidTick 0.42s cubic-bezier(0.2, 0.8, 0.3, 1) 0.72s forwards; }
-    @keyframes paidTick { to { stroke-dashoffset: 0; } }
-
-    /* the press: the whole seal gives once, as the mark lands */
-    .paid.is-on .paid__seal { animation: paidPress 0.7s var(--ease-spring) 0.62s both; }
-    @keyframes paidPress {
-      0% { transform: scale(1); }
-      28% { transform: scale(1.14); }
-      100% { transform: scale(1); }
-    }
-
-    /* ink spreading outward — two rings, the second a beat behind */
-    .paid__wave {
-      position: absolute; inset: 6px; border-radius: 50%;
-      border: 2px solid rgba(94,219,154,0.55); opacity: 0;
-    }
-    /* forwards, not both: `both` would apply the 0% keyframe through the
-       delay and park a visible ring on the seal from the first frame */
-    .paid.is-on .paid__wave { animation: paidWave 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) 0.74s forwards; }
-    .paid.is-on .paid__wave--2 { animation-delay: 0.92s; }
-    @keyframes paidWave {
-      0% { transform: scale(0.86); opacity: 0.85; }
-      100% { transform: scale(1.85); opacity: 0; }
-    }
-
-    /* six sparks, thrown along their own angle by --a and their own reach by
-       --d, so the burst is uneven the way a real one is */
-    .paid__spark {
-      position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
-      border-radius: 50%; background: #9ff0c4; opacity: 0;
-      transform: rotate(var(--a)) translateX(0);
-    }
-    .paid.is-on .paid__spark { animation: paidSpark 0.92s cubic-bezier(0.15, 0.75, 0.25, 1) 0.74s forwards; }
-    @keyframes paidSpark {
-      0%   { opacity: 0; transform: rotate(var(--a)) translateX(26px) scale(0.3); }
-      35%  { opacity: 1; }
-      100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scale(0.45); }
-    }
-
-    /* ---- what it says ---- */
-    .paid__title {
-      position: relative; margin: 0 0 8px;
-      font-family: var(--font-heading); font-size: 21px; font-weight: 800;
-      color: #fff; letter-spacing: -0.3px;
-    }
-    .paid__lede {
-      position: relative; margin: 0 0 18px; padding: 0 6px;
-      font-size: 13px; font-weight: 700; color: #9ff0c4; line-height: 1.7;
-    }
-    /* the three facts an owner wants in hand if the bank statement disagrees */
-    .paid__facts {
-      position: relative; margin: 0 0 14px; padding: 4px 2px;
-      border-radius: 16px; background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    .paid__fact {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 10px 14px;
-    }
-    .paid__fact + .paid__fact { border-top: 1px solid rgba(255,255,255,0.07); }
-    .paid__fact dt { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.5); }
-    .paid__fact dd {
-      margin: 0; font-family: var(--font-heading); font-size: 13.5px; font-weight: 800;
-      color: #fff; white-space: nowrap;
-    }
-    /* A figure like "3,000,000" or a reference number is Latin digits inside a
-       Persian panel: without its own direction the comma groups and any
-       trailing unit reorder on screen. Isolated, not flipped — the row around
-       it stays right-to-left. */
-    .paid__fact dd[dir="ltr"], .paid__fact dd b[dir="ltr"] { unicode-bidi: isolate; }
-    .paid__fact dd b { font-weight: 800; }
-    .paid__fact dd span { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.55); }
-    .paid__note {
-      position: relative; margin: 0 0 16px; padding: 0 4px;
-      font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,0.45); line-height: 1.6;
-    }
-    /* the slab is already dark, so the page's dark CTA would disappear into it */
-    .paid__go {
-      position: relative; margin-top: 0;
-      color: #16181b; background: #fff;
-      box-shadow: 0 14px 26px -12px rgba(0,0,0,0.7);
-    }
-    .paid__go:hover { box-shadow: 0 18px 32px -12px rgba(0,0,0,0.75); }
-
-    /* everything below the seal arrives in reading order, a beat apart */
-    .paid.is-on .paid__title,
-    .paid.is-on .paid__lede,
-    .paid.is-on .paid__facts,
-    .paid.is-on .paid__note,
-    .paid.is-on .paid__go { animation: paidUp 0.6s var(--ease-spring) both; }
-    .paid.is-on .paid__title { animation-delay: 0.78s; }
-    .paid.is-on .paid__lede  { animation-delay: 0.86s; }
-    .paid.is-on .paid__facts { animation-delay: 0.96s; }
-    .paid.is-on .paid__note  { animation-delay: 1.04s; }
-    .paid.is-on .paid__go    { animation-delay: 1.12s; }
-    @keyframes paidUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-
-    /* Reduced motion keeps the screen and loses the performance: the ring and
-       the mark are drawn in place, nothing travels, nothing flashes. */
-    @media (prefers-reduced-motion: reduce) {
-      .paid, .paid__card, .paid__glow { transition-duration: 0.01ms; }
-      .paid.is-on .paid__seal,
-      .paid.is-on .paid__wave,
-      .paid.is-on .paid__spark,
-      .paid.is-on .paid__title,
-      .paid.is-on .paid__lede,
-      .paid.is-on .paid__facts,
-      .paid.is-on .paid__note,
-      .paid.is-on .paid__go { animation: none; }
-      .paid__wave, .paid__spark { display: none; }
-      .paid.is-on .paid__ring { animation: paidRing 0.01ms linear forwards; }
-      .paid.is-on .paid__tick { animation: paidTick 0.01ms linear forwards; }
     }
     .srow__k { font-size: 13px; font-weight: 700; color: var(--dim); flex: 0 0 auto; }
     .srow__v { font-size: 14px; font-weight: 700; color: var(--ink); min-width: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2477,34 +2392,58 @@
 
       <div class="addpage__body buypage__body">
         <!-- Everything you decide between lives on one dark slab: the toggle,
-             the number it changes, and when it starts. The pale list below is
-             what you get, which is read once rather than compared. -->
+             the number it changes, what that number buys, and when it starts.
+             The pale half below is what you get, which is read once rather
+             than compared. -->
         <div class="buy-hero">
           <span class="buy-hero__spot" aria-hidden="true"></span>
           <div class="buy-seg" id="buySeg" role="group" aria-label="Billing period">
             <span class="buy-seg__glider" aria-hidden="true"></span>
-            <button type="button" class="buy-seg__btn is-on" data-plan="monthly" aria-pressed="true" data-i18n="OWNER_BUY_PER_MONTH">Monthly</button>
+            <button type="button" class="buy-seg__btn is-on" data-plan="monthly" aria-pressed="true">
+              <span data-i18n="OWNER_BUY_PER_MONTH">Monthly</span>
+            </button>
             <button type="button" class="buy-seg__btn" data-plan="yearly" aria-pressed="false">
               <span data-i18n="OWNER_BUY_PER_YEAR">Yearly</span>
-              <span class="buy-seg__save" data-i18n="OWNER_BUY_SAVE">2 months free</span>
+              <!-- the saving is the whole argument for this side, so it is
+                   legible whether or not the side is selected -->
+              <span class="buy-seg__save"></span>
             </button>
           </div>
 
           <div class="buy-price" id="buyPriceBox">
-            <span class="buy-price__was" id="buyWas" hidden></span>
+            <!-- the anchor and what it buys you, side by side: a struck
+                 figure alone says "cheaper" without ever saying by how much -->
+            <span class="buy-price__anchor" id="buyAnchor" hidden>
+              <span class="buy-price__was" id="buyWas"></span>
+              <span class="buy-price__save" id="buySave"></span>
+            </span>
             <span class="buy-price__fig"><b id="buyAmount">3,000,000</b><span data-i18n="OWNER_TOMAN">Toman</span></span>
-            <span class="buy-price__per" id="buyPer" data-i18n="OWNER_BUY_PER_MONTH">per month</span>
+            <span class="buy-price__per" id="buyPer"></span>
+            <!-- the reframe: the same money, said in the unit a café thinks in -->
+            <span class="buy-price__day" id="buyDay"></span>
           </div>
 
           <!-- the reassurance the owner actually needs before paying early -->
           <p class="buy-starts" id="buyStarts"></p>
         </div>
 
-        <ul class="buy-trust"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T1">No setup fee</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T2">Cancel any time</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T3">No commission</span></li></ul>
+        <!-- The other plan, priced out, one tap away — and it IS the toggle,
+             not a second control that could disagree with it. -->
+        <button type="button" class="buy-nudge" id="buyNudge"></button>
+
+        <ul class="buy-trust"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T1">Trust</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T2">Trust</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T3">Trust</span></li></ul>
 
         <h3 class="buy-inc__h" data-i18n="OWNER_BUY_INCLUDES">What this package includes</h3>
         <p class="buy-inc__sub" data-i18n="OWNER_BUY_INCLUDES_SUB">Everything below is in the one price.</p>
-        <ul class="buy-inc"><li style="--i:1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F1">Feature</span></li><li style="--i:2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F2">Feature</span></li><li style="--i:3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F3">Feature</span></li><li style="--i:4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F4">Feature</span></li><li style="--i:5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F5">Feature</span></li><li style="--i:6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F6">Feature</span></li><li style="--i:7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_F7">Feature</span></li></ul>
+        <ul class="buy-inc">
+          <li style="--i:1"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F1">Feature</span></li>
+          <li style="--i:2"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F2">Feature</span></li>
+          <li style="--i:3"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F3">Feature</span></li>
+          <li style="--i:4"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F4">Feature</span></li>
+          <li style="--i:5"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F5">Feature</span></li>
+          <li style="--i:6"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F6">Feature</span></li>
+          <li style="--i:7"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F7">Feature</span></li>
+        </ul>
       </div>
 
       <div class="addpage__foot buypage__foot">
@@ -2749,7 +2688,7 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=63"></script>
+  <script src="owner.page.js?v=64"></script>
   <script src="owner.push.js?v=2"></script>
 </body>
 </html>
