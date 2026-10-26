@@ -107,6 +107,32 @@ routerUse(new Middleware((e) => {
     h.set("Referrer-Policy", "no-referrer");
     h.set("Permissions-Policy", permissions);
 
+    // Pages must revalidate; their assets must not.
+    //
+    // Nothing here sends Cache-Control, so a browser invents its own freshness
+    // window from Last-Modified — and a wallet added to the home screen
+    // resumes rather than reloads, with no service worker to update it and no
+    // reload button to press. The effect is that a customer can keep running
+    // a build from hours ago while the fix is already deployed, and nobody can
+    // tell which one they have.
+    //
+    // "no-cache" does not mean "do not store": the copy is kept and
+    // revalidated, so an unchanged page costs a 304 and no body. Only the
+    // entry points need it — every script and stylesheet is already requested
+    // with a ?v= that changes when its content does, and the images, fonts and
+    // pattern masks are content-addressed by name.
+    //
+    // Decided by path, because this runs BEFORE the handler that would set the
+    // content type: a clean URL has no extension in its last segment (/, /owner,
+    // /fa/business), and the literal files end in .html. The API and the
+    // superuser dashboard are left alone.
+    if (path.indexOf("/api/") !== 0 && path !== "/_" && path.indexOf("/_/") !== 0) {
+      const seg = path.slice(path.lastIndexOf("/") + 1);
+      if (seg === "" || seg.indexOf(".") < 0 || /\.html$/.test(seg)) {
+        h.set("Cache-Control", "no-cache");
+      }
+    }
+
     // HSTS only when the connection really is https. TLS terminates at Liara's
     // edge, so trust the forwarded scheme; over plain http (localhost dev) we send
     // nothing, so a dev browser can never get wedged into https://localhost.

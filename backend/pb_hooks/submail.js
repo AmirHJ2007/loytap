@@ -15,10 +15,9 @@
 // deliberately tables and inline styles.
 //
 // DATES ARRIVE PREFORMATTED. Goja has neither Intl nor a Persian calendar, so
-// the caller passes the string to print. Today that means these Persian emails
-// carry Gregorian dates — the one place in the product that still does. Fixing
-// it needs an arithmetic Jalali converter written for Goja, since the client's
-// jalaliToISO leans on Intl.
+// the caller passes the string to print — faDate() from jalali.js, which is
+// the arithmetic conversion this runtime needs and renders "26 مهر 1405", the
+// same shape the dashboard shows for the same subscription.
 
 const INK = "#171717", DIM = "#565656", FAINT = "#9a9a9a", LINE = "#ededed";
 const FONT = "Vazirmatn,Tahoma,Arial,sans-serif";

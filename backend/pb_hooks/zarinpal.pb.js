@@ -264,14 +264,9 @@ routerAdd("GET", "/zarinpal/callback", (e) => {
         $app.logger().warn("payment receipt skipped, no owner email",
           "cafe", receipt.cafeId, "ref", receipt.refId);
       } else {
-        // Tehran, and Gregorian — Goja has no Intl and no Persian calendar.
-        // Same limitation as the reminder emails; see the note in submail.js.
-        const IRAN_OFF = 3.5 * 3600000;
-        const z = (n) => (n < 10 ? "0" + n : "" + n);
-        const shown = (ms) => {
-          const d = new Date(ms + IRAN_OFF);
-          return z(d.getUTCDate()) + "." + z(d.getUTCMonth() + 1) + "." + String(d.getUTCFullYear()).slice(2);
-        };
+        // Jalali, resolved in Tehran — the same dates the reminder emails and
+        // the dashboard print. See jalali.js.
+        const shown = require(`${__hooks}/jalali.js`).faDate;
         // 3000000 -> "3,000,000". The owner is checking this against a bank
         // SMS, so it has to be groupable at a glance.
         const grouped = String(receipt.amount).replace(/\B(?=(\d{3})+(?!\d))/g, ",");

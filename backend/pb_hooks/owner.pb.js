@@ -1132,6 +1132,10 @@ routerAdd("GET", "/owner/cafe", (e) => {
     cafe_name: card.getString("cafe_name"),
     tagline: card.getString("tagline"),
     accent: card.getString("accent") || "#171717",
+    // Validated on the way out as well as the way in: a row written before a
+    // pattern was retired (or by hand in the dashboard) must not reach a
+    // client as a shape it cannot draw.
+    pattern: require(`${__hooks}/card-pattern.js`).read(card),
     staff_code: staffCode,
     stamps_required: card.getInt("stamps_required"),
     reward_expiry_days: card.getInt("reward_expiry_days"),
@@ -1148,8 +1152,9 @@ routerAdd("GET", "/owner/cafe", (e) => {
   });
 }, $apis.requireAuth());
 
-// Edit the café's public identity (name / tagline / accent colour).
-//   POST /owner/cafe/profile  (admin auth) { cafe_name?, tagline?, accent? }
+// Edit the café's public identity (name / tagline / accent colour / pattern).
+//   POST /owner/cafe/profile  (admin auth) { cafe_name?, tagline?, accent?, pattern? }
+// `pattern` absent = unchanged; `pattern: null` = cleared.
 routerAdd("POST", "/owner/cafe/profile", (e) => {
   const u = e.auth;
   if (!u || u.getString("role") !== "admin") return e.json(403, { error: "Owner access only", code: "OWNER_ONLY" });
@@ -1159,14 +1164,26 @@ routerAdd("POST", "/owner/cafe/profile", (e) => {
   if (!card) return e.json(404, { error: "No café configured for this owner", code: "NO_CAFE" });
 
   const b = e.requestInfo().body || {};
+  const pat = require(`${__hooks}/card-pattern.js`);
   const cafeName = String(b.cafe_name || "").trim();
   if (cafeName) card.set("cafe_name", cafeName);
   if (typeof b.tagline === "string") card.set("tagline", b.tagline.trim());
   let accent = String(b.accent || "").trim();
   if (/^#[0-9a-fA-F]{6}$/.test(accent)) card.set("accent", accent);
+  // The background pattern. Absent leaves it alone — this endpoint is also how
+  // the name and colour are saved, and those forms do not know about patterns.
+  // Anything else goes through normalize(), which answers with a valid config
+  // or null; null is a real value here and clears the pattern.
+  if (typeof b.pattern !== "undefined") card.set("pattern", pat.normalize(b.pattern));
   $app.save(card);
 
-  return e.json(200, { ok: true, cafe_name: card.getString("cafe_name"), tagline: card.getString("tagline"), accent: card.getString("accent") });
+  return e.json(200, {
+    ok: true,
+    cafe_name: card.getString("cafe_name"),
+    tagline: card.getString("tagline"),
+    accent: card.getString("accent"),
+    pattern: pat.read(card),
+  });
 }, $apis.requireAuth());
 
 // Set the optional minimum-purchase amount (toman) on the owner's own café.

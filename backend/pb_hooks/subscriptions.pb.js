@@ -71,13 +71,11 @@ cronAdd("subscription-sweep", "30 5 * * *", () => {
     const d = new Date(ms + IRAN_OFF);
     return d.getUTCFullYear() + "-" + z(d.getUTCMonth() + 1) + "-" + z(d.getUTCDate());
   };
-  // Gregorian, because Goja has no Intl and no Persian calendar. The one place
-  // in the product that still shows a Persian reader a Gregorian date; fixing
-  // it needs an arithmetic Jalali converter written for this runtime.
-  const shown = (ms) => {
-    const d = new Date(ms + IRAN_OFF);
-    return z(d.getUTCDate()) + "." + z(d.getUTCMonth() + 1) + "." + String(d.getUTCFullYear()).slice(2);
-  };
+  // "26 مهر 1405" — the date these Persian letters print, in the reader's own
+  // calendar and in Tehran time. jalali.js carries the conversion because goja
+  // has no Intl; it is the same shape the dashboard shows for the same
+  // subscription, so an owner comparing the two sees one date, not two.
+  const shown = require(`${__hooks}/jalali.js`).faDate;
 
   let subs = [];
   try { subs = $app.findRecordsByFilter("subscriptions", "status != 'cancelled'", "created", 2000, 0, {}); }

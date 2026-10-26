@@ -1025,6 +1025,329 @@ html[dir="rtl"] .cafe-row { text-align: right; }
   .ended.is-on .ended__hint { animation: none; }
 }
 
+/* ---------------- Add-to-home-screen hint ---------------- */
+/* A slim glass bar at the top, in the space the retired .signout-btn and
+   .pocket-btn left behind. A hint, not a modal: it never covers a card, it
+   sits clear of the floating tab bar, and the cross puts it away for good.
+   Same glass recipe as .sheet so it reads as furniture rather than an ad. */
+.install-tip {
+  position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px));
+  transform: translate(-50%, -18px) scale(0.97);
+  width: min(94vw, 440px); z-index: 220;
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 10px 9px 11px; border-radius: 19px;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 22px 44px -22px rgba(20, 20, 20, 0.5), inset 0 1px 0 var(--glass-hi);
+  opacity: 0; overflow: hidden;
+  transition: opacity 0.34s ease, transform 0.52s var(--ease-spring);
+}
+.install-tip.is-on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+/* display:flex above would otherwise beat the [hidden] attribute */
+.install-tip[hidden] { display: none; }
+
+/* one slow sheen across the glass as it lands, then never again */
+.install-tip::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.55) 50%, transparent 62%);
+  transform: translateX(-120%);
+}
+.install-tip.is-on::after { animation: tipSheen 1.25s ease 0.45s 1 forwards; }
+@keyframes tipSheen { to { transform: translateX(120%); } }
+
+.install-tip__badge {
+  flex: none; display: grid; place-items: center;
+  width: 38px; height: 38px; border-radius: 12px;
+  background: linear-gradient(150deg, var(--terra), var(--terra-deep));
+  box-shadow: 0 7px 14px -6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.install-tip__logo { width: 34px; height: 34px; border-radius: 10px; display: block; }
+.install-tip__text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.install-tip__text b {
+  font-family: var(--font-heading); font-size: 12.5px; font-weight: 800;
+  color: var(--ink); line-height: 1.25; letter-spacing: -0.1px;
+}
+.install-tip__text i {
+  font-style: normal; font-size: 10.5px; color: var(--ink-dim);
+  line-height: 1.3; margin-top: 2px;
+}
+.install-tip__cta {
+  flex: none; border: 0; cursor: pointer;
+  padding: 8px 15px; border-radius: 11px;
+  font-family: var(--font-heading); font-size: 12.5px; font-weight: 800;
+  color: #f2fbf5; background: linear-gradient(150deg, var(--terra), var(--terra-deep));
+  box-shadow: 0 8px 16px -7px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.26);
+  transition: transform 0.14s ease, box-shadow 0.3s ease;
+}
+.install-tip__cta:hover { box-shadow: 0 12px 22px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.26); }
+.install-tip__cta:active { transform: translateY(1px) scale(0.98); }
+.install-tip__x {
+  flex: none; display: grid; place-items: center;
+  width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--ink-faint); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.install-tip__x svg { width: 12px; height: 12px; }
+.install-tip__x:hover { background: rgba(20,20,20,0.08); color: var(--ink); }
+
+/* the sub-line is the first thing to go when there is no room for it */
+@media (max-width: 340px) { .install-tip__text i { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .install-tip { transition: opacity 0.2s ease; }
+  .install-tip.is-on { transform: translate(-50%, 0); }
+  .install-tip.is-on::after { animation: none; }
+}
+
+/* ---------------- Add-to-home-screen walkthrough ---------------- */
+/* Six phone mock-ups, one per tap. Full-screen rather than a bottom sheet:
+   the shots are tall, and shrinking them to fit a sheet would make the very
+   UI they are pointing at unreadable. */
+.iw {
+  position: fixed; inset: 0; z-index: 260;
+  /* an explicit row, not the implicit auto one: with auto, the row is sized by
+     the panel and the panel's own height:100% then resolves against it — a
+     cycle that let the panel grow past the screen. minmax(0,1fr) makes the row
+     definite, so the percentage below has something real to measure. */
+  display: grid; grid-template-rows: minmax(0, 1fr); place-items: center;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  max-height: 100dvh;
+  background: rgba(24, 24, 24, 0.5);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.iw.is-on { opacity: 1; }
+.iw[hidden] { display: none; }
+
+.iw__panel {
+  display: flex; flex-direction: column;
+  /* height, not max-height: the shot inside sizes itself with max-height:100%,
+     which silently resolves to none unless this box has a DEFINITE height —
+     the image then kept its aspect-ratio height and pushed the controls off
+     the bottom of the screen. */
+  width: min(100%, 440px); height: 100%; max-height: 720px;
+  padding: 12px 14px 14px; border-radius: 26px;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  transform: translateY(16px) scale(0.97);
+  transition: transform 0.5s var(--ease-spring);
+}
+.iw.is-on .iw__panel { transform: translateY(0) scale(1); }
+
+.iw__head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.iw__title {
+  flex: 1; margin: 0; font-family: var(--font-heading);
+  font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.2px;
+}
+.iw__close {
+  flex: none; display: grid; place-items: center;
+  width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(20,20,20,0.07); color: var(--ink-dim); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.iw__close svg { width: 13px; height: 13px; }
+.iw__close:hover { background: rgba(20,20,20,0.14); color: var(--ink); }
+
+/* the track counts slides left-to-right in both languages; only the controls
+   below flip, so the index maths never has to know the writing direction */
+.iw__viewport { flex: 1; min-height: 0; overflow: hidden; border-radius: 18px; direction: ltr; }
+.iw__track {
+  display: flex; height: 100%;
+  transition: transform 0.55s var(--ease-spring);
+  will-change: transform;
+}
+.iw__slide {
+  flex: 0 0 100%; margin: 0; min-width: 0;
+  position: relative;
+  opacity: 0.35; transform: scale(0.9);
+  transition: opacity 0.45s ease, transform 0.55s var(--ease-spring);
+}
+.iw__slide.is-cur { opacity: 1; transform: scale(1); }
+/* Absolutely positioned on purpose. As a normal flow child its max-height:100%
+   resolved to none — the slide's own height comes from a flex chain the engine
+   will not treat as definite — so the shot kept its full aspect-ratio height
+   and was simply cropped by the viewport's overflow:hidden. Anchored to the
+   slide's box it scales down instead, and object-fit keeps the proportions. */
+.iw__shot {
+  position: absolute; inset: 2px;
+  width: calc(100% - 4px); height: calc(100% - 4px);
+  object-fit: contain; display: block;
+  filter: drop-shadow(0 20px 32px rgba(20,20,20,0.3));
+}
+
+.iw__cap {
+  margin: 8px 4px 0; min-height: 2.5em;
+  font-size: 12px; line-height: 1.4; color: var(--ink); text-align: center;
+}
+.iw__cap.is-swap { animation: iwCap 0.4s ease; }
+@keyframes iwCap { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+/* Forced left-to-right in both languages: Back on the left, Next on the right,
+   and the dots filling in the direction the slides advance. The sequence runs
+   one way whatever the script, so mirroring the controls for Persian only made
+   "next" point backwards. */
+.iw__nav { display: flex; align-items: center; gap: 10px; margin-top: 8px; direction: ltr; }
+.iw__arrow {
+  flex: none; display: grid; place-items: center;
+  width: 38px; height: 38px; padding: 0; border: 0; border-radius: 12px;
+  background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.65);
+  color: var(--ink); cursor: pointer;
+  transition: opacity 0.25s ease, transform 0.14s ease, background 0.2s ease;
+}
+.iw__arrow svg { width: 17px; height: 17px; }
+.iw__arrow:active { transform: translateY(1px) scale(0.97); }
+.iw__arrow:disabled { opacity: 0.3; cursor: default; }
+.iw__arrow:disabled:active { transform: none; }
+
+.iw__dots { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.iw__dot {
+  width: 6px; height: 6px; padding: 0; border: 0; border-radius: 99px;
+  background: rgba(20,20,20,0.2); cursor: pointer;
+  transition: width 0.4s var(--ease-spring), background 0.3s ease;
+}
+.iw__dot.is-cur { width: 18px; background: var(--terra); }
+
+.iw__next {
+  flex: none; min-width: 98px; border: 0; cursor: pointer;
+  padding: 11px 16px; border-radius: 12px;
+  font-family: var(--font-heading); font-size: 13px; font-weight: 800;
+  color: #f2fbf5; background: linear-gradient(150deg, var(--terra), var(--terra-deep));
+  box-shadow: 0 9px 18px -8px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.28);
+  transition: transform 0.14s ease, box-shadow 0.3s ease;
+}
+.iw__next:active { transform: translateY(1px) scale(0.985); }
+.iw__next.is-done { animation: iwDone 0.45s var(--ease-spring); }
+@keyframes iwDone { 50% { transform: scale(1.05); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .iw, .iw__panel, .iw__track, .iw__slide, .iw__dot { transition-duration: 0.01ms; }
+  .iw__cap.is-swap, .iw__next.is-done { animation: none; }
+}
+
+/* ---------------- Scan panel ---------------- */
+.scanfab {
+  position: absolute; top: calc(26px + env(safe-area-inset-top, 0px));
+  /* physical left, not inset-inline-start: this corner is asked for by where
+     it IS on screen, so it must not flip with the writing direction */
+  left: 16px; z-index: 5;
+  display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 10px 22px -12px rgba(20,20,20,0.5), inset 0 1px 0 var(--glass-hi);
+  color: var(--ink);
+  transition: transform 0.14s ease, box-shadow 0.25s ease;
+}
+.scanfab svg { width: 19px; height: 19px; }
+.scanfab:hover { box-shadow: 0 14px 28px -12px rgba(20,20,20,0.55), inset 0 1px 0 var(--glass-hi); }
+.scanfab:active { transform: translateY(1px) scale(0.97); }
+
+/* Same bottom-sheet language as .sheet (settings), including the scrim it
+   sits on, so the app has one way of presenting a panel rather than two. */
+.scansheet {
+  position: fixed; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 130%); opacity: 0;
+  width: min(92vw, 400px); z-index: 215;
+  padding: 10px 20px 20px; border-radius: 24px; text-align: center;
+  background: var(--glass-fill-strong);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  transition: transform 0.46s var(--ease-spring), opacity 0.3s ease;
+}
+.scansheet.open { transform: translate(-50%, 0); opacity: 1; }
+/* On the way out the blur is dropped and the panel goes opaque-ish instead:
+   a backdrop-filter on a MOVING element is re-sampled and re-blurred every
+   frame, which is the most expensive thing a phone GPU can be asked to do
+   mid-transition. Nobody can read the backdrop of a sheet that is leaving. */
+.scansheet.is-closing {
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  background: rgba(255,255,255,0.82);
+}
+.scansheet[hidden] { display: none; }
+.scansheet__title {
+  font-family: var(--font-heading); font-size: 17px; font-weight: 800;
+  color: var(--ink); margin: 2px 0 14px; letter-spacing: -0.2px;
+}
+.scansheet__hint { font-size: 12px; color: var(--ink-dim); margin: 14px 0 0; line-height: 1.5; }
+.scansheet__note { min-height: 1.3em; margin: 6px 0 0; font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+.scansheet__note.is-err { color: #b3261e; }
+.scansheet__btn { margin-top: 12px; width: 100%; }
+
+.scanbox {
+  position: relative; width: min(100%, 268px); aspect-ratio: 1; margin: 0 auto;
+  border-radius: 28px; overflow: hidden;
+  background: linear-gradient(160deg, #23262b, #0e1013);
+  box-shadow: 0 30px 56px -26px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.scanbox__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.18s ease; }
+.scanbox.is-live .scanbox__video { opacity: 1; }
+
+/* Idle art, so the box looks alive before permission is granted. */
+.scanbox__idle {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: rgba(255,255,255,0.92);
+  transition: opacity 0.35s ease, transform 0.45s ease;
+}
+.scanbox.is-live .scanbox__idle { opacity: 0; transform: scale(1.1); }
+.scanbox__glyph { width: 76px; height: 76px; position: relative; z-index: 1; animation: glyphFloat 3.6s ease-in-out infinite; }
+@keyframes glyphFloat { 50% { transform: translateY(-7px); } }
+.scanbox__ring {
+  position: absolute; width: 108px; height: 108px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  animation: ringOut 2.8s ease-out infinite;
+}
+.scanbox__ring:nth-child(2) { animation-delay: 1.4s; }
+/* while waiting on getUserMedia: same art, visibly busier */
+.scanbox.is-waking .scanbox__ring { animation-duration: 1.1s; }
+.scanbox.is-waking .scanbox__glyph { animation: glyphPulse 1.1s ease-in-out infinite; }
+@keyframes glyphPulse { 50% { transform: scale(0.9); opacity: 0.6; } }
+@keyframes ringOut {
+  0%   { transform: scale(0.65); opacity: 0.85; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+
+/* four corner brackets, so the framing reads without covering the picture */
+.scanbox__frame { position: absolute; inset: 16px; pointer-events: none; }
+.scanbox__frame i { position: absolute; width: 26px; height: 26px; border: 3px solid rgba(255,255,255,0.9); }
+.scanbox__frame i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
+.scanbox__frame i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
+.scanbox__frame i:nth-child(3) { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
+.scanbox__frame i:nth-child(4) { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
+.scanbox:not(.is-live) .scanbox__frame { animation: frameBreathe 3.6s ease-in-out infinite; }
+@keyframes frameBreathe { 50% { inset: 13px; opacity: 0.75; } }
+
+/* the sweep only runs while the camera is actually live, so a still frame
+   never looks like it is scanning */
+.scanbox__beam {
+  position: absolute; left: 16px; right: 16px; height: 2px; top: 16px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
+  box-shadow: 0 0 14px rgba(255,255,255,0.65);
+  opacity: 0; pointer-events: none;
+}
+.scanbox.is-live .scanbox__beam { animation: scanBeam 2.4s ease-in-out infinite; }
+@keyframes scanBeam {
+  0%   { transform: translateY(0);     opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(calc(min(80vw, 268px) - 50px)); opacity: 0; }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .scanbox.is-live .scanbox__beam,
+  .scanbox__ring, .scanbox__glyph, .scanbox.is-waking .scanbox__glyph,
+  .scanbox:not(.is-live) .scanbox__frame { animation: none; }
+}
+
 /* ================= Glassy bottom navigation ================= */
 /* discounts now live in the tab bar; retire the top-corner buttons */
 .pocket-btn { display: none; }
@@ -1054,9 +1377,12 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 
 .tabbar__ind {
   position: absolute; top: 7px; left: 7px;
-  width: 84px; height: calc(100% - 14px);
+  /* sized from the bar rather than a fixed 84px: the number of tabs has
+     changed once already, and a hard-coded step silently misaligns when it
+     does. translateX percentages resolve against the element's own width. */
+  width: calc((100% - 14px) / 3); height: calc(100% - 14px);
   border-radius: 16px; background: #171717;
-  transform: translateX(calc(var(--ti, 1) * 84px));
+  transform: translateX(calc(var(--ti, 1) * 100%));
   transition: transform 0.44s var(--ease-spring);
   z-index: 0;
 }
@@ -1101,6 +1427,32 @@ html[dir="rtl"] .cafe-row { text-align: right; }
 .sheet__rows { display: flex; flex-direction: column; margin-bottom: 16px; }
 .srow { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 13px 2px; border-bottom: 1px solid rgba(20,20,20,0.08); }
 .srow:last-child { border-bottom: 0; }
+/* An action, not a value: the whole row is the button, it says what tapping it
+   does, and the chevron marks it as leading somewhere. */
+.srow--action {
+  width: 100%; border: 0; border-bottom: 1px solid rgba(20,20,20,0.08);
+  background: transparent; cursor: pointer; text-align: start;
+  gap: 11px; font: inherit;
+}
+.srow--action[hidden] { display: none; }
+.srow--action:hover { background: rgba(255,255,255,0.4); }
+.srow--action:active { transform: scale(0.995); }
+.srow__ico {
+  flex: none; display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 10px;
+  background: linear-gradient(150deg, var(--terra), var(--terra-deep));
+  box-shadow: 0 5px 11px -5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.srow__ico img { width: 26px; height: 26px; border-radius: 8px; display: block; }
+.srow__body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.srow__body b {
+  font-family: var(--font-heading); font-size: 12.5px; font-weight: 800;
+  color: var(--ink); line-height: 1.3;
+}
+.srow__body i { font-style: normal; font-size: 11px; color: var(--ink-dim); line-height: 1.35; margin-top: 2px; }
+.srow__chev { flex: none; width: 15px; height: 15px; color: var(--ink-faint); }
+/* the chevron must point the way the language reads */
+html[dir="rtl"] .srow__chev { transform: scaleX(-1); }
 .srow__k { font-size: 13px; font-weight: 700; color: #565656; flex: 0 0 auto; }
 .srow__v { font-size: 14px; font-weight: 700; color: #171717; min-width: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* a phone number reads the same way regardless of UI language — isolate it

@@ -88,6 +88,7 @@ routerAdd("POST", "/card/stamp/request", (e) => {
     name: cafe.getString("cafe_name"),
     tagline: cafe.getString("tagline"),
     accent: cafe.getString("accent") || "#171717",
+    pattern: require(`${__hooks}/card-pattern.js`).read(cafe),
     // ready-to-use URL — this payload isn't a raw record, so the client has no
     // collectionId to build one from (see fileUrl() in app.js)
     logo: logoName ? "/api/files/" + cafe.collection().id + "/" + cafe.id + "/" + logoName + "?thumb=240x240" : "",
@@ -372,6 +373,12 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
         description: d.getString("description"),
         shop: cafe.getString("cafe_name"),
         cafe_id: cafe.id,
+        // The raw instant is what the client formats from: it renders the date in
+        // the reader's own calendar (Jalali on the Persian UI) and in Tehran time.
+        // Goja has no Intl and no Persian calendar, so the server does not try.
+        due_date: new Date(dueMs).toISOString(),
+        // Kept only for app builds cached before due_date existed — those read
+        // `due` and would otherwise fall back to a generic 30-day guess.
         due: z(due.getDate()) + "." + z(due.getMonth() + 1) + "." + String(due.getFullYear()).slice(2),
       };
 
@@ -397,6 +404,7 @@ routerAdd("POST", "/card/stamp/confirm", (e) => {
         name: cafe.getString("cafe_name"),
         tagline: cafe.getString("tagline"),
         accent: cafe.getString("accent") || "#171717",
+    pattern: require(`${__hooks}/card-pattern.js`).read(cafe),
         stamps_required: required,
         min_purchase: cafe.getInt("min_purchase"),
         theme: cafe.getString("theme"),
