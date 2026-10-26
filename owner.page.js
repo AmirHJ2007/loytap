@@ -513,36 +513,58 @@
     // the honest approximation it is rather than false precision.
     const perDay = (total, days) => money(Math.round(total / days / 1000) * 1000);
 
+    // How many months the card shows. A year, because that is the unit both
+    // plans are measured against — one of twelve, or all twelve at once.
+    const BUY_MONTHS = 12;
+
     function paintBuy() {
       const yearly = buyPlan === "yearly";
       const price = BUY_PRICE[buyPlan];
+      const free = monthsFree();
+      const months = yearly ? BUY_MONTHS : 1;
+
+      // THE CARD. Twelve slots, filled as the plan fills them: one for a
+      // month, all twelve for a year with the last `free` of them marked. The
+      // owner sees what they are buying in the shape of the thing they sell.
+      const grid = $("buyGrid");
+      const slots = grid.children;
+      for (let i = 0; i < slots.length; i++) {
+        const on = i < months;
+        // the free ones are the LAST of the twelve: you pay for ten and the
+        // year carries you to the end of the card
+        const gift = yearly && i >= BUY_MONTHS - free;
+        slots[i].classList.toggle("is-on", on);
+        slots[i].classList.toggle("is-free", gift);
+      }
+      // replay the cascade so a switch fills the card in front of you
+      grid.classList.remove("is-filling"); void grid.offsetWidth; grid.classList.add("is-filling");
+
+      const note = $("buyFreeNote");
+      note.hidden = !yearly;
+      if (yearly) note.textContent = t("OWNER_BUY_FREE_NOTE", { n: free });
+
+      $("buyCardName").textContent = savedCafeName || t("OWNER_CAFE_FALLBACK");
+      $("buyCardCount").textContent = t(months === 1 ? "OWNER_BUY_MONTHS_ONE" : "OWNER_BUY_MONTHS_N", { n: months });
 
       $("buyAmount").textContent = money(price);
-      $("buyPer").textContent = t(yearly ? "OWNER_BUY_PER_YEAR_FULL" : "OWNER_BUY_PER_MONTH_FULL");
+      $("buyPer").textContent = yearly
+        ? t("OWNER_BUY_PER_YEAR_FULL")
+        : t("OWNER_BUY_PER_MONTH_FULL", { amount: perDay(price, 30) });
 
       // the struck-through figure is what twelve months would have cost, which
-      // is the only honest way to show what "2 months free" is measured against
+      // is the only honest way to show what the free months are measured against
       const anchor = $("buyAnchor"), was = $("buyWas");
       anchor.hidden = !yearly;
       if (yearly) {
         was.textContent = money(BUY_PRICE.monthly * 12);
         was.setAttribute("aria-label", t("OWNER_BUY_WAS_LABEL", { amount: money(BUY_PRICE.monthly * 12) }));
-        $("buySave").textContent = t("OWNER_BUY_SAVE_N", { n: monthsFree() });
       }
-
-      // One reframe each, not both: for a month the useful retelling is the
-      // daily cost; for a year it is what it works out to monthly, which is
-      // the comparison the owner is actually making.
-      $("buyDay").textContent = yearly
-        ? t("OWNER_BUY_EQUIV", { amount: money(Math.round(BUY_PRICE.yearly / 12)) })
-        : t("OWNER_BUY_PER_DAY", { amount: perDay(price, 30) });
 
       // The nudge always offers the OTHER plan, and tapping it is the same
       // action as moving the toggle — so the two can never disagree.
-      $("buyNudge").innerHTML = yearly
-        ? esc(t("OWNER_BUY_NUDGE_MONTHLY", { amount: money(BUY_PRICE.monthly) }))
-        : esc(t("OWNER_BUY_NUDGE_YEARLY", {
-            amount: money(BUY_PRICE.yearly), was: money(BUY_PRICE.monthly * 12), n: monthsFree() }));
+      $("buyNudge").textContent = yearly
+        ? t("OWNER_BUY_NUDGE_MONTHLY", { amount: money(BUY_PRICE.monthly) })
+        : t("OWNER_BUY_NUDGE_YEARLY", { n: free });
 
       $("buySeg").classList.toggle("is-yearly", yearly);
       document.querySelectorAll(".buy-seg__btn").forEach((b) => {
@@ -550,12 +572,11 @@
         b.classList.toggle("is-on", on);
         b.setAttribute("aria-pressed", on ? "true" : "false");
       });
-      $("buySeg").querySelector(".buy-seg__save").textContent =
-        t("OWNER_BUY_SAVE_N", { n: monthsFree() });
+      $("buySeg").querySelector(".buy-seg__save").textContent = t("OWNER_BUY_SAVE_N", { n: free });
       $("buyPayLabel").textContent = t("OWNER_BUY_PAY", { amount: money(price) });
 
-      // replay the entrance on the whole figure — a price that changes
-      // silently under a toggle reads as a rendering glitch rather than a choice
+      // replay the entrance on the figure — a price that changes silently
+      // under a toggle reads as a rendering glitch rather than a choice
       const box = $("buyPriceBox");
       box.classList.remove("is-swap"); void box.offsetWidth; box.classList.add("is-swap");
 
