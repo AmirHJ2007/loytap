@@ -762,13 +762,27 @@
     .buypage__head { position: relative; padding-inline: 44px; text-align: center; }
     .buypage .addpage__title { color: #fff; }
     .buypage .addpage__lead { color: rgba(255,255,255,0.5); }
-    .buypage__back {
+    /* Pinned to the PHYSICAL left on both dark pages, in Persian as in
+       English. Flex order would put it on the right in an RTL layout, which
+       is where it ended up on the package page — the one control that should
+       sit in the same place on every page in the panel.
+       Bright enough to find at a glance, too: at 8% white on a near-black
+       page it read as a disabled control rather than the way out. */
+    /* .sheet__close is defined further down this stylesheet and sets its own
+       size, border and background; at equal specificity it would win, so
+       these name both classes. */
+    .sheet__close.buypage__back, .sheet__close.incpage__back {
       position: absolute; left: 0; top: 0;
-      display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
-      color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12);
+      display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+      color: #fff;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 6px 16px -8px rgba(0,0,0,0.8);
+      transition: background 0.2s ease, transform 0.14s ease;
     }
-    .buypage__back:hover { background: rgba(255,255,255,0.14); }
-    .buypage__back svg { width: 18px; height: 18px; }
+    .sheet__close.buypage__back:hover, .sheet__close.incpage__back:hover { background: rgba(255,255,255,0.26); }
+    .sheet__close.buypage__back:active, .sheet__close.incpage__back:active { transform: scale(0.94); }
+    .sheet__close.buypage__back svg, .sheet__close.incpage__back svg { width: 19px; height: 19px; }
     /* The page opens with this focused, so a default focus ring was the first
        thing an owner saw — a ring around the back arrow, on a screen that is
        asking them for money. A keyboard user still gets one. */
@@ -974,10 +988,11 @@
     }
     .incpage .addpage__title { color: #fff; }
     .incpage .addpage__lead { color: rgba(255,255,255,0.55); }
-    .incpage__back { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
-    .incpage__back:hover { background: rgba(255,255,255,0.14); }
     .incpage__back:focus { outline: none; }
-    .incpage__back:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+    .incpage__back:focus-visible { outline: 2px solid rgba(255,255,255,0.75); outline-offset: 3px; }
+    /* the heading starts clear of the pinned button, whichever side the text
+       itself is aligned to */
+    .incpage__head { position: relative; padding-left: 52px; }
     .incpage__body {
       padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
       -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
