@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="fonts.css" />
-  <script src="i18n.js?v=62"></script>
+  <script src="i18n.js?v=64"></script>
   <link rel="stylesheet" href="card-patterns/patterns.css?v=2" />
   <script src="card-patterns/patterns.js?v=6"></script>
   <style>
@@ -898,37 +898,110 @@
     .buy-trust li + li { border-top: 1px solid rgba(20,20,20,0.055); }
     .buy-trust svg { flex: none; width: 14px; height: 14px; color: #1f7a4d; }
 
-    .buy-inc__h { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: #171717; margin: 0 0 4px; }
-    .buy-inc__sub { font-size: 11.5px; color: #565656; margin: 0 0 12px; line-height: 1.5; text-wrap: pretty; }
-    /* Hairlines rather than seven filled slabs. The old rows were identical
-       grey blocks, which made a list of seven different things look like one
-       repeated thing; the tick is what carries the rhythm now. */
-    .buy-inc {
-      list-style: none; margin: 0; padding: 2px 2px;
-      border-radius: 18px; background: rgba(20,20,20,0.025);
-      border: 1px solid rgba(20,20,20,0.05);
+    /* ---- the way into the package page ---- */
+    /* A row, not a button that shouts: the decision on this page is the plan,
+       and this is the reference you consult beside it. */
+    .buy-see {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; margin: 0 0 4px; cursor: pointer; text-align: start;
+      padding: 14px 16px; border-radius: 18px;
+      background: rgba(20,20,20,0.035); border: 1px solid rgba(20,20,20,0.07);
+      transition: background 0.25s ease, transform 0.14s ease, border-color 0.25s ease;
     }
-    .buy-inc li {
-      display: flex; align-items: center; gap: 11px;
-      padding: 11px 12px;
-      font-size: 12.5px; color: #171717; line-height: 1.5;
+    .buy-see:hover { background: rgba(20,20,20,0.06); border-color: rgba(20,20,20,0.12); }
+    .buy-see:active { transform: scale(0.995); }
+    .buy-see__k { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .buy-see__k b { font-family: var(--font-heading); font-size: 14px; font-weight: 800; color: #171717; }
+    .buy-see__k span { font-size: 11.5px; font-weight: 700; color: #565656; line-height: 1.45; }
+    .buy-see__chev { flex: none; width: 17px; height: 17px; color: #9a9a9a; transition: transform 0.3s var(--ease-spring); }
+    /* the chevron points the way the page will arrive from */
+    html[dir="rtl"] .buy-see__chev { transform: scaleX(-1); }
+    .buy-see:hover .buy-see__chev { transform: translateX(3px); }
+    html[dir="rtl"] .buy-see:hover .buy-see__chev { transform: scaleX(-1) translateX(3px); }
+
+    /* ---- the package page ---- */
+    /* Dark, alone among the panel's full-screen pages. Every other one is a
+       form on paper; this one is the product describing itself, and it reads
+       as a different kind of surface on purpose. */
+    /* .addpage.incpage, not .incpage: the base rule is defined further down
+       this stylesheet, and at equal specificity the later one would win. */
+    .addpage.incpage { background: linear-gradient(168deg, #24282e 0%, #15171b 52%, #0c0e10 100%); }
+    .addpage.incpage::before {
+      background: radial-gradient(circle, rgba(94,219,154,0.16), rgba(94,219,154,0) 70%);
+      width: 360px; height: 360px; top: -140px;
     }
-    .buy-inc li + li { border-top: 1px solid rgba(20,20,20,0.05); }
-    .buy-inc__tick {
-      flex: none; display: grid; place-items: center; width: 22px; height: 22px;
-      border-radius: 50%; color: #1f7a4d;
-      background: rgba(31,122,77,0.1);
+    .incpage .addpage__title { color: #fff; }
+    .incpage .addpage__lead { color: rgba(255,255,255,0.55); }
+    .incpage__back { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+    .incpage__back:hover { background: rgba(255,255,255,0.14); }
+    .incpage__back:focus { outline: none; }
+    .incpage__back:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+    .incpage__body {
+      padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
     }
-    .buy-inc__tick svg { width: 12px; height: 12px; }
-    /* staggered in, so the list arrives rather than appearing all at once */
-    .buypage.is-open .buy-inc li { animation: fadeUp 0.5s var(--ease-spring) both; animation-delay: calc(0.26s + var(--i) * 0.035s); }
-    .buypage.is-open .buy-trust li { animation: fadeUp 0.45s var(--ease-spring) both; }
-    .buypage.is-open .buy-trust li:nth-child(2) { animation-delay: 0.06s; }
-    .buypage.is-open .buy-trust li:nth-child(3) { animation-delay: 0.12s; }
+
+    /* Three groups, in the order a café actually meets them: the setup, the
+       thing their customer walks out with, then every day after that. */
+    .inc-group + .inc-group { margin-top: 26px; }
+    .inc-group__h {
+      display: flex; align-items: center; gap: 10px; margin: 0 0 12px;
+      font-family: var(--font-heading); font-size: 11px; font-weight: 800;
+      letter-spacing: 1.4px; text-transform: uppercase; color: #5edb9a;
+    }
+    /* a short rule rather than a bullet — it reads as a section mark, and it
+       grows out of the heading when the page arrives */
+    .inc-group__rule {
+      flex: none; width: 22px; height: 2px; border-radius: 2px;
+      background: linear-gradient(to left, #5edb9a, rgba(94,219,154,0.15));
+      transform-origin: right center;
+    }
+    html[dir="ltr"] .inc-group__rule {
+      background: linear-gradient(to right, #5edb9a, rgba(94,219,154,0.15));
+      transform-origin: left center;
+    }
+    .incpage.is-open .inc-group__rule { animation: incRule 0.6s var(--ease-spring) 0.3s both; }
+    @keyframes incRule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    .inc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .inc-item {
+      position: relative; overflow: hidden;
+      display: flex; align-items: flex-start; gap: 13px;
+      padding: 15px 15px; border-radius: 19px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.075);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .inc-item__ico {
+      flex: none; display: grid; place-items: center; width: 40px; height: 40px;
+      border-radius: 13px; color: #9ff0c4;
+      background: linear-gradient(160deg, rgba(94,219,154,0.22), rgba(94,219,154,0.07));
+      border: 1px solid rgba(94,219,154,0.2);
+    }
+    .inc-item__ico svg { width: 20px; height: 20px; }
+    .inc-item__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .inc-item__body b {
+      font-family: var(--font-heading); font-size: 13.5px; font-weight: 800;
+      color: #fff; line-height: 1.45;
+    }
+    .inc-item__body span {
+      font-size: 11.5px; font-weight: 600; line-height: 1.65;
+      color: rgba(255,255,255,0.62); text-wrap: pretty;
+    }
+    /* each card arrives a beat after the one above it, in reading order */
+    .incpage.is-open .inc-item { animation: incIn 0.55s var(--ease-spring) both; animation-delay: calc(0.26s + var(--i) * 0.045s); }
+    @keyframes incIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .incpage.is-open .inc-item,
+      .incpage.is-open .inc-group__rule { animation: none; }
+      .buy-see__chev, .buy-see:hover .buy-see__chev { transition: none; }
+    }
+
     .buypage__foot .sub-cta { margin-top: 0; }
 
     @media (prefers-reduced-motion: reduce) {
-      .buypage.is-open .buy-inc li,
       .buypage.is-open .buy-trust li { animation: none; }
       .buy-price.is-swap > * { animation: none; }
       .buy-seg__glider { transition: none; }
@@ -2433,17 +2506,16 @@
 
         <ul class="buy-trust"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T1">Trust</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T2">Trust</span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="OWNER_BUY_T3">Trust</span></li></ul>
 
-        <h3 class="buy-inc__h" data-i18n="OWNER_BUY_INCLUDES">What this package includes</h3>
-        <p class="buy-inc__sub" data-i18n="OWNER_BUY_INCLUDES_SUB">Everything below is in the one price.</p>
-        <ul class="buy-inc">
-          <li style="--i:1"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F1">Feature</span></li>
-          <li style="--i:2"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F2">Feature</span></li>
-          <li style="--i:3"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F3">Feature</span></li>
-          <li style="--i:4"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F4">Feature</span></li>
-          <li style="--i:5"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F5">Feature</span></li>
-          <li style="--i:6"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F6">Feature</span></li>
-          <li style="--i:7"><span class="buy-inc__tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span data-i18n="OWNER_BUY_F7">Feature</span></li>
-        </ul>
+        <!-- What the money buys has a page of its own. It used to live here,
+             seven rows under the price, where it crowded the single decision
+             this page exists for. -->
+        <button type="button" class="buy-see" id="buyIncBtn">
+          <span class="buy-see__k">
+            <b data-i18n="OWNER_BUY_INCLUDES">What this package includes</b>
+            <span data-i18n="OWNER_INC_LEDE">Seven things, one price.</span>
+          </span>
+          <svg class="buy-see__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       </div>
 
       <div class="addpage__foot buypage__foot">
@@ -2584,6 +2656,119 @@
     </div>
   </div>
 
+
+  <!-- What the package includes, as its own page. Seven things grouped into
+       the three moments they belong to — how you are set up, what your
+       customer ends up holding, and what you do with it every day after that
+       — because a flat list of seven makes seven different things look like
+       one repeated thing. Dark, unlike every other page in the panel: this
+       one is the product talking, not a form. -->
+  <div class="addpage incpage" id="incPage" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="incTitle">
+    <div class="addpage__inner">
+      <header class="addpage__head incpage__head">
+        <button class="sheet__close incpage__back" type="button" aria-label="Back" data-i18n-aria="OWNER_BUY_BACK">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="addpage__id">
+          <h2 class="addpage__title" id="incTitle" data-i18n="OWNER_INC_TITLE">Inside the package</h2>
+          <p class="addpage__lead" data-i18n="OWNER_BUY_INCLUDES_SUB">Everything is in the one price.</p>
+        </span>
+      </header>
+
+      <div class="addpage__body incpage__body">
+      <section class="inc-group">
+        <h3 class="inc-group__h">
+          <span class="inc-group__rule" aria-hidden="true"></span>
+          <span data-i18n="OWNER_INC_G1">Group</span>
+        </h3>
+        <ul class="inc-list">
+          <li class="inc-item" style="--i:1">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1a10 10 0 0 1 0-14.2"/><path d="M7.8 16.2a6 6 0 0 1 0-8.4"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M19.1 4.9a10 10 0 0 1 0 14.2"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F1">Feature</b>
+              <span data-i18n="OWNER_INC_D1">What it means</span>
+            </span>
+          </li>
+          <li class="inc-item" style="--i:2">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12.5V17c3.3 2.7 8.7 2.7 12 0v-4.5"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F2">Feature</b>
+              <span data-i18n="OWNER_INC_D2">What it means</span>
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="inc-group">
+        <h3 class="inc-group__h">
+          <span class="inc-group__rule" aria-hidden="true"></span>
+          <span data-i18n="OWNER_INC_G2">Group</span>
+        </h3>
+        <ul class="inc-list">
+          <li class="inc-item" style="--i:3">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M8.5 9.5h7"/><path d="M8.5 13h4"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F3">Feature</b>
+              <span data-i18n="OWNER_INC_D3">What it means</span>
+            </span>
+          </li>
+          <li class="inc-item" style="--i:4">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F4">Feature</b>
+              <span data-i18n="OWNER_INC_D4">What it means</span>
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="inc-group">
+        <h3 class="inc-group__h">
+          <span class="inc-group__rule" aria-hidden="true"></span>
+          <span data-i18n="OWNER_INC_G3">Group</span>
+        </h3>
+        <ul class="inc-list">
+          <li class="inc-item" style="--i:5">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F5">Feature</b>
+              <span data-i18n="OWNER_INC_D5">What it means</span>
+            </span>
+          </li>
+          <li class="inc-item" style="--i:6">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20v-4"/><path d="M12 20V8"/><path d="M18 20v-8"/><path d="M3 20h18"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F6">Feature</b>
+              <span data-i18n="OWNER_INC_D6">What it means</span>
+            </span>
+          </li>
+          <li class="inc-item" style="--i:7">
+            <span class="inc-item__ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+            <span class="inc-item__body">
+              <b data-i18n="OWNER_BUY_F7">Feature</b>
+              <span data-i18n="OWNER_INC_D7">What it means</span>
+            </span>
+          </li>
+        </ul>
+      </section>
+      </div>
+    </div>
+  </div>
+
   <div class="addpage" id="addPage" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="addPageTitle">
     <div class="addpage__inner" id="addPageInner">
       <header class="addpage__head">
@@ -2688,7 +2873,7 @@
     </button>
   </nav>
 
-  <script src="owner.page.js?v=64"></script>
+  <script src="owner.page.js?v=65"></script>
   <script src="owner.push.js?v=2"></script>
 </body>
 </html>

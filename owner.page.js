@@ -396,7 +396,11 @@
     // alongside: the add page is the only overlay on this branch, so the
     // scroll lock has just the one thing to ask about.
     function releaseScrollLock() {
-      if ($("addPage").hidden) document.body.style.overflow = "";
+      // Any full-screen page still open keeps the lock. These stack now — the
+      // package page opens over the buy page — and restoring the scrollbar
+      // under one that is still up jumps the layout behind it.
+      const open = [...document.querySelectorAll(".addpage")].some((el) => !el.hidden);
+      if (!open) document.body.style.overflow = "";
     }
     const SHEET_MS = 440;   // must stay >= the .sheet__panel transition
 
@@ -682,7 +686,7 @@
       el.style.setProperty("--oy", oy.toFixed(1) + "px");
       el.style.setProperty("--r", Math.ceil(reach) + "px");
       paintBuy();
-    });
+    }, null, () => !$("incPage").hidden);   // Escape closes the top page only
     $("subBuy").onclick = () => buyPage.open();
     $("buyPay").onclick = startPayment;
     // Continue is the way out. The backdrop deliberately is not — this is the
@@ -691,6 +695,22 @@
     $("paidGo").onclick = () => closePaid();
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePaid(); });
     $("buyPage").querySelector(".buypage__back").onclick = () => buyPage.close();
+
+    // What the package includes. Opens OVER the buy page rather than
+    // replacing it: an owner comparing the two plans is mid-decision, and
+    // coming back should put them exactly where they left off.
+    const incPage = makeSheet($("incPage"), $("incPage"), $("buyIncBtn"), () => {
+      const el = $("incPage"), r = $("buyIncBtn").getBoundingClientRect();
+      const ox = r.left + r.width / 2, oy = r.top + r.height / 2;
+      const reach = Math.max(
+        Math.hypot(ox, oy), Math.hypot(window.innerWidth - ox, oy),
+        Math.hypot(ox, window.innerHeight - oy), Math.hypot(window.innerWidth - ox, window.innerHeight - oy));
+      el.style.setProperty("--ox", ox.toFixed(1) + "px");
+      el.style.setProperty("--oy", oy.toFixed(1) + "px");
+      el.style.setProperty("--r", Math.ceil(reach) + "px");
+      el.querySelector(".addpage__body").scrollTop = 0;
+    });
+    $("buyIncBtn").onclick = () => incPage.open();
     document.querySelectorAll(".buy-seg__btn").forEach((b) => {
       b.onclick = () => { buyPlan = b.dataset.plan; paintBuy(); };
     });
