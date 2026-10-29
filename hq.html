@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1280" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>ریلوی · مرکز فرمان</title>
+  <link rel="icon" href="reloy-icon-192.png" />
+  <link rel="stylesheet" href="fonts.css" />
+  <!--
+    مرکز فرمان — the internal platform dashboard.
+
+    PERSIAN ONLY. There is no i18n.js here and no data-i18n attributes: this
+    page has one reader. Loading the translation layer would mean maintaining an
+    English half of every string for nobody, and the strings below are
+    deliberately written in place so the copy is read where it is used.
+
+    DESKTOP ONLY. The viewport is pinned at 1280 rather than device-width, and
+    there are no breakpoints. A phone therefore gets a scaled-down desktop page
+    — legible, pannable, and honest about what it is — instead of a responsive
+    layout nobody asked for. The café-table and the 60-day chart both need the
+    width; squeezing them into 390px would mean dropping columns, which is how
+    a dashboard starts hiding the number you opened it for.
+
+    NUMERALS. Western digits (0-9) everywhere, never ۰-۹, in Persian text too —
+    the house rule, stated at the top of i18n.js and followed by every other
+    surface. Dates are Jalali with Latin digits via
+    Intl 'fa-IR-u-ca-persian-nu-latn'.
+
+    RTL. Any element whose content is a bare Latin number or a reference code
+    carries dir="ltr" of its own, because a Latin run inside an RTL cell is
+    reordered around its punctuation otherwise — 09:15 renders as 15:09. The
+    chart SVG is direction:ltr as a whole (its x-axis is time, left to right)
+    and carries no Persian text inside it at all; its legend lives in HTML
+    beside it. That is deliberate rather than incidental — see the note above
+    the chart in hq.page.js.
+  -->
+  <style>
+    :root {
+      --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#d8d8d8; --line2:#ececec;
+      --paper:#f0f0f0; --card:#ffffff;
+      --good:#1f7a4d; --warn:#b58100; --hot:#c2560f; --bad:#b02020;
+      --font: "Vazirmatn", "Nunito", system-ui, sans-serif;
+      --rail: 208px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; }
+
+    /* The gate and the app are swapped with the `hidden` attribute, and both
+       carry an explicit `display` below. A rule like `#gate { display: grid }`
+       beats the user-agent's `[hidden] { display: none }` on specificity, so
+       without this line setting .hidden does nothing at all: the sign-in card
+       keeps rendering on top of a dashboard that has already loaded, which
+       looks exactly like a failed login. */
+    [hidden] { display: none !important; }
+    body {
+      font-family: var(--font); color: var(--ink); background: var(--paper);
+      -webkit-font-smoothing: antialiased; font-size: 14px; line-height: 1.7;
+      min-width: 1180px;
+    }
+    h1,h2,h3 { margin:0; font-weight:700; }
+    a { color: inherit; }
+    button { font-family: inherit; font-size: inherit; cursor: pointer; }
+
+    /* numbers: tabular so columns of toman line up, and LTR so a Latin run
+       inside this RTL page is not reordered around its own commas */
+    .num { font-variant-numeric: tabular-nums; font-feature-settings:"tnum"; }
+    .ltr { direction: ltr; unicode-bidi: isolate; }
+    .mono { font-family: Menlo, Consolas, monospace; }
+
+    /* ---- gate ---------------------------------------------------------- */
+    #gate {
+      min-height: 100dvh; display: grid; place-items: center; padding: 40px;
+    }
+    .gate__box {
+      width: 380px; background: var(--card); border-radius: 18px; padding: 30px 28px;
+      box-shadow: 0 24px 60px -34px rgba(20,20,20,.45);
+    }
+    .gate__mark { height: 26px; margin-bottom: 20px; }
+    .gate__h { font-size: 19px; }
+    .gate__p { color: var(--dim); font-size: 13px; margin: 4px 0 22px; }
+    .field { display: block; margin-bottom: 14px; }
+    .field > span { display:block; font-size:12px; color: var(--faint); margin-bottom: 5px; }
+    .field input {
+      width: 100%; font-family: inherit; font-size: 14px; padding: 11px 13px;
+      border: 1px solid var(--line); border-radius: 11px; background: #fcfcfc; color: var(--ink);
+    }
+    .field input:focus { outline: 2px solid rgba(23,23,23,.18); outline-offset: 1px; border-color: var(--ink); }
+    .btn {
+      border: 0; border-radius: 11px; background: var(--ink); color: #fff;
+      padding: 12px 20px; font-weight: 700;
+    }
+    .btn:disabled { opacity: .5; cursor: default; }
+    .btn--ghost { background: transparent; color: var(--dim); border: 1px solid var(--line); }
+    .btn--wide { width: 100%; }
+    .err { color: var(--bad); font-size: 13px; min-height: 20px; margin-top: 10px; }
+
+    /* ---- frame --------------------------------------------------------- */
+    #app { display: grid; grid-template-columns: var(--rail) 1fr; min-height: 100dvh; }
+    .rail {
+      background: var(--ink); color: #fff; padding: 22px 0; position: sticky; top: 0;
+      height: 100dvh; display: flex; flex-direction: column;
+    }
+    .rail__brand { font-size: 15px; font-weight: 700; padding: 0 22px 2px; }
+    .rail__sub { font-size: 11px; color: rgba(255,255,255,.45); padding: 0 22px 20px; }
+    .rail__nav { display: flex; flex-direction: column; gap: 2px; }
+    .rail__nav button {
+      background: none; border: 0; color: rgba(255,255,255,.62); text-align: right;
+      padding: 10px 22px; font-size: 13.5px; border-right: 3px solid transparent;
+    }
+    .rail__nav button:hover { color: #fff; background: rgba(255,255,255,.05); }
+    .rail__nav button.on { color: #fff; border-right-color: #fff; background: rgba(255,255,255,.08); }
+    .rail__foot { margin-top: auto; padding: 0 22px; }
+    .rail__foot button { background:none; border:0; color: rgba(255,255,255,.45); font-size:12px; padding:0; }
+    .rail__foot button:hover { color: #fff; }
+
+    main { padding: 26px 30px 70px; max-width: 1480px; }
+    .top { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; }
+    .top h1 { font-size: 22px; }
+    .top__when { color: var(--faint); font-size: 12px; }
+    .top__act { margin-right: auto; display: flex; gap: 8px; }
+
+    section { display: none; }
+    section.on { display: block; }
+    .sec__h { font-size: 16px; margin-bottom: 3px; }
+    .sec__p { color: var(--dim); font-size: 13px; margin: 0 0 18px; max-width: 70ch; }
+
+    /* ---- tiles --------------------------------------------------------- */
+    .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+    .tiles--3 { grid-template-columns: repeat(3, 1fr); }
+    .tiles--5 { grid-template-columns: repeat(5, 1fr); }
+    .tile {
+      background: var(--card); border-radius: 14px; padding: 15px 17px 16px;
+      border: 1px solid var(--line2);
+    }
+    .tile__k { font-size: 11.5px; color: var(--faint); }
+    /* 22px, not 25: the money tiles carry un-abbreviated toman figures, and
+       eleven digits at 25px wrapped inside a quarter-width tile. */
+    .tile__v { font-size: 22px; font-weight: 700; line-height: 1.35; margin-top: 1px; white-space: nowrap; }
+    .tile__v small { font-size: 12px; font-weight: 400; color: var(--faint); margin-right: 3px; }
+    .tile__n { font-size: 11.5px; color: var(--dim); margin-top: 2px; min-height: 18px; }
+    .tile--good .tile__v { color: var(--good); }
+    .tile--warn .tile__v { color: var(--warn); }
+    .tile--bad  .tile__v { color: var(--bad); }
+
+    /* ---- panels and tables --------------------------------------------- */
+    .panel {
+      background: var(--card); border: 1px solid var(--line2); border-radius: 14px;
+      padding: 18px 20px 20px; margin-bottom: 18px;
+    }
+    .panel__h { font-size: 14px; margin-bottom: 2px; }
+    .panel__p { color: var(--faint); font-size: 12px; margin: 0 0 14px; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--line2); }
+    th {
+      font-size: 11.5px; color: var(--faint); font-weight: 400; white-space: nowrap;
+      border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card);
+    }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { color: var(--ink); }
+    th .caret { opacity: .45; font-size: 10px; }
+    td { font-size: 13px; }
+    tbody tr:hover { background: #fafafa; }
+    .t-wrap { max-height: 620px; overflow-y: auto; overflow-x: auto; }
+    .t-empty { color: var(--faint); font-size: 13px; padding: 16px 2px; }
+
+    .pill {
+      display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 99px;
+      border: 1px solid; white-space: nowrap;
+    }
+    .pill--active    { color: var(--good); border-color: rgba(31,122,77,.4);  background: rgba(31,122,77,.07); }
+    .pill--trialing  { color: #2a5fa8;    border-color: rgba(42,95,168,.4);  background: rgba(42,95,168,.07); }
+    .pill--past_due  { color: var(--hot);  border-color: rgba(194,86,15,.4);  background: rgba(194,86,15,.08); }
+    .pill--expired   { color: var(--bad);  border-color: rgba(176,32,32,.35); background: rgba(176,32,32,.06); }
+    .pill--cancelled { color: var(--dim);  border-color: var(--line); background: #f6f6f6; }
+    .pill--none      { color: var(--faint);border-color: var(--line2); background: #fafafa; }
+
+    .flag { font-size: 11px; padding: 1px 7px; border-radius: 6px; white-space: nowrap; }
+    .flag--idle { color: var(--hot); background: rgba(194,86,15,.1); }
+    .flag--cold { color: var(--bad); background: rgba(176,32,32,.08); }
+
+    /* ---- chart --------------------------------------------------------- */
+    /* direction:ltr for the whole figure: its x-axis is time and reads left to
+       right, and an RTL container would mirror the bars against their own
+       axis labels. No Persian text goes inside the SVG — the legend below is
+       HTML, which is what keeps this from needing a bidi isolate per label. */
+    .chart { direction: ltr; }
+    .chart svg { display: block; width: 100%; height: 190px; }
+    .chart__legend {
+      direction: rtl; display: flex; gap: 16px; font-size: 12px; color: var(--dim);
+      margin-top: 8px;
+    }
+    .chart__legend i { display:inline-block; width:9px; height:9px; border-radius:3px; margin-left:5px; }
+    .bar { fill: #171717; }
+    .bar--dim { fill: #c9c9c9; }
+    .axis { stroke: var(--line); stroke-width: 1; }
+    .axis-t { fill: #9a9a9a; font-size: 9px; font-family: Menlo, Consolas, monospace; }
+
+    /* ---- settings ------------------------------------------------------ */
+    .price-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+    .price-row .field { margin-bottom: 0; width: 200px; }
+    .derived { font-size: 12.5px; color: var(--dim); margin-top: 12px; }
+    .derived b { color: var(--ink); }
+
+    .letters { display: grid; grid-template-columns: 240px 1fr; gap: 18px; align-items: start; }
+    .letters__list { display: flex; flex-direction: column; gap: 4px; }
+    .letters__list button {
+      background: none; border: 1px solid var(--line2); border-radius: 10px;
+      text-align: right; padding: 9px 12px; font-size: 12.5px; color: var(--dim); line-height: 1.5;
+    }
+    .letters__list button.on { border-color: var(--ink); color: var(--ink); font-weight: 700; }
+    .letters__list button .dot {
+      display:inline-block; width:6px; height:6px; border-radius:99px; background: var(--warn);
+      margin-left:6px; vertical-align: middle;
+    }
+    .slot { margin-bottom: 13px; }
+    .slot__h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+    .slot__h span { font-size: 12px; color: var(--faint); }
+    .slot__h button {
+      background: none; border: 0; color: var(--dim); font-size: 11px; padding: 0;
+      text-decoration: underline; margin-right: auto;
+    }
+    /* shown only while this slot differs from its default — see pickLetter() */
+    .slot:not(.slot--changed) .slot__h button { display: none; }
+    .slot textarea {
+      width: 100%; font-family: inherit; font-size: 13px; line-height: 1.8;
+      padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px;
+      background: #fcfcfc; color: var(--ink); resize: vertical; min-height: 44px;
+    }
+    .slot textarea:focus { outline: 2px solid rgba(23,23,23,.15); border-color: var(--ink); }
+    .slot--changed textarea { border-color: var(--warn); background: #fffdf5; }
+    .vars { font-size: 11.5px; color: var(--faint); margin: 0 0 14px; }
+    .vars code {
+      font-family: Menlo, Consolas, monospace; background: #f3f3f3; border-radius: 5px;
+      padding: 1px 5px; margin-left: 3px; direction: ltr; display: inline-block;
+    }
+    .prev { margin-top: 6px; }
+    .prev__h { font-size: 12px; color: var(--faint); margin-bottom: 6px; }
+    .prev__subject {
+      font-size: 13px; background: #fafafa; border: 1px solid var(--line2);
+      border-radius: 9px; padding: 8px 12px; margin-bottom: 8px;
+    }
+    .prev iframe { width: 100%; height: 560px; border: 1px solid var(--line2); border-radius: 12px; background: #f0f0f0; }
+
+    .saverow { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+    .saverow .ok { color: var(--good); font-size: 12.5px; }
+    .saverow .no { color: var(--bad); font-size: 12.5px; }
+
+    .warnbox {
+      border: 1px solid rgba(181,129,0,.35); background: rgba(181,129,0,.07);
+      border-radius: 11px; padding: 11px 14px; font-size: 12.5px; color: #6b4e00;
+      margin-bottom: 16px;
+    }
+    .loading { color: var(--faint); font-size: 13px; padding: 30px 0; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== gate ======================================================= -->
+  <!-- Superuser credentials, i.e. the same login as the PocketBase dashboard.
+       Deliberately not the owner OTP flow: every café owner carries
+       role="admin", so a role check would be no gate at all here. -->
+  <div id="gate">
+    <form class="gate__box" id="gateForm">
+      <img class="gate__mark" src="reloy-logo.png" alt="ریلوی" />
+      <h1 class="gate__h">مرکز فرمان</h1>
+      <p class="gate__p">با همان ایمیل و گذرواژهٔ مدیر اصلی وارد شوید.</p>
+      <label class="field"><span>ایمیل</span>
+        <input id="gEmail" type="email" autocomplete="username" dir="ltr" required />
+      </label>
+      <label class="field"><span>گذرواژه</span>
+        <input id="gPass" type="password" autocomplete="current-password" dir="ltr" required />
+      </label>
+      <button class="btn btn--wide" id="gBtn" type="submit">ورود</button>
+      <p class="err" id="gErr"></p>
+    </form>
+  </div>
+
+  <!-- ===== app ======================================================== -->
+  <div id="app" hidden>
+    <aside class="rail">
+      <div class="rail__brand">ریلوی</div>
+      <div class="rail__sub">مرکز فرمان</div>
+      <nav class="rail__nav" id="nav">
+        <button data-sec="money" class="on">پول</button>
+        <button data-sec="subs">اشتراک‌ها</button>
+        <button data-sec="cafes">کافه‌ها</button>
+        <button data-sec="growth">رشد</button>
+        <button data-sec="ops">سلامت سیستم</button>
+        <button data-sec="settings">تنظیمات</button>
+      </nav>
+      <div class="rail__foot"><button id="signOut">خروج</button></div>
+    </aside>
+
+    <main>
+      <div class="top">
+        <h1 id="secTitle">پول</h1>
+        <span class="top__when" id="when"></span>
+        <span class="top__act">
+          <button class="btn btn--ghost" id="reload">تازه‌سازی</button>
+        </span>
+      </div>
+
+      <!-- ---- money ---------------------------------------------------- -->
+      <section id="sec-money" class="on">
+        <div class="tiles" id="moneyTiles"></div>
+        <div class="cols">
+          <div class="panel">
+            <h3 class="panel__h">درگاه پرداخت</h3>
+            <p class="panel__p">هر تلاش پرداخت یک ردیف دارد، پس نرخ زیر واقعی است و نه تخمینی.</p>
+            <div id="gateway"></div>
+          </div>
+          <div class="panel">
+            <h3 class="panel__h">دلیل پرداخت‌های ناموفق</h3>
+            <p class="panel__p">یک پیام که زیاد تکرار شده یعنی اشکال فنی؛ پیام‌های پراکنده یعنی انصراف کاربر.</p>
+            <div id="failNotes"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel__h">آخرین پرداخت‌های موفق</h3>
+          <p class="panel__p">مبلغ هر ردیف همان است که در لحظه دریافت شده، نه قیمت امروز.</p>
+          <div id="recentPays"></div>
+        </div>
+      </section>
+
+      <!-- ---- subscriptions -------------------------------------------- -->
+      <section id="sec-subs">
+        <div class="tiles tiles--5" id="statusTiles"></div>
+        <div class="tiles tiles--3" id="subTiles"></div>
+        <div class="panel">
+          <h3 class="panel__h">فهرست تماس — کافه‌های در مهلت</h3>
+          <p class="panel__p">اشتراکشان تمام شده و در مهلت 7 روزه‌اند. این یک فهرست تماس است، نه یک عدد.</p>
+          <div id="graceList"></div>
+        </div>
+      </section>
+
+      <!-- ---- cafés ---------------------------------------------------- -->
+      <section id="sec-cafes">
+        <div class="tiles tiles--3" id="cafeTiles"></div>
+        <div class="panel">
+          <h3 class="panel__h">همهٔ کافه‌ها</h3>
+          <p class="panel__p">روی عنوان هر ستون بزنید تا بر اساس آن مرتب شود.</p>
+          <div id="cafeTable"></div>
+        </div>
+      </section>
+
+      <!-- ---- growth --------------------------------------------------- -->
+      <section id="sec-growth">
+        <div class="tiles" id="growthTiles"></div>
+        <div class="panel">
+          <h3 class="panel__h">60 روز گذشته</h3>
+          <p class="panel__p">مهرهای ثبت‌شده در هر روز، به وقت تهران.</p>
+          <div class="chart" id="chartStamps"></div>
+          <div class="chart__legend"><span><i style="background:#171717"></i>مهر</span></div>
+        </div>
+        <div class="panel">
+          <h3 class="panel__h">مشتری‌های تازه در هر روز</h3>
+          <p class="panel__p">هر بار که کسی برای اولین بار کارت یک کافه را گرفته است.</p>
+          <div class="chart" id="chartCustomers"></div>
+          <div class="chart__legend"><span><i style="background:#c9c9c9"></i>مشتری تازه</span></div>
+        </div>
+      </section>
+
+      <!-- ---- ops ------------------------------------------------------ -->
+      <section id="sec-ops">
+        <div class="tiles" id="opsTiles"></div>
+        <div class="cols">
+          <div class="panel">
+            <h3 class="panel__h">پیامک</h3>
+            <p class="panel__p">این عدد مجموع ارسال‌های پنجرهٔ فعلی هر شماره است، نه کل تاریخ.</p>
+            <div id="smsTable"></div>
+          </div>
+          <div class="panel">
+            <h3 class="panel__h">اعلان (Web Push)</h3>
+            <p class="panel__p">دستگاه‌های ثبت‌شده به تفکیک نقش.</p>
+            <div id="pushTable"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="panel__h">صف ایمیل</h3>
+          <div id="mailBox"></div>
+        </div>
+      </section>
+
+      <!-- ---- settings ------------------------------------------------- -->
+      <section id="sec-settings">
+        <div class="panel">
+          <h3 class="panel__h">قیمت اشتراک</h3>
+          <p class="panel__p">
+            این عدد هم مبلغی است که درگاه می‌گیرد، هم آنچه در پنل کافه‌دار و در صفحهٔ
+            معرفی (شامل دادهٔ ساختاریافته‌ای که گوگل می‌خواند) نمایش داده می‌شود.
+          </p>
+          <div class="warnbox">
+            تغییر قیمت روی اشتراک‌های فعلی اثر ندارد؛ هر کافه در تمدید بعدی با قیمت
+            تازه روبه‌رو می‌شود. رسیدها و فاکتورهای گذشته هم دست‌نخورده می‌مانند،
+            چون مبلغ واقعیِ همان پرداخت در خودِ رکورد ذخیره شده است.
+          </div>
+          <div class="price-row">
+            <label class="field"><span>ماهانه (تومان)</span>
+              <input id="pM" class="num" type="number" min="1" step="1000" dir="ltr" />
+            </label>
+            <label class="field"><span>سالانه (تومان)</span>
+              <input id="pY" class="num" type="number" min="1" step="1000" dir="ltr" />
+            </label>
+          </div>
+          <p class="derived" id="priceDerived"></p>
+          <div class="saverow">
+            <button class="btn" id="priceSave">ذخیرهٔ قیمت</button>
+            <span id="priceMsg"></span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 class="panel__h">متن ایمیل‌ها</h3>
+          <p class="panel__p">
+            فقط جمله‌ها قابل ویرایش‌اند؛ قالب، تاریخ‌ها و رنگ‌ها در کد می‌مانند. برای
+            پررنگ‌کردن یک عبارت آن را میان دو ستاره بگذارید. فیلد خالی به متن پیش‌فرض
+            برمی‌گردد.
+          </p>
+          <div class="letters">
+            <div class="letters__list" id="letterList"></div>
+            <div>
+              <p class="vars" id="letterVars"></p>
+              <div id="slots"></div>
+              <div class="saverow">
+                <button class="btn" id="copySave">ذخیرهٔ متن‌ها</button>
+                <button class="btn btn--ghost" id="copyReset">بازگردانی همهٔ این نامه</button>
+                <span id="copyMsg"></span>
+              </div>
+              <div class="prev">
+                <p class="prev__h">پیش‌نمایش — با همین متن‌های ویرایش‌شده، از همان فایلی که ایمیل واقعی را می‌سازد</p>
+                <div class="prev__subject" id="prevSubject"></div>
+                <iframe id="prevFrame" title="پیش‌نمایش ایمیل" src="about:blank"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="hq.page.js?v=1"></script>
+</body>
+</html>

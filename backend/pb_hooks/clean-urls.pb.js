@@ -72,6 +72,17 @@ routerAdd("GET", "/owner.html", (e) => {
   return e.redirect(301, "/owner");
 });
 
+// مرکز فرمان — the internal platform dashboard. A shell like the others; the
+// data behind it is superuser-only (hq.pb.js), so serving the page to anyone
+// gives nothing away. Not in the sitemap, and disallowed in robots.txt.
+routerAdd("GET", "/hq", (e) => {
+  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "hq.html");
+});
+
+routerAdd("GET", "/hq.html", (e) => {
+  return e.redirect(301, "/hq");
+});
+
 routerAdd("GET", "/staff", (e) => {
   return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "staff.html");
 });

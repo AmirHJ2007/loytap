@@ -26,6 +26,11 @@ Disallow: /staff
 Disallow: /signin
 Disallow: /business/signin
 
+# The internal platform dashboard. Superuser-only and renders nothing without
+# that session; listed so no crawl budget is spent on it.
+Disallow: /hq
+Disallow: /hq.html
+
 # The literal .html paths all 301 to their clean URL (clean-urls.pb.js). Letting
 # them be crawled just spends budget to be told to go somewhere else.
 Disallow: /for-business.html
