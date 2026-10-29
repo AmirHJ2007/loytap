@@ -26,11 +26,17 @@
 // indexable, shareable URL; the bare path sends visitors to the default.
 // 302 rather than 301 while the default is still a decision we might revisit
 // — a 301 would sit in browsers' caches long after we changed our minds.
+//
+// Both language paths are rendered rather than served straight off disk:
+// marketing.js substitutes the live subscription price into the page's
+// structured-data block, so the figure a crawler reads is the figure the
+// gateway charges. It falls back to serving the file untouched if that render
+// cannot be done, and carries an ETag so revalidation still costs a 304.
 routerAdd("GET", "/fa/business", (e) => {
-  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "for-business.html");
+  return require(`${__hooks}/marketing.js`).serve(e, "for-business.html");
 });
 routerAdd("GET", "/en/business", (e) => {
-  return e.fileFS($os.dirFS($os.getenv("PB_PUBLIC_DIR") || "pb_public"), "for-business.html");
+  return require(`${__hooks}/marketing.js`).serve(e, "for-business.html");
 });
 routerAdd("GET", "/business", (e) => {
   return e.redirect(302, "/fa/business");

@@ -51,8 +51,12 @@ routerAdd("POST", "/subscription/pay", (e) => {
 
   // Priced HERE, never taken from the request. A price the client can send is
   // a price anyone can set to 1,000 Toman.
-  const PRICE = { monthly: 3000000, yearly: 30000000 };   // Toman
-  const toman = PRICE[plan];
+  //
+  // The figure comes from the platform_settings row so that /hq is the one
+  // place a price changes; settings.js falls back to the shipped constants if
+  // that row cannot be read, which is why this cannot return undefined and
+  // send a NaN to ZarinPal.
+  const toman = require(`${__hooks}/settings.js`).prices()[plan];
 
   let card = null;
   try { card = $app.findFirstRecordByFilter("cafe_card", "owner_user = {:o}", { o: u.id }); } catch (err) { card = null; }

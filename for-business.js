@@ -20,6 +20,17 @@
      ========================================================================== */
   var SITE = {
     trialDays:    30,                 // e.g. 30  → "30 days free". null → "Free trial"
+    // PRICE IS NO LONGER EDITED HERE. It comes from the platform_settings row
+    // by way of the <meta name="reloy-price-*"> tags that marketing.js
+    // substitutes when serving this page, and is applied over these values a
+    // few lines below. Change it in /hq, which also updates the structured
+    // data on this page and what the gateway actually charges.
+    //
+    // These two numbers survive only as the no-substitution fallback — the
+    // page opened straight off disk in local development, or served by
+    // something that does not render the tokens. null would be wrong for that
+    // job: it renders the "Talk to us" state, which would make a dev build
+    // look like a pricing decision.
     priceMonthly: 3000000,            // Toman per month, per brand. null → "Talk to us"
     priceYearly:  30000000,           // Toman per year, per brand — must stay < priceMonthly*12
                                        // for the "N months free" badge to read as a real saving
@@ -32,6 +43,20 @@
     instagram:    "reloy_ir",         // → instagram.com/<handle>
     setupFee:     false
   };
+
+  /* The server's price, if this page was rendered rather than read off disk.
+     Anything that is not a positive number — an unsubstituted "{{...}}"
+     token, a missing tag, a zero — leaves the fallback above in place. */
+  (function readServerPricing() {
+    var pick = function (name) {
+      var m = document.querySelector('meta[name="' + name + '"]');
+      var v = m && Number(m.getAttribute("content"));
+      return v > 0 ? v : null;
+    };
+    var m = pick("reloy-price-monthly"), y = pick("reloy-price-yearly");
+    if (m) SITE.priceMonthly = m;
+    if (y) SITE.priceYearly = y;
+  }());
 
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   var fine    = window.matchMedia("(hover: hover) and (pointer: fine)");

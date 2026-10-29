@@ -10,6 +10,14 @@
   <meta name="enamad" content="72433515" />
   <meta name="description" content="Reloy is a digital loyalty card for cafés and restaurants. Your cashier presses one NFC stamp to the customer's phone, with no app store, no download and no password, and their card fills itself." />
   <meta name="theme-color" content="#08080a" />
+  <!-- The live subscription price, substituted by marketing.js when this page
+       is served, and read by for-business.js so every figure on the page comes
+       from the same place the gateway charges. A meta tag and not an inline
+       <script> because the CSP carries no 'unsafe-inline' (headers.pb.js). An
+       unsubstituted value here is ignored by the reader, which falls back to
+       its own constants. -->
+  <meta name="reloy-price-monthly" content="{{PRICE_MONTHLY}}" />
+  <meta name="reloy-price-yearly" content="{{PRICE_YEARLY}}" />
   <link rel="icon" href="/reloy-icon-192.png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
@@ -121,7 +129,7 @@
             {
               "@type": "Offer",
               "name": "Monthly",
-              "price": "3000000",
+              "price": "{{PRICE_MONTHLY}}",
               "priceCurrency": "IRT",
               "availability": "https://schema.org/InStock",
               "description": "Flat monthly fee for the whole brand. No per-tap charge and no commission."
@@ -129,7 +137,7 @@
             {
               "@type": "Offer",
               "name": "Yearly",
-              "price": "30000000",
+              "price": "{{PRICE_YEARLY}}",
               "priceCurrency": "IRT",
               "availability": "https://schema.org/InStock",
               "description": "Flat yearly fee for the whole brand, two months free versus paying monthly."
@@ -202,7 +210,7 @@
               "name": "What does it cost after the trial?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "A flat 3,000,000 Toman a month for your whole brand, or 30,000,000 Toman a year (2 months free). No per-tap charges, and no commission on anything you sell."
+                "text": "A flat {{PRICE_MONTHLY_FMT}} Toman a month for your whole brand, or {{PRICE_YEARLY_FMT}} Toman a year ({{MONTHS_FREE}} months free). No per-tap charges, and no commission on anything you sell."
               }
             },
             {
@@ -743,7 +751,7 @@
             </div>
             <div class="plan__price">
               <span class="plan__was" id="planWas" hidden></span>
-              <span class="plan__figure"><span class="plan__amount" id="planAmount">3,000,000</span><span class="plan__unit" data-i18n="FB_TOMAN">Toman</span></span>
+              <span class="plan__figure"><span class="plan__amount" id="planAmount">{{PRICE_MONTHLY_FMT}}</span><span class="plan__unit" data-i18n="FB_TOMAN">Toman</span></span>
               <span class="plan__per" id="planPer">per month, for your whole brand</span>
               <p class="plan__day" id="planDay"></p>
               <p class="plan__equiv" id="planEquiv" hidden></p>
@@ -840,7 +848,7 @@
           <div class="faq__cat rv"><h3 data-i18n="FB_FAQ_CAT2">Money & the business case</h3><span class="faq__cat-rule" aria-hidden="true"></span></div>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q6">Will this actually increase my sales?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A6">Cafés running loyalty programmes overseas do see more repeat visits, so the pattern is real. But nobody can promise you an exact number sight unseen, because every café, menu and neighbourhood is different, and no honest answer skips that. That is exactly what the free trial is for: run it at your own counter, watch your own dashboard, and decide for yourself whether it is actually bringing your customers back before you pay anything.</p></div></details>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q7">How long is the free trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqTrial">The trial runs from the first stamp you give a customer, not from the day you sign up. Ask us for the current pilot length.</span></p></div></details>
-          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q8">What does it cost after the trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqPrice">A flat 3,000,000 Toman a month for your whole brand, or 30,000,000 Toman a year (2 months free). No per-tap charges, and no commission on anything you sell.</span></p></div></details>
+          <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q8">What does it cost after the trial?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p><span id="faqPrice">A flat {{PRICE_MONTHLY_FMT}} Toman a month for your whole brand, or {{PRICE_YEARLY_FMT}} Toman a year ({{MONTHS_FREE}} months free). No per-tap charges, and no commission on anything you sell.</span></p></div></details>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q9">What if I have more than one location?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A9">One subscription covers your whole brand, however many branches you run. We do not charge per branch. The brand dashboard is still in development: the plan is one view for the brand with a sub-dashboard for each branch, all under the same account. Ask us where it stands if it matters for your decision to start now.</p></div></details>
           <details class="qa rv"><summary><span data-i18n="FB_FAQ_Q10">Do unclaimed rewards expire?</span><span class="qa__sign" aria-hidden="true"></span></summary><div class="qa__body"><p data-i18n="FB_FAQ_A10">Yes. Every reward carries an expiry date, 30 days from when it is earned by default. Change that number for your whole café from your dashboard, or set a different one on an individual reward. It is also why the 71% claimed rate on this page means something: it only counts rewards that got redeemed before the clock ran out.</p></div></details>
 

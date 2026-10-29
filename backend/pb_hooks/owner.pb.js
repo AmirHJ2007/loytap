@@ -1149,6 +1149,11 @@ routerAdd("GET", "/owner/cafe", (e) => {
     phone: u.getString("phone"),
     email: u.getString("email"),
     subscription: sub,
+    // What the two plans cost today, so the buy screen quotes the same figure
+    // the charge path will actually use. Sent with the café rather than from
+    // its own endpoint because the panel already waits on this one request —
+    // a second round trip would let the screen paint a stale price first.
+    pricing: require(`${__hooks}/settings.js`).prices(),
   });
 }, $apis.requireAuth());
 

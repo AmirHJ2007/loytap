@@ -84,6 +84,7 @@
           $("setOwnerPhone").textContent = d.phone || "—";
           $("setOwnerEmail").textContent = d.email || "—";
           $("setCafeName").textContent = d.cafe_name || t("OWNER_CAFE_FALLBACK");
+          applyPricing(d.pricing);
           paintSubscription(d.subscription);
           stampsVal = d.stamps_required || 8; renderStamps();
           $("fMinPurchase").value = d.min_purchase ? d.min_purchase : "";
@@ -493,10 +494,26 @@
       $("addBtn").setAttribute("aria-label", t("OWNER_ARIA_ADD_DISCOUNT"));
     });
     // ---- buy page ----------------------------------------------------
-    // Prices live here as constants for now, mirroring for-business.js. They
-    // belong on the server before any money moves — a price the client can
-    // edit is not a price — but this page only has to show the offer.
+    // The price is the server's, fetched with the café (/owner/cafe sends
+    // `pricing`) and cached here only so the derived figures below — months
+    // free, per-day, the struck-through yearly comparison — have something to
+    // read synchronously while painting.
+    //
+    // The values seeded here are a last resort for a panel that somehow
+    // painted the buy screen before the café request landed. They are NOT the
+    // price: /subscription/pay re-reads it server-side and charges that,
+    // ignoring anything this page believes, so a stale figure here can only
+    // ever mis-advertise, never mis-charge. applyPricing repaints as soon as
+    // the real number arrives.
     const BUY_PRICE = { monthly: 3000000, yearly: 30000000 };   // Toman
+    function applyPricing(p) {
+      if (!p) return;
+      if (Number(p.monthly) > 0) BUY_PRICE.monthly = Number(p.monthly);
+      if (Number(p.yearly) > 0) BUY_PRICE.yearly = Number(p.yearly);
+      // The screen may already be open — a café arriving from the gateway
+      // lands on it — so redraw rather than trusting first paint.
+      try { if (typeof paintBuy === "function") paintBuy(); } catch (e) {}
+    }
     let buyPlan = "monthly";
     let buySub = null;                       // the café's current subscription
 
