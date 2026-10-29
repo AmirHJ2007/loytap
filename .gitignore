@@ -12,3 +12,14 @@ probe.png
 check.png
 phone.png
 *.local
+
+# rendered email bodies — output of preview-subscription-emails.js and of the
+# same one-off renders for the receipt. The template and the renderer are
+# tracked; what they print is not.
+subscription-email-*.html
+subscription-emails-preview.html
+payment-receipt-*.html
+
+# the demo café's sign-in and the local superuser's — real passwords, local
+# database only. seed-demo.py rebuilds the data; this file is how to get in.
+DEMO-ACCOUNT.md
