@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>فاکتور · ریلوی</title>
+<meta name="robots" content="noindex, nofollow" />
+<!-- ROOT-ABSOLUTE paths, deliberately. This page is served at
+     /owner/invoice (clean-urls.pb.js), so a relative "invoice.page.js"
+     resolves to /owner/invoice.page.js — which PocketBase answers with
+     index.html rather than a 404, so the browser silently parses a web
+     page as JavaScript and the invoice never renders. -->
+<link rel="stylesheet" href="/fonts.css" />
+<script src="/owner.guard.js?v=3"></script>
+<style>
+  /* ============================================================
+     The invoice is a DOCUMENT, not a dashboard screen. It borrows
+     none of owner.html's glass/blur treatment: this gets printed,
+     filed, and handed to an accountant, so it is ink on paper —
+     flat white, hairline rules, one accent.
+     ============================================================ */
+  :root{
+    --ink:#171717; --dim:#565656; --faint:#9a9a9a; --line:#e6e6e6;
+    --accent:#1f7a4d; --paper:#fff;
+    --font:"Vazirmatn",Tahoma,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:#ececeb; color:var(--ink);
+    font-family:var(--font); font-size:13px; line-height:1.9;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* --- the action bar: screen only, never printed --- */
+  .bar{
+    position:sticky; top:0; z-index:5;
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+    padding:12px 18px; background:rgba(255,255,255,.92); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .bar__l{display:flex;gap:10px;align-items:center;min-width:0}
+  .btn{
+    border:0; cursor:pointer; border-radius:11px; padding:10px 18px;
+    font-family:var(--font); font-weight:700; font-size:13px;
+    background:var(--ink); color:#fff; white-space:nowrap;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn--ghost{background:rgba(20,20,20,.07); color:var(--ink)}
+  .bar__hint{font-size:11.5px;color:var(--faint);line-height:1.6;min-width:0}
+  /* The hint is the first thing to go when the bar runs out of room — it is
+     advice, while the buttons are the reason the page exists. Below that the
+     bar stacks rather than letting the two halves overlap. */
+  @media (max-width:820px){ .bar__hint{display:none} }
+  @media (max-width:380px){
+    .bar{flex-wrap:wrap;gap:8px;padding:10px 12px}
+    .bar__l{width:100%}
+    .btn{flex:1;padding:10px 12px;font-size:12.5px}
+  }
+
+  /* --- the sheet --- */
+  .sheet{
+    width:210mm; max-width:calc(100% - 24px); min-height:297mm;
+    margin:22px auto; padding:18mm 16mm;
+    background:var(--paper); box-shadow:0 18px 48px -24px rgba(0,0,0,.4);
+  }
+
+  .head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;
+        padding-bottom:14px;border-bottom:2px solid var(--ink)}
+  .brand__name{font-size:23px;font-weight:800;letter-spacing:-.3px;line-height:1.4}
+  .brand__tag{font-size:11.5px;color:var(--faint)}
+  .doc{text-align:left}
+  .doc__t{font-size:17px;font-weight:800}
+  /* The number and date read left-to-right: they are digits, and a Persian
+     paragraph would otherwise reorder them around their own separators. */
+  .doc__meta{font-size:12px;color:var(--dim);direction:rtl}
+  .doc__meta b{font-weight:700;color:var(--ink);unicode-bidi:isolate;direction:ltr;display:inline-block}
+
+  /* --- who / to whom --- */
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:16px;border:1px solid var(--line)}
+  .party{padding:12px 14px}
+  .party + .party{border-inline-start:1px solid var(--line)}
+  .party__h{font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--faint);
+            text-transform:uppercase;margin-bottom:6px}
+  .party__n{font-size:14.5px;font-weight:800;line-height:1.6}
+  .party__r{font-size:11.5px;color:var(--dim);display:flex;gap:6px}
+  .party__r span:first-child{color:var(--faint);flex:0 0 auto}
+  .party__r b{font-weight:600;unicode-bidi:isolate}
+
+  /* --- line items --- */
+  table.items{width:100%;border-collapse:collapse;margin-top:16px}
+  .items th{
+    background:#f6f6f6; font-size:10.5px; font-weight:800; color:var(--dim);
+    padding:9px 10px; border:1px solid var(--line); white-space:nowrap;
+  }
+  .items td{padding:11px 10px;border:1px solid var(--line);font-size:12.5px;vertical-align:top}
+  .items .num{text-align:center;width:38px;color:var(--faint)}
+  .items .money{text-align:left;white-space:nowrap;font-weight:700;unicode-bidi:isolate;direction:ltr}
+  .items__desc b{font-weight:700}
+  .items__sub{display:block;font-size:11px;color:var(--faint);line-height:1.7}
+
+  /* --- totals --- */
+  .totals{margin-top:14px;display:flex;justify-content:flex-start}
+  .totals__box{width:min(300px,100%)}
+  .trow{display:flex;justify-content:space-between;gap:16px;padding:7px 10px;font-size:12.5px;color:var(--dim)}
+  .trow b{color:var(--ink);font-weight:700;unicode-bidi:isolate;direction:ltr}
+  .trow--grand{
+    margin-top:4px;padding:11px 10px;background:var(--ink);color:#fff;border-radius:8px;font-size:14px;
+  }
+  .trow--grand span,.trow--grand b{color:#fff;font-weight:800}
+
+  /* --- the words under the total: Iranian invoices say the amount in words --- */
+  .inwords{margin-top:10px;font-size:11.5px;color:var(--dim);
+           background:#fafafa;border:1px dashed var(--line);border-radius:8px;padding:9px 12px}
+  .inwords b{color:var(--ink);font-weight:700}
+
+  /* --- payment reference --- */
+  .payref{margin-top:16px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .payref__h{background:#f6f6f6;padding:7px 12px;font-size:10.5px;font-weight:800;color:var(--dim)}
+  .payref__b{display:flex;flex-wrap:wrap;gap:0}
+  .payref__i{flex:1 1 33%;min-width:150px;padding:9px 12px;border-top:1px solid var(--line)}
+  .payref__i + .payref__i{border-inline-start:1px solid var(--line)}
+  .payref__k{font-size:10.5px;color:var(--faint)}
+  .payref__v{font-size:13px;font-weight:700;unicode-bidi:isolate;direction:ltr;text-align:right;
+             font-family:"JetBrains Mono",Menlo,Consolas,monospace;word-break:break-all}
+  html[dir="rtl"] .payref__v{text-align:right}
+
+  /* --- signature + footer --- */
+  .sign{display:flex;justify-content:space-between;gap:24px;margin-top:26px}
+  .sign__b{flex:1;border-top:1px solid var(--line);padding-top:8px;
+           font-size:11px;color:var(--faint);text-align:center;min-height:62px}
+  .foot{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);
+        font-size:10.5px;color:var(--faint);line-height:1.9}
+
+  .state{padding:60px 20px;text-align:center;color:var(--dim);font-size:14px}
+
+  /* --- print: the sheet becomes the page --- */
+  @page{size:A4;margin:12mm}
+  @media print{
+    body{background:#fff}
+    .bar{display:none !important}
+    .sheet{width:auto;max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}
+    /* a table row split across two pages is unreadable on paper */
+    tr,.party,.payref,.totals__box{break-inside:avoid}
+    .items th{background:#f6f6f6 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .trow--grand{background:var(--ink) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+    /* THE PAPER LAYOUT IS RESTATED HERE, not left to the cascade. The phone
+       rules below are a max-width query, and browsers do not agree on what
+       width a print context has: Chrome measures the A4 page box and drops
+       them, but mobile browsers have been seen evaluating against the screen
+       instead — which prints an A4 sheet in the single-column phone layout,
+       with half the page empty. Printing is the one output that must not
+       depend on how wide the window happened to be. */
+    .sheet{padding:0 !important}
+    .parties{grid-template-columns:1fr 1fr !important}
+    .party + .party{border-inline-start:1px solid var(--line) !important;border-top:0 !important}
+    .head{flex-direction:row !important}
+    .doc{text-align:left !important}
+    .items th,.items td{padding:9px 10px !important;font-size:12.5px !important}
+  }
+
+  @media (max-width:560px){
+    .sheet{padding:16px 14px;margin:12px auto}
+    .parties{grid-template-columns:1fr}
+    .party + .party{border-inline-start:0;border-top:1px solid var(--line)}
+    .head{flex-direction:column;gap:10px}
+    .doc{text-align:right}
+    .items th,.items td{padding:8px 7px;font-size:11.5px}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar__l">
+    <button class="btn" id="printBtn" type="button">دانلود / چاپ فاکتور</button>
+    <button class="btn btn--ghost" id="backBtn" type="button">بازگشت به پنل</button>
+  </div>
+  <div class="bar__hint" id="barHint">برای ذخیره به صورت PDF، در پنجرهٔ چاپ مقصد را روی «Save as PDF» بگذارید.</div>
+</div>
+
+<div id="root"><div class="state">در حال آماده‌سازی فاکتور…</div></div>
+
+<script src="/i18n.js?v=58"></script>
+<script src="/invoice.page.js?v=2"></script>
+</body>
+</html>
