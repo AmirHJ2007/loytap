@@ -153,13 +153,42 @@ onBootstrap((e) => {
         $app.logger().warn("SEC-21 rate limit guard: adding a missing rule",
           "label", want.label, "limit", want.maxRequests + "/" + want.duration + "s");
         changed = true;
-      } else if (found.duration !== want.duration || found.maxRequests !== want.maxRequests) {
-        $app.logger().warn("SEC-21 rate limit guard: repaired a drifted rule",
-          "label", want.label,
-          "found", found.maxRequests + "/" + found.duration + "s",
-          "restored", want.maxRequests + "/" + want.duration + "s");
-        changed = true;
+        ours.push(want);
+        continue;
       }
+
+      // A HAND-TIGHTENED LIMIT IS LEFT ALONE, the same way rule_guard refuses
+      // on principle to loosen a rule somebody made stricter than it asserts.
+      //
+      // This used to compare symmetrically and restore in both directions, so
+      // an operator who clamped /subscription/ to 1/60 during an incident had
+      // it quietly reopened to 10/60 by the next crash-restart. The two
+      // sibling guards disagreed about whether a tightening counts as drift,
+      // and this one was wrong: a limit below what we ask for is somebody
+      // protecting the system, not the regression we are here to catch.
+      //
+      // Stricter means fewer requests per second. Compare the rates rather
+      // than the pair of numbers, so 1/60 and 10/600 are judged on what they
+      // actually permit.
+      const wantRate = want.maxRequests / want.duration;
+      const foundRate = found.maxRequests / found.duration;
+
+      if (foundRate <= wantRate) {
+        if (foundRate < wantRate) {
+          $app.logger().info("SEC-21 rate limit guard: leaving a hand-tightened limit as it is",
+            "label", want.label,
+            "found", found.maxRequests + "/" + found.duration + "s",
+            "would_assert", want.maxRequests + "/" + want.duration + "s");
+        }
+        ours.push(found);          // keep theirs, not ours
+        continue;
+      }
+
+      $app.logger().warn("SEC-21 rate limit guard: repaired a loosened rule",
+        "label", want.label,
+        "found", found.maxRequests + "/" + found.duration + "s",
+        "restored", want.maxRequests + "/" + want.duration + "s");
+      changed = true;
       ours.push(want);
     }
 
