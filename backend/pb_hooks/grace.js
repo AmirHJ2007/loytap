@@ -42,7 +42,57 @@
 // the forgiving direction. Shortening it cuts people off earlier than they
 // were told, which is the direction to think twice about.
 
+// WHICH DATE A CAFÉ'S CLOCK ACTUALLY RUNS OUT ON.
+//
+// A subscription carries two of them and only ever one is filled: trial_ends
+// for a café that has never paid, current_period_end for one that has —
+// written in exactly one place, the successful-payment branch of
+// zarinpal.pb.js.
+//
+// Every reader used to choose between them by STATUS:
+//
+//     status === "trialing" ? trial_ends : current_period_end
+//
+// which made the word in the status column decide which column was read. The
+// daily sweep writes that word. When it marked a lapsed trial "expired" — the
+// only change it makes — every reader silently switched from the date that
+// was set to the one that never would be, the gate saw no deadline, and its
+// fail-open branch let the café stamp free forever. That was the ending of
+// every café that did not convert.
+//
+// So the status no longer chooses. Whichever date is actually present wins,
+// preferring the paid one, and renaming a row cannot change what is read.
+//
+// AN EMPTY DateField IS A TRUTHY OBJECT, which is the trap directly under
+// this one and the reason these helpers exist rather than a `||` at four call
+// sites. `sub.get("current_period_end")` on an unset field returns an object
+// that is `true` in a boolean test while `String(...)` of it is "". So
+// `a || b` ALWAYS yields `a`, empty or not, and the obvious one-line version
+// of this fix silently breaks the trial case it was written to protect.
+// Everything below compares the stringified value.
+function dateStr(v) {
+  return (v === null || v === undefined) ? "" : String(v);
+}
+
+// The raw stored string, "" when the café has no usable deadline at all.
+function deadline(sub) {
+  return dateStr(sub.get("current_period_end")) || dateStr(sub.get("trial_ends"));
+}
+
+// The same instant in milliseconds, 0 when there is none or it cannot be
+// parsed. Callers treat 0 as "no deadline" and fail open, deliberately: see
+// the long comment in card.pb.js. The space→T swap is the stored-format
+// difference described in CLAUDE.md.
+function deadlineMs(sub) {
+  const raw = deadline(sub);
+  if (!raw) return 0;
+  const t = new Date(raw.replace(" ", "T")).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 module.exports = {
   GRACE_DAYS: 7,
   GRACE_MS: 7 * 86400000,
+  deadline,
+  deadlineMs,
 };

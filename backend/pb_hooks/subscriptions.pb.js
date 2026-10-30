@@ -94,10 +94,12 @@ cronAdd("subscription-sweep", "30 5 * * *", () => {
   for (const sub of subs) {
     try {
       const status = sub.getString("status");
-      const rawEnd = status === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
-      if (!rawEnd) continue;                       // nothing to count towards
-      const endMs = new Date(String(rawEnd).replace(" ", "T")).getTime();
-      if (!endMs) continue;
+      // Same deadline rule as the gate — whichever date is set, not whichever
+      // the status points at. This loop writes that status a few lines below,
+      // so choosing by it meant the sweep changed what it would read of itself
+      // on the next run. See grace.js.
+      const endMs = require(`${__hooks}/grace.js`).deadlineMs(sub);
+      if (!endMs) continue;                        // nothing to count towards
 
       const endDay = startOfTehranDay(endMs);
       const daysLeft = Math.round((endDay - today) / DAY);       // + before, - after

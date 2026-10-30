@@ -69,9 +69,11 @@ routerAdd("POST", "/card/stamp/request", (e) => {
     $app.logger().warn("stamping a café with no subscription row", "cafe", cafeId);
   } else {
     const st = sub.getString("status");
-    // whichever period the café is actually inside decides the deadline
-    const rawEnd = st === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
-    const end = rawEnd ? new Date(String(rawEnd).replace(" ", "T")).getTime() : 0;
+    // Whichever of the two dates is actually set, preferring the paid one —
+    // NOT chosen by status. The sweep writes that status, and when it marked a
+    // lapsed trial "expired" this used to switch to the never-written column
+    // and fail open forever. See grace.js.
+    const end = require(`${__hooks}/grace.js`).deadlineMs(sub);
     // An end date we cannot read is treated as "no deadline", for the same
     // fail-open reason as above — but SAID OUT LOUD, which is the whole point
     // of this branch.

@@ -1116,7 +1116,11 @@ routerAdd("GET", "/owner/cafe", (e) => {
     const sr = $app.findFirstRecordByFilter("subscriptions", "cafe = {:c}", { c: card.id });
     if (sr) {
       const status = sr.getString("status");
-      const until = status === "trialing" ? sr.get("trial_ends") : sr.get("current_period_end");
+      // Same deadline rule as the gate (grace.js), so the date an owner reads
+      // is the date their tags will actually stop on. Choosing by status used
+      // to send "" for every lapsed trial, which the panel drew as "no
+      // subscription" on a café that was still stamping.
+      const until = require(`${__hooks}/grace.js`).deadline(sr);
       sub = {
         status: status,
         plan: sr.getString("plan"),

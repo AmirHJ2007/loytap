@@ -252,14 +252,13 @@ routerAdd("GET", "/staff/cafe", (e) => {
   try {
     const sub = $app.findFirstRecordByFilter("subscriptions", "cafe = {:c}", { c: card.id });
     if (sub) {
-      const st = sub.getString("status");
-      const rawEnd = st === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
-      const end = rawEnd ? new Date(String(rawEnd).replace(" ", "T")).getTime() : 0;
-      // Same grace and same fail-open rule as card.pb.js — they must agree or
-      // the banner lies about what the counter will actually do, which is why
-      // the number now comes from grace.js instead of being written out again
-      // here.
-      suspended = !!end && Date.now() > end + require(`${__hooks}/grace.js`).GRACE_MS;
+      // Deadline AND grace both come from grace.js, the same place card.pb.js
+      // reads them — the banner must never disagree with what the counter
+      // will actually do, and the only way to guarantee that is for neither
+      // to own a copy of the rule.
+      const G = require(`${__hooks}/grace.js`);
+      const end = G.deadlineMs(sub);
+      suspended = !!end && Date.now() > end + G.GRACE_MS;
     }
   } catch (err) { suspended = false; }
 
