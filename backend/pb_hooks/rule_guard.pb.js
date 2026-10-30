@@ -16,7 +16,7 @@
 // loudly WITH the value it found, and repaired. Same spirit as guard.pb.js,
 // which exists so a loosened `users` rule still cannot change role/phone.
 //
-// CONSEQUENCE, ON PURPOSE: these six rules can no longer be changed from the
+// CONSEQUENCE, ON PURPOSE: the rules below can no longer be changed from the
 // dashboard — a boot puts them back. That is the point. To change one for real,
 // change it HERE and in a migration, together; the migration keeps a fresh
 // database correct and this keeps a live one from drifting. If you tightened a
@@ -28,6 +28,22 @@
 // @request.auth.id is also empty, so without it every rule below is TRUE FOR
 // GUESTS on any café whose owner_user is blank (which is the state
 // 1700000017 left the Oram café in). See 1700000022_scope_reward_rules.js.
+//
+// WHY `subscriptions` AND `payments` ARE ON THIS LIST, asserted as null.
+// They decide who has paid. The migrations lock every write to superusers so
+// that the only way a period moves is the gateway callback — but a lock that
+// lives in the database is exactly the kind that gets opened by hand and
+// never put back, which is the whole reason this file exists. Loosened,
+// `subscriptions.updateRule` lets any owner PATCH their own row through the
+// ordinary record API and set `current_period_end` to whenever they like;
+// card.pb.js reads that very field, so the café simply never stops working.
+// Nothing in git would show it and no redeploy would undo it.
+//
+// NULL IS NOT THE SAME AS EMPTY. In PocketBase a null rule means superusers
+// only, while an empty string means ANYONE — so the repair below must put
+// back null itself, not "". That is also why the null check in the loop stays
+// where it is: a rule that is already null needs no repair, and a rule that
+// has been opened reads back as a string (or ""), falls through, and is reset.
 
 onBootstrap((e) => {
   e.next(); // let PocketBase finish coming up (and run migrations) first
@@ -38,6 +54,17 @@ onBootstrap((e) => {
   const OWNER_OF_THIS_CAFE = AUTHED + ' && @request.auth.id = cafe.owner_user.id';
   const SELF_OR_CAFE_STAFF = AUTHED +
     ' && (@request.auth.id = user.id || @request.auth.id = cafe.staff_user.id || @request.auth.id = cafe.owner_user.id)';
+
+  // The same rule as OWNER_OF_THIS_CAFE, spelled with single quotes.
+  //
+  // NOT a tidy-up waiting to happen. 1700000034/35 wrote the billing rules
+  // with single quotes while 1700000022 wrote the reward ones with double;
+  // PocketBase parses the two identically, but the check below is a STRING
+  // comparison and does not. Asserting the wrong style here would rewrite a
+  // perfectly correct rule on every single boot and log a drift warning each
+  // time, which is how a guard like this stops being read.
+  const OWNER_OF_THIS_CAFE_SQ =
+    "@request.auth.id != '' && @request.auth.id = cafe.owner_user.id";
 
   const EXPECTED = [
     // collection, rule name, required value
@@ -52,6 +79,19 @@ onBootstrap((e) => {
     ["stamp_events", "viewRule", SELF_OR_CAFE_STAFF],
     ["stamp_requests", "listRule", SELF_OR_CAFE_STAFF],
     ["stamp_requests", "viewRule", SELF_OR_CAFE_STAFF],
+
+    // Billing. Readable by the café's own owner, writable by nobody but a
+    // superuser — see the long note at the top of this file.
+    ["subscriptions", "listRule", OWNER_OF_THIS_CAFE_SQ],
+    ["subscriptions", "viewRule", OWNER_OF_THIS_CAFE_SQ],
+    ["subscriptions", "createRule", null],
+    ["subscriptions", "updateRule", null],
+    ["subscriptions", "deleteRule", null],
+    ["payments", "listRule", OWNER_OF_THIS_CAFE_SQ],
+    ["payments", "viewRule", OWNER_OF_THIS_CAFE_SQ],
+    ["payments", "createRule", null],
+    ["payments", "updateRule", null],
+    ["payments", "deleteRule", null],
   ];
 
   // group by collection so a drifting collection is saved once
@@ -70,18 +110,23 @@ onBootstrap((e) => {
         const rule = pair[0];
         const want = pair[1];
         const got = coll[rule];
-        // a null rule means "superusers only" — stricter than expected and
-        // never the regression we are guarding against, so leave it alone
-        // rather than loosening it from a hook.
+        // a null rule means "superusers only" — stricter than every rule we
+        // assert and never the regression we are guarding against, so leave
+        // it alone rather than loosening it from a hook. For the billing
+        // rules, where null IS what we want, this is also the "already
+        // correct" path and the reason they cost nothing on a normal boot.
         if (got === null || got === undefined) continue;
-        if (toString(got) === want) continue;
+        if (want !== null && toString(got) === want) continue;
 
         $app.logger().warn(
           "SEC-20 rule guard: repaired a drifted API rule",
           "collection", name,
           "rule", rule,
-          "found", toString(got),
-          "restored", want
+          // an opened rule reads back as "" as readily as it does a filter
+          // string, and an empty value in a log line looks like a missing
+          // one, so both ends are named rather than printed raw
+          "found", got === "" ? "(empty — public)" : toString(got),
+          "restored", want === null ? "(null — superusers only)" : want
         );
         coll[rule] = want;
         drifted = true;
