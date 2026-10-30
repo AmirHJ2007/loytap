@@ -126,6 +126,13 @@ routerAdd("POST", "/subscription/pay", (e) => {
   pay.set("plan", plan);
   pay.set("amount", toman);
   pay.set("status", "pending");
+  // The credentials this attempt is being sent with, so the callback verifies
+  // against the same ones even if the environment changed underneath it. Both
+  // halves or neither: a payment that remembers its gateway but not its
+  // merchant still breaks when the merchant rotates. See
+  // 1700000041_payment_gateway.js and 1700000042_payment_merchant.js.
+  pay.set("gateway", sandbox ? "sandbox" : "live");
+  pay.set("merchant", merchant);
   $app.save(pay);
 
   let res = null;
@@ -201,9 +208,45 @@ routerAdd("GET", "/zarinpal/callback", (e) => {
     return e.redirect(302, home + "failed");
   }
 
-  const merchant = $os.getenv("ZARINPAL_MERCHANT_ID") || "";
-  const sandbox = $os.getenv("ZARINPAL_SANDBOX") === "1";
+  // THE CREDENTIALS COME FROM THE ROW, NOT THE ENVIRONMENT. This runs minutes
+  // after /subscription/pay, in a separate request — a restart, a redeploy or
+  // a rotated key in between used to mean charging one gateway/merchant and
+  // then asking a different one whether it happened, which fails verification
+  // on a payment that genuinely took money. The row remembers what it was
+  // sent with.
+  //
+  // BOTH VALUES OR NEITHER. Recording only the gateway left the identical bug
+  // one field over, and a half-closed hole is worse than an open one because
+  // the path reads as handled.
+  //
+  // Each falls back to the environment independently, for rows written before
+  // its migration — that is the behaviour those rows were created under and so
+  // the only correct guess for them.
+  const envSandbox = $os.getenv("ZARINPAL_SANDBOX") === "1";
+  const envMerchant = $os.getenv("ZARINPAL_MERCHANT_ID") || "";
+  const wasGateway = pay.getString("gateway");
+  const wasMerchant = pay.getString("merchant");
+
+  const sandbox = wasGateway ? wasGateway === "sandbox" : envSandbox;
+  const merchant = wasMerchant || envMerchant;
   const base = sandbox ? "https://sandbox.zarinpal.com" : "https://payment.zarinpal.com";
+
+  const gatewayMoved = !!wasGateway && (wasGateway === "sandbox") !== envSandbox;
+  const merchantMoved = !!wasMerchant && wasMerchant !== envMerchant;
+  if (gatewayMoved || merchantMoved) {
+    // Worth a line: the environment moved under a live payment, and without
+    // the recorded values this verify would have gone somewhere that never
+    // heard of it, stranding a café that paid.
+    //
+    // The merchant id itself is NOT logged — it is the account identifier
+    // every request is signed with, and logs travel further than the database
+    // does. Whether it changed is the whole of what a reader needs.
+    $app.logger().warn("zarinpal credentials changed since this payment was started",
+      "authority", authority,
+      "gateway_then", wasGateway || "(unrecorded)",
+      "gateway_now", envSandbox ? "sandbox" : "live",
+      "merchant_changed", merchantMoved);
+  }
 
   let res = null;
   try {
