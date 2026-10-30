@@ -255,9 +255,11 @@ routerAdd("GET", "/staff/cafe", (e) => {
       const st = sub.getString("status");
       const rawEnd = st === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
       const end = rawEnd ? new Date(String(rawEnd).replace(" ", "T")).getTime() : 0;
-      // same 7-day grace and same fail-open rule as card.pb.js; the two must
-      // agree or the banner lies about what the counter will actually do
-      suspended = !!end && Date.now() > end + 7 * 86400000;
+      // Same grace and same fail-open rule as card.pb.js — they must agree or
+      // the banner lies about what the counter will actually do, which is why
+      // the number now comes from grace.js instead of being written out again
+      // here.
+      suspended = !!end && Date.now() > end + require(`${__hooks}/grace.js`).GRACE_MS;
     }
   } catch (err) { suspended = false; }
 

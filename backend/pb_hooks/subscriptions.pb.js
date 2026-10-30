@@ -38,7 +38,7 @@
 // top-level declarations.
 
 cronAdd("subscription-sweep", "30 5 * * *", () => {
-  const GRACE_DAYS = 7;                 // must match card.pb.js
+  const GRACE_DAYS = require(`${__hooks}/grace.js`).GRACE_DAYS;
   const DAY = 86400000;
   const mail = require(`${__hooks}/submail.js`);
   const panelUrl = ($os.getenv("APP_ORIGIN") || "https://reloy.ir") + "/owner";

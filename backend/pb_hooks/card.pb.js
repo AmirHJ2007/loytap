@@ -62,7 +62,7 @@ routerAdd("POST", "/card/stamp/request", (e) => {
   // backfill gave one to the rest, so a missing row means OUR bookkeeping
   // broke — and breaking a working café at the counter is far worse than
   // letting an unbilled one carry on until someone notices the log.
-  const GRACE_MS = 7 * 86400000;
+  const GRACE_MS = require(`${__hooks}/grace.js`).GRACE_MS;
   let sub = null;
   try { sub = $app.findFirstRecordByFilter("subscriptions", "cafe = {:c}", { c: cafeId }); } catch (err) { sub = null; }
   if (!sub) {
