@@ -313,14 +313,53 @@ routerAdd("GET", "/zarinpal/callback", (e) => {
   try { body = JSON.parse(res.raw); } catch (err) { body = null; }
   const data = (body && body.data) || {};
   const code = Number(data.code);
+  const errRaw = body && body.errors ? body.errors.code : undefined;
+  const errCode = (errRaw === undefined || errRaw === null) ? NaN : Number(errRaw);
+
+  // "ZARINPAL SAID NO" AND "WE COULD NOT READ THE ANSWER" ARE NOT THE SAME
+  // THING, and this used to treat them as one.
+  //
+  // $http.send only throws when the connection itself fails. A 502 carrying
+  // an HTML error page — an ordinary event at a payment peak — comes back as
+  // a perfectly normal response object, JSON.parse throws, data is empty,
+  // Number(undefined) is NaN, and NaN is not 100, so the row was written
+  // `failed`. A café that had just paid 3,000,000 Toman was recorded as not
+  // having paid: no log line anywhere in that branch, no cron that revisits
+  // payments, and so no way back. It is exactly what the transport-failure
+  // branch a few lines above refuses to do, in its own words, because doing
+  // it "would throw away the one record that makes the charge recoverable".
+  //
+  // An answer counts as READ only if the gateway replied 2xx, the body
+  // parsed, and it carries a number we recognise — either data.code on the
+  // success path or errors.code on a real rejection (a declined payment
+  // arrives as errors.code -51 with no data.code, which is a genuine refusal
+  // and must still land in the branch below).
+  //
+  // Anything else leaves the row pending and says so. sms.js has gated on
+  // statusCode for exactly this reason since it was written; this file never
+  // looked at it.
+  const httpOk = !!res && res.statusCode >= 200 && res.statusCode < 300;
+  const answered = httpOk && body !== null && (isFinite(code) || isFinite(errCode));
+
+  if (!answered) {
+    $app.logger().error("zarinpal verify answer could not be read; payment left pending",
+      "authority", authority,
+      "http", res ? String(res.statusCode) : "(none)",
+      "parsed", String(body !== null),
+      "cafe", pay.getString("cafe"));
+    return e.redirect(302, home + "pending");
+  }
 
   // 100 = verified now. 101 = verified before, which is a success we have
   // simply already been told about.
   if (code !== 100 && code !== 101) {
-    const errCode = body && body.errors && body.errors.code ? String(body.errors.code) : "unknown";
+    const shown = isFinite(errCode) ? String(errCode) : String(code);
     pay.set("status", "failed");
-    pay.set("note", "verify refused: " + errCode);
+    pay.set("note", "verify refused: " + shown);
     $app.save(pay);
+    // Logged now too. This is the gateway genuinely rejecting a payment, and
+    // it was previously the one outcome in this file that left no trace.
+    $app.logger().warn("zarinpal verify refused", "authority", authority, "code", shown);
     return e.redirect(302, home + "failed");
   }
 
