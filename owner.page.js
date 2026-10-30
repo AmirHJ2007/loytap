@@ -1763,8 +1763,15 @@
     // a subscription out of `active` when its period simply runs out — only a
     // payment rewrites that field — so trusting the status here would paint a
     // lapsed café green while the counter refuses its customers.
-    const GRACE_DAYS = 7;                       // must match card.pb.js
+    // The server sends the grace length with the subscription (grace.js is the
+    // one place it lives, and a browser cannot require it). This literal is
+    // only the fallback for a panel that painted before /owner/cafe answered,
+    // or an older server that does not send it — it is not a second copy of
+    // the rule, and the comment that used to point at card.pb.js was pointing
+    // at a file that no longer holds the number either.
+    const GRACE_DAYS_FALLBACK = 7;
     function paintSubscription(sub) {
+      const GRACE_DAYS = (sub && Number(sub.grace) > 0) ? Number(sub.grace) : GRACE_DAYS_FALLBACK;
       const row = $("setSubRow"), stateEl = $("setSubState"), pill = $("setSubPill"),
             capEl = $("setSubCap"), dateEl = $("setSubUntil");
       if (!row || !stateEl || !pill || !capEl || !dateEl) return;

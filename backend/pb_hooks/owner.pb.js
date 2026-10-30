@@ -1124,6 +1124,11 @@ routerAdd("GET", "/owner/cafe", (e) => {
       sub = {
         status: status,
         plan: sr.getString("plan"),
+        // The grace length travels with the subscription so the dashboard
+        // counts down to the same day the counter actually stops on. It is
+        // the fourth consumer of this number; the other three require
+        // grace.js directly, and a browser cannot.
+        grace: require(`${__hooks}/grace.js`).GRACE_DAYS,
         // ISO through, Jalali only at the edge — same rule as every other date
         until: until ? String(until) : "",
         amount: sr.getInt("amount"),
