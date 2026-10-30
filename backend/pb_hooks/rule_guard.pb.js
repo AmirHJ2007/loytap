@@ -124,41 +124,84 @@ onBootstrap((e) => {
   }
 
   for (const name of Object.keys(byCollection)) {
+    // Collected, not logged, until the write has actually landed. The order
+    // here used to be announce -> change -> save, so a rejected save left a
+    // "repaired a drifted API rule" line standing over a rule that had not
+    // moved, and the rejection itself surfaced as "skipped a collection" —
+    // wording meant for the harmless fresh-database case. The log said the
+    // guard was working. The hole stayed open. That is how the staff-code
+    // rule survived here for so long, announced on every boot.
+    const pending = [];
+    let coll = null;
+
     try {
-      const coll = $app.findCollectionByNameOrId(name);
-      let drifted = false;
-
-      for (const pair of byCollection[name]) {
-        const rule = pair[0];
-        const want = pair[1];
-        const got = coll[rule];
-        // a null rule means "superusers only" — stricter than every rule we
-        // assert and never the regression we are guarding against, so leave
-        // it alone rather than loosening it from a hook. For the billing
-        // rules, where null IS what we want, this is also the "already
-        // correct" path and the reason they cost nothing on a normal boot.
-        if (got === null || got === undefined) continue;
-        if (want !== null && toString(got) === want) continue;
-
-        $app.logger().warn(
-          "SEC-20 rule guard: repaired a drifted API rule",
-          "collection", name,
-          "rule", rule,
-          // an opened rule reads back as "" as readily as it does a filter
-          // string, and an empty value in a log line looks like a missing
-          // one, so both ends are named rather than printed raw
-          "found", got === "" ? "(empty — public)" : toString(got),
-          "restored", want === null ? "(null — superusers only)" : want
-        );
-        coll[rule] = want;
-        drifted = true;
-      }
-
-      if (drifted) $app.save(coll);
+      coll = $app.findCollectionByNameOrId(name);
     } catch (err) {
-      // a collection that does not exist yet (fresh database, migrations not
-      // applied) is not an error worth refusing to boot over
-      $app.logger().warn("SEC-20 rule guard: skipped a collection", "collection", name, "error", String(err));
+      // genuinely benign: a fresh database where migrations have not run yet
+      $app.logger().warn("SEC-20 rule guard: collection not present yet, nothing to assert",
+        "collection", name, "error", String(err));
+      continue;
+    }
+
+    const show = (v) => (v === null ? "(null — superusers only)" : (toString(v) === "" ? "(empty — public)" : toString(v)));
+
+    for (const pair of byCollection[name]) {
+      const rule = pair[0];
+      const want = pair[1];
+      const got = coll[rule];
+      // a null rule means "superusers only" — stricter than every rule we
+      // assert and never the regression we are guarding against, so leave
+      // it alone rather than loosening it from a hook. For the billing
+      // rules, where null IS what we want, this is also the "already
+      // correct" path and the reason they cost nothing on a normal boot.
+      if (got === null || got === undefined) continue;
+      if (want !== null && toString(got) === want) continue;
+
+      pending.push({ rule: rule, want: want, found: show(got) });
+      coll[rule] = want;
+    }
+
+    if (!pending.length) continue;
+
+    try {
+      $app.save(coll);
+    } catch (err) {
+      // NOT a skip, and deliberately not worded like one. Every rule in this
+      // batch is still live in its drifted shape, and at least one of them is
+      // a rule this file exists to hold shut.
+      for (const pnd of pending) {
+        $app.logger().error(
+          "SEC-20 rule guard: FAILED TO REPAIR a drifted API rule — it is STILL LIVE",
+          "collection", name, "rule", pnd.rule,
+          "still", pnd.found, "wanted", show(pnd.want), "error", String(err)
+        );
+      }
+      continue;
+    }
+
+    // Read back from the database rather than trusting the save. The whole
+    // point of this file is that nobody should have to take a report of
+    // success on faith, and that has to include its own.
+    let after = null;
+    try { after = $app.findCollectionByNameOrId(name); } catch (err) { after = null; }
+
+    for (const pnd of pending) {
+      const now = after ? after[pnd.rule] : undefined;
+      const landed = after && (pnd.want === null
+        ? (now === null || now === undefined)
+        : (now !== null && now !== undefined && toString(now) === pnd.want));
+
+      if (landed) {
+        $app.logger().warn("SEC-20 rule guard: repaired a drifted API rule",
+          "collection", name, "rule", pnd.rule,
+          "found", pnd.found, "restored", show(pnd.want));
+      } else {
+        $app.logger().error(
+          "SEC-20 rule guard: repair did NOT take — the rule is STILL LIVE in a shape this guard rejects",
+          "collection", name, "rule", pnd.rule,
+          "wanted", show(pnd.want), "reads_back_as", after ? show(now) : "(could not re-read)"
+        );
+      }
     }
   }
 });
