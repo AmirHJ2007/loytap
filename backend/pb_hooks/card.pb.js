@@ -72,9 +72,29 @@ routerAdd("POST", "/card/stamp/request", (e) => {
     // whichever period the café is actually inside decides the deadline
     const rawEnd = st === "trialing" ? sub.get("trial_ends") : sub.get("current_period_end");
     const end = rawEnd ? new Date(String(rawEnd).replace(" ", "T")).getTime() : 0;
-    // an end date we cannot read is treated as "no deadline", for the same
-    // fail-open reason as above
-    if (end && Date.now() > end + GRACE_MS) {
+    // An end date we cannot read is treated as "no deadline", for the same
+    // fail-open reason as above — but SAID OUT LOUD, which is the whole point
+    // of this branch.
+    //
+    // There are two ways to not know whether a café has paid: no row at all,
+    // and a row whose date is blank or unparseable. Both let the café carry on
+    // stamping, and that is right. Only the first one used to be logged.
+    //
+    // The silent one is the one that actually happens. A missing row would
+    // have to be OUR bug — registration writes one and the backfill gave one
+    // to the rest — while a blank date is what a hand-edit in the dashboard
+    // leaves behind: a status set without the matching date, or a field
+    // cleared. A café sitting at `active` with an empty current_period_end
+    // then stamps for free forever and nothing anywhere says so. `cancelled`
+    // and `expired` read the same field, so they land here too, and an
+    // unparseable date gives NaN, which is falsy and slips through the same
+    // gap — hence testing `!end` rather than the date itself.
+    if (!end) {
+      $app.logger().warn("stamping a café whose subscription has no usable end date",
+        "cafe", cafeId,
+        "status", st,
+        "field", st === "trialing" ? "trial_ends" : "current_period_end");
+    } else if (Date.now() > end + GRACE_MS) {
       return e.json(402, {
         error: "This café's subscription has ended, so new stamps are paused.",
         code: "CAFE_SUSPENDED",
