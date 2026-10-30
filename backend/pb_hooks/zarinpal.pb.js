@@ -29,6 +29,62 @@
 // NOTE: self-contained on purpose — PocketBase's JS hook runtime does not give
 // a routerAdd callback access to sibling top-level declarations.
 
+
+// SEC-22 — refuse to boot a production origin in sandbox mode.
+//
+// ZARINPAL_SANDBOX=1 sends every payment to a gateway that takes fake cards.
+// On a developer's machine that is the whole point. In production it means
+// every café "pays" with nothing, verification returns a clean 100, a ref_id
+// is written, the subscription extends and a receipt goes out — a successful
+// sandbox payment is indistinguishable from a real one in every field we can
+// see. The product is being given away and nothing in the system says so; the
+// first honest signal is the bank statement.
+//
+// It does not get there by sabotage. It gets there by an env file copied off a
+// laptop, a line left in a deploy script, or someone setting it to debug a
+// payment and not unsetting it.
+//
+// SO THIS REFUSES TO START, which is the loud half of the trade:
+//
+//   won't boot          found in seconds, nobody can use the app, env fixed.
+//   boots in sandbox    looks perfectly normal for weeks.
+//
+// A bad hour against a bad quarter. On the money path, loud wins.
+//
+// "Production" is decided by APP_ORIGIN, already used for the links in the
+// receipt and the reminder emails. An origin that is unset, localhost, or any
+// of the test-ish hosts below is a developer's machine and may do as it likes.
+onBootstrap((e) => {
+  e.next();
+
+  try {
+    if ($os.getenv("ZARINPAL_SANDBOX") !== "1") return;
+
+    const origin = String($os.getenv("APP_ORIGIN") || "").trim();
+    // Unset is the local default: dev.sh does not set APP_ORIGIN, and the
+    // places that read it fall back to the live URL only for building links.
+    // Treating unset as production here would stop every laptop from booting.
+    if (!origin) return;
+
+    const local = /localhost|127\.0\.0\.1|\[::1\]|\.local(host)?(:|$)|\.test(:|$)|staging|sandbox|dev\./i;
+    if (local.test(origin)) return;
+
+    const msg =
+      "SEC-22: refusing to start. ZARINPAL_SANDBOX=1 sends every payment to " +
+      "ZarinPal's fake-card gateway, and APP_ORIGIN is " + origin + ", which " +
+      "is not a development host. Every subscription would be free and would " +
+      "look exactly like a real payment. Unset ZARINPAL_SANDBOX for this " +
+      "deploy, or point APP_ORIGIN at the environment this really is.";
+    $app.logger().error(msg);
+    throw new Error(msg);
+  } catch (err) {
+    // Rethrown, not swallowed: unlike the other guards in this project, the
+    // safe outcome here is NOT to carry on. Wrapped only so the message above
+    // is logged before the error takes the process down.
+    throw err;
+  }
+});
+
 routerAdd("POST", "/subscription/pay", (e) => {
   const u = e.auth;
   if (!u || u.getString("role") !== "admin") {
