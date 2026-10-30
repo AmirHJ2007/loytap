@@ -171,8 +171,49 @@ routerAdd("POST", "/subscription/pay", (e) => {
     return e.json(502, { error: "The payment gateway refused the request", code: "PAY_REQUEST_REFUSED" });
   }
 
-  pay.set("authority", authority);
-  $app.save(pay);
+  // THE AUTHORITY IS THE ONLY THREAD BETWEEN OUR ROW AND ZARINPAL'S. The
+  // callback finds the attempt by that column and nothing else, so a row that
+  // never records it can never be matched on the way back.
+  //
+  // Which makes an unguarded save here the one failure this whole file is
+  // arranged to prevent. Handing the owner the gateway URL after this write
+  // failed would send them off to pay against a session we cannot recognise
+  // when they return: money moves, the callback finds no row, and the only
+  // record left is ZarinPal's.
+  //
+  // So we refuse rather than continue. Nothing has been charged at this point
+  // — the authority is a session ZarinPal is holding open, and one the owner
+  // never visits simply expires — so the cost of refusing is that they press
+  // the button again, which is the cheapest outcome available here.
+  //
+  // The realistic cause is the unique index on `authority`: ZarinPal handing
+  // back a handle some earlier row already carries. Logged WITH the authority
+  // because it is the only thread back to the session being abandoned, and a
+  // support question about a charge nobody can find starts there.
+  try {
+    pay.set("authority", authority);
+    $app.save(pay);
+  } catch (err) {
+    $app.logger().error("zarinpal authority could not be recorded; abandoning the session",
+      "authority", authority, "cafe", card.id, "pay", pay.id, "error", String(err));
+
+    // Clear it before writing again. The likeliest reason the save failed is
+    // the unique index on this very column, so leaving it set would fail the
+    // second write for exactly the same reason and lose the status too. The
+    // index is partial — it ignores empty — so an abandoned row is allowed to
+    // sit there with none.
+    try {
+      pay.set("authority", "");
+      pay.set("status", "failed");
+      pay.set("note", "authority not recorded");
+      $app.save(pay);
+    } catch (err2) {
+      $app.logger().error("zarinpal payment row left pending after a failed authority write",
+        "pay", pay.id, "error", String(err2));
+    }
+
+    return e.json(500, { error: "Could not start the payment. Please try again.", code: "PAY_NOT_RECORDED" });
+  }
 
   return e.json(200, { url: base + "/pg/StartPay/" + authority, authority: authority });
 }, $apis.requireAuth());
