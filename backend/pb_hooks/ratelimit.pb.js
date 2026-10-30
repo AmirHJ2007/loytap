@@ -57,9 +57,24 @@ onBootstrap((e) => {
   e.next(); // let PocketBase finish coming up before reading settings
 
   const WANT = [
-    // the route that spends money and calls out to the gateway
-    { label: "/subscription/", audience: "", duration: 60, maxRequests: 10 },
-    // the return leg; loose, see the note above
+    // The route that spends money and calls out to the gateway.
+    //
+    // SPLIT BY AUDIENCE, because the limiter runs BEFORE authentication: an
+    // unauthenticated request is counted and then refused by the handler, so
+    // with one shared rule anonymous traffic drew down the very same per-IP
+    // budget the café owner needs. Under Iranian carrier NAT, where a great
+    // many subscribers leave through one address, a stranger could have kept
+    // a real owner from paying without ever holding a token.
+    //
+    // Ten a minute for an owner — far above a person clicking "pay" once and
+    // maybe twice. Five for a guest, who has no legitimate reason to be here
+    // at all and only ever receives a 403; the budget exists to absorb a
+    // misrouted retry, not to serve anybody.
+    { label: "/subscription/", audience: "@auth", duration: 60, maxRequests: 10 },
+    { label: "/subscription/", audience: "@guest", duration: 60, maxRequests: 5 },
+    // The return leg stays shared: ZarinPal sends the owner's browser back
+    // carrying no session of ours, so every legitimate callback is a guest.
+    // Loose for the reason in the note above.
     { label: "/zarinpal/", audience: "", duration: 60, maxRequests: 60 },
   ];
 
@@ -108,11 +123,26 @@ onBootstrap((e) => {
       ours.push(want);
     }
 
+    // Anything else carrying a label we manage has to go, and this is keyed on
+    // the LABEL ALONE rather than on label-plus-audience.
+    //
+    // PocketBase validates that a label appears once across the whole list,
+    // audience or no audience. So leaving an older shared "/subscription/"
+    // rule in place beside the two that replace it does not merely duplicate
+    // it — the whole settings save is rejected with "already exists or
+    // conflicts with another rule", every rule stays as it was, and the only
+    // sign is one line in the log. Found exactly that way: the first version
+    // of this filter matched on label and audience, kept the stale rule, and
+    // silently asserted nothing on every boot.
+    const owned = {};
+    for (const w of WANT) owned[w.label] = true;
+    const rest = current.filter((r) => !owned[r.label]);
+    if (rest.length !== current.length - ours.length) changed = true;   // something of ours is being dropped
+
     if (!changed) return;
 
     // ours first — the first matching label wins, and a broad prefix added
     // later must not be able to shadow these
-    const rest = current.filter((r) => !WANT.some((w) => w.label === r.label && w.audience === r.audience));
     rl.rules = ours.concat(rest);
 
     $app.save(settings);
