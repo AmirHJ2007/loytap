@@ -104,16 +104,43 @@ cronAdd("subscription-sweep", "30 5 * * *", () => {
       const endDay = startOfTehranDay(endMs);
       const daysLeft = Math.round((endDay - today) / DAY);       // + before, - after
 
-      // Which letter is due today, if any. Only these exact days send: a café
-      // five days out is between letters and should hear nothing.
+      // WHICH LETTER IS DUE: the most urgent threshold this café has reached
+      // and not yet been sent for, NOT the one it lands on exactly.
+      //
+      // This used to test daysLeft === 7, === 3, === 1 and === -GRACE_DAYS.
+      // The cron visits each value once, and last_mail records what WAS sent
+      // rather than what is still owed, so a run that did not happen — a
+      // deploy, a restart, one errored sweep — lost that letter for good. The
+      // file's own header promises the opposite: "if the server is down for a
+      // day, the next run still sees a café sitting at three-days-left and
+      // sends the right letter". It did not. The next run saw two-days-left,
+      // which matched nothing.
+      //
+      // The shutdown notice was the worst of it. The expiry flip below is
+      // `<=` while its letter was `===`, so a single missed day left a café
+      // switched off with no warning ever sent — the first they knew was a
+      // customer being refused at the counter.
+      //
+      // Reaching a threshold late still sends; reaching several late sends
+      // only the most urgent, because "3 days left" is not worth posting to a
+      // café that is already inside its grace period.
       let stage = null;
-      if (daysLeft === 7 || daysLeft === 3 || daysLeft === 1) {
-        stage = "r" + daysLeft;
-      } else if (daysLeft <= 0 && daysLeft > -GRACE_DAYS) {
+      if (daysLeft <= -GRACE_DAYS) {
+        // ...but not news so old it is no longer news. A café switched off
+        // last spring does not want a letter about it today, and without this
+        // every long-dead row would send one the first time this runs.
+        if (daysLeft >= -(GRACE_DAYS + 30)) stage = "off";
+      } else if (daysLeft <= 0) {
         const graceLeft = GRACE_DAYS + daysLeft;
-        if (graceLeft === 7 || graceLeft === 3 || graceLeft === 1) stage = "g" + graceLeft;
-      } else if (daysLeft === -GRACE_DAYS) {
-        stage = "off";
+        if (graceLeft <= 1) stage = "g1";
+        else if (graceLeft <= 3) stage = "g3";
+        else if (graceLeft <= 7) stage = "g7";
+      } else if (daysLeft <= 1) {
+        stage = "r1";
+      } else if (daysLeft <= 3) {
+        stage = "r3";
+      } else if (daysLeft <= 7) {
+        stage = "r7";
       }
 
       // The café has run out of grace: say so in the status the dashboard
