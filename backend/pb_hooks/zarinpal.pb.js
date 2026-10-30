@@ -57,32 +57,33 @@
 onBootstrap((e) => {
   e.next();
 
-  try {
-    if ($os.getenv("ZARINPAL_SANDBOX") !== "1") return;
+  // NOT wrapped in a try. Every other guard in this project swallows its own
+  // errors and carries on, because for those the safe outcome is a running
+  // app. Here it is the opposite: the whole point is to stop. An unexpected
+  // error in these few lines should take the boot down for the same reason a
+  // deliberate one does — if we cannot tell which gateway this deploy is
+  // pointed at, we must not start taking payments against it.
+  if ($os.getenv("ZARINPAL_SANDBOX") !== "1") return;
 
-    const origin = String($os.getenv("APP_ORIGIN") || "").trim();
-    // Unset is the local default: dev.sh does not set APP_ORIGIN, and the
-    // places that read it fall back to the live URL only for building links.
-    // Treating unset as production here would stop every laptop from booting.
-    if (!origin) return;
+  const origin = String($os.getenv("APP_ORIGIN") || "").trim();
+  // Unset is the local default: dev.sh does not set APP_ORIGIN, and the
+  // places that read it fall back to the live URL only for building links.
+  // Treating unset as production here would stop every laptop from booting.
+  if (!origin) return;
 
-    const local = /localhost|127\.0\.0\.1|\[::1\]|\.local(host)?(:|$)|\.test(:|$)|staging|sandbox|dev\./i;
-    if (local.test(origin)) return;
+  const local = /localhost|127\.0\.0\.1|\[::1\]|\.local(host)?(:|$)|\.test(:|$)|staging|sandbox|dev\./i;
+  if (local.test(origin)) return;
 
-    const msg =
-      "SEC-22: refusing to start. ZARINPAL_SANDBOX=1 sends every payment to " +
-      "ZarinPal's fake-card gateway, and APP_ORIGIN is " + origin + ", which " +
-      "is not a development host. Every subscription would be free and would " +
-      "look exactly like a real payment. Unset ZARINPAL_SANDBOX for this " +
-      "deploy, or point APP_ORIGIN at the environment this really is.";
-    $app.logger().error(msg);
-    throw new Error(msg);
-  } catch (err) {
-    // Rethrown, not swallowed: unlike the other guards in this project, the
-    // safe outcome here is NOT to carry on. Wrapped only so the message above
-    // is logged before the error takes the process down.
-    throw err;
-  }
+  const msg =
+    "SEC-22: refusing to start. ZARINPAL_SANDBOX=1 sends every payment to " +
+    "ZarinPal's fake-card gateway, and APP_ORIGIN is " + origin + ", which " +
+    "is not a development host. Every subscription would be free and would " +
+    "look exactly like a real payment. Unset ZARINPAL_SANDBOX for this " +
+    "deploy, or point APP_ORIGIN at the environment this really is.";
+  // Logged as well as thrown: the throw ends the process with a bare message,
+  // while this lands in the structured log where a deploy's output is read.
+  $app.logger().error(msg);
+  throw new Error(msg);
 });
 
 routerAdd("POST", "/subscription/pay", (e) => {
