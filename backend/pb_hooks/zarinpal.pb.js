@@ -71,8 +71,41 @@ onBootstrap((e) => {
   // Treating unset as production here would stop every laptop from booting.
   if (!origin) return;
 
-  const local = /localhost|127\.0\.0\.1|\[::1\]|\.local(host)?(:|$)|\.test(:|$)|staging|sandbox|dev\./i;
-  if (local.test(origin)) return;
+  // WHAT COUNTS AS A DEVELOPMENT HOST, decided on the HOSTNAME and on whole
+  // DNS labels — not by looking for substrings anywhere in the string.
+  //
+  // The first version of this tested the raw origin for "staging", "sandbox"
+  // and "dev." anywhere in it, which was wrong in both directions at once. It
+  // let https://sandbox-cafe.ir boot in sandbox mode — a real production
+  // domain that merely contains the word, and exactly the copied-env-file
+  // accident this guard exists to catch. And it refused an ngrok tunnel, a
+  // LAN address, and any origin with a trailing slash, because "\.local(:|$)"
+  // cannot match "http://mybox.local/". The tunnel case is the one that
+  // stung: ZARINPAL_CALLBACK_URL has to be publicly reachable, so a tunnel is
+  // the only way to exercise a sandbox payment end to end from a laptop, and
+  // the guard hard-refused the single configuration its own purpose requires.
+  //
+  // A label must match ENTIRELY. "staging.reloy.ir" is a staging host;
+  // "sandbox-cafe.ir" is somebody's business.
+  let host = origin.replace(/^[a-z]+:\/\//i, "");   // scheme
+  host = host.split("/")[0];                         // path
+  host = host.split("?")[0].split("#")[0];
+  host = host.replace(/:\d+$/, "");                  // port
+  host = host.replace(/^\[|\]$/g, "").toLowerCase(); // ipv6 brackets
+
+  const DEV_LABELS = ["localhost", "local", "test", "staging", "dev", "sandbox", "qa", "preview"];
+  const labels = host.split(".");
+  if (labels.some((l) => DEV_LABELS.indexOf(l) !== -1)) return;
+
+  // loopback, "all interfaces", and the private ranges a laptop or a LAN box
+  // actually sits on
+  if (host === "::1" || host === "0.0.0.0" ||
+      /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(host)) return;
+
+  // public tunnels to a developer's machine. Nobody runs a production café
+  // platform on one, and reaching a sandbox payment end to end needs one.
+  if (/(^|\.)(ngrok-free\.app|ngrok\.io|ngrok\.dev|trycloudflare\.com|loca\.lt|serveo\.net|localhost\.run)$/.test(host)) return;
 
   const msg =
     "SEC-22: refusing to start. ZARINPAL_SANDBOX=1 sends every payment to " +
