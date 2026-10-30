@@ -148,13 +148,31 @@ function grant(pay, refId, now) {
       s.set("owner_user", p.getString("owner_user"));
     }
 
-    // The new period starts when the current one ends — paid or trial — so
-    // buying early never throws away time already held. Only a café with
-    // nothing left starts from today. The deadline comes from grace.js for
-    // the same reason the gate's does: a status label must not decide which
-    // date column is read.
-    const prev = require(`${__hooks}/grace.js`).deadlineMs(s);
-    const from = (prev && prev > now.getTime()) ? prev : now.getTime();
+    // WHERE THE NEW PERIOD STARTS. Three cases, and the middle one is the
+    // policy this product actually sells:
+    //
+    //   before the end    from the old end date. Buying early never throws
+    //                     away time already held.
+    //   inside the grace  ALSO from the old end date. The grace days are a
+    //                     courtesy, not free service: a café that renews on
+    //                     day 6 of a 7-day grace gets the remaining 24 of
+    //                     its month, not a fresh 30. This is what the grace
+    //                     letter has always told them, in those words.
+    //   after shutdown    from today. The grace ran out, stamping stopped,
+    //                     and what they are buying is a new start rather
+    //                     than the tail of an old period.
+    //
+    // The condition is therefore "is the clock still running", not "is the
+    // end date in the future" — and the clock runs until the end date plus
+    // the grace. It used to test `prev > now`, which collapsed the middle
+    // case into the last one and handed every late payer a full period from
+    // the day they paid. Lapsing was cheaper than renewing, repeatably, and
+    // the letter promising otherwise was the only thing that was accurate.
+    //
+    // Both values come from grace.js, for the same reason the gate's do.
+    const G = require(`${__hooks}/grace.js`);
+    const prev = G.deadlineMs(s);
+    const from = (prev && now.getTime() < prev + G.GRACE_MS) ? prev : now.getTime();
     const end = new Date(from + (p.getString("plan") === "yearly" ? YEAR_MS : MONTH_MS));
 
     s.set("status", "active");
