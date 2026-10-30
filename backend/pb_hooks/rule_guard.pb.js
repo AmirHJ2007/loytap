@@ -52,6 +52,28 @@ onBootstrap((e) => {
   // the handler: pb_hooks files do not share an outer scope with the runtime.
   const AUTHED = '@request.auth.id != ""';
   const OWNER_OF_THIS_CAFE = AUTHED + ' && @request.auth.id = cafe.owner_user.id';
+  // The café's shared staff account is NOT on this one, and that is the whole
+  // point of 1700000029. Every employee signs in with the same code and gets
+  // a token for one staff_user, so naming it in a read rule let anyone
+  // holding that code — a former employee included — GET the plain REST API
+  // for every unredeemed coupon the café has and burn them through /redeem,
+  // and read the entire customer list and stamp history besides.
+  //
+  // THIS CONSTANT USED TO INCLUDE cafe.staff_user.id, and this file asserted
+  // it at every boot — so the guard written to stop rules drifting away from
+  // the migrations was itself dragging these three back to the vulnerable
+  // shape, on every single start, logging it each time as a repair. The live
+  // database was found already reverted.
+  //
+  // Spelled to match 1700000029 byte for byte, because the check below is a
+  // string comparison: a stray quote style would have this rewriting a
+  // correct rule forever.
+  const SELF_OR_OWNER = AUTHED +
+    ' && (@request.auth.id = user.id || @request.auth.id = cafe.owner_user.id)';
+
+  // stamp_requests is the exception and genuinely needs staff: the till lists
+  // the taps waiting to be approved, and subscribes to this collection over
+  // realtime. 1700000029 deliberately left it alone.
   const SELF_OR_CAFE_STAFF = AUTHED +
     ' && (@request.auth.id = user.id || @request.auth.id = cafe.staff_user.id || @request.auth.id = cafe.owner_user.id)';
 
@@ -71,12 +93,12 @@ onBootstrap((e) => {
     ["reward_options", "createRule", OWNER_OF_THIS_CAFE],
     ["reward_options", "updateRule", OWNER_OF_THIS_CAFE + ' && (@request.body.cafe:isset = false || @request.body.cafe = cafe.id)'],
     ["reward_options", "deleteRule", OWNER_OF_THIS_CAFE],
-    ["memberships", "listRule", SELF_OR_CAFE_STAFF],
-    ["memberships", "viewRule", SELF_OR_CAFE_STAFF],
-    ["discounts", "listRule", SELF_OR_CAFE_STAFF],
-    ["discounts", "viewRule", SELF_OR_CAFE_STAFF],
-    ["stamp_events", "listRule", SELF_OR_CAFE_STAFF],
-    ["stamp_events", "viewRule", SELF_OR_CAFE_STAFF],
+    ["memberships", "listRule", SELF_OR_OWNER],
+    ["memberships", "viewRule", SELF_OR_OWNER],
+    ["discounts", "listRule", SELF_OR_OWNER],
+    ["discounts", "viewRule", SELF_OR_OWNER],
+    ["stamp_events", "listRule", SELF_OR_OWNER],
+    ["stamp_events", "viewRule", SELF_OR_OWNER],
     ["stamp_requests", "listRule", SELF_OR_CAFE_STAFF],
     ["stamp_requests", "viewRule", SELF_OR_CAFE_STAFF],
 
